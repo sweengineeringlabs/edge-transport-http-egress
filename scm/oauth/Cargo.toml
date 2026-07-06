@@ -14,6 +14,10 @@ categories   = ["web-programming::http-client", "authentication"]
 application_type = "lib"
 service_type     = "processor"
 
+[package.metadata.arch]
+application_type = "lib"
+service_type     = "processor"
+
 [lib]
 path = "main/src/lib.rs"
 
