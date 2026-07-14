@@ -60,6 +60,10 @@ async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
         claims: HashMap::new(),
         trace_id: Some("trace-abc".to_string()),
         authenticated: true,
+        token: None,
+        metadata: HashMap::new(),
+        is_authorized: false,
+        extensions: HashMap::new(),
     };
 
     // Act: call send_with_context — default impl must delegate to send.
@@ -109,6 +113,10 @@ async fn test_send_with_context_propagates_request_unchanged_to_server() {
         claims: HashMap::new(),
         trace_id: None,
         authenticated: false,
+        token: None,
+        metadata: HashMap::new(),
+        is_authorized: false,
+        extensions: HashMap::new(),
     };
 
     // Act

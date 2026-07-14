@@ -1,6 +1,6 @@
 //! HTTP outbound trait — makes outbound HTTP requests.
 
-use edge_domain::SecurityContext;
+use edge_application::SecurityContext;
 use futures::future::BoxFuture;
 
 use crate::api::types::http::http_egress_result::HttpEgressResult;

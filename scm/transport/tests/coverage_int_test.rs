@@ -553,6 +553,10 @@ fn test_send_with_context_security_context_is_constructible_error() {
         claims: std::collections::HashMap::new(),
         trace_id: None,
         authenticated: false,
+        token: None,
+        metadata: std::collections::HashMap::new(),
+        is_authorized: false,
+        extensions: std::collections::HashMap::new(),
     };
     let _ = ctx;
 }

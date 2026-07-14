@@ -37,7 +37,7 @@ cassette = ["dep:swe-edge-egress-cassette"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
-edge-domain.workspace       = true
+edge-application.workspace  = true
 serde.workspace             = true
 serde_json.workspace        = true
 thiserror.workspace         = true
@@ -64,7 +64,7 @@ swe-edge-configbuilder = { workspace = true }
 # are needed (and listing them risks silently omitting newly-added test files).
 
 [dev-dependencies]
-edge-domain         = { workspace = true }
+edge-application    = { workspace = true }
 tokio               = { workspace = true, features = ["rt-multi-thread", "macros", "net", "time"] }
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }

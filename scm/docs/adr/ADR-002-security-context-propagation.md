@@ -51,7 +51,7 @@ All existing `HttpOutbound` implementations override only `send_with_context`. T
 ## Dependency change
 
 ```toml
-edge-domain = { ..., features = ["security"] }
+edge-application = { ..., features = ["security"] }
 ```
 
 ---

@@ -23,7 +23,7 @@ pub use crate::api::types::{
     WsChannel, WsMessage, WsReceiver, WsSender,
 };
 pub use crate::api::{HttpEgress, HttpEgressBuildError, HttpEgressError, HttpStream, Validator};
-pub use edge_domain::SecurityContext;
+pub use edge_application::SecurityContext;
 
 /// SAF alias for the default (reqwest-backed) HTTP outbound interface.
 pub type DefaultEgress = dyn HttpEgress;
