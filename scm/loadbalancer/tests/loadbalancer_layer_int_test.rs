@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Integration tests for `LoadbalancerLayer`.
 
-use swe_edge_egress_loadbalancer::{
+use edge_transport_http_egress_loadbalancer::{
     BackendConfig, LoadbalancerConfig, LoadbalancerLayer, LoadbalancerSvc, Strategy,
 };
 
@@ -68,7 +68,7 @@ fn test_build_layer_fails_for_zero_weight_backend() {
 /// @covers: build_loadbalancer_layer — SAF free function
 #[test]
 fn test_build_loadbalancer_layer_saf_function_builds_layer() {
-    use swe_edge_egress_loadbalancer::build_loadbalancer_layer;
+    use edge_transport_http_egress_loadbalancer::build_loadbalancer_layer;
     let layer = build_loadbalancer_layer(two_backend_config()).expect("must build");
     let dbg = format!("{layer:?}");
     assert!(dbg.contains("LoadbalancerLayer"), "{dbg}");

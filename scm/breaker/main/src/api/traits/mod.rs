@@ -1,4 +1,4 @@
-//! Primary trait contracts for `swe_edge_egress_breaker`.
+//! Primary trait contracts for `edge_transport_http_egress_breaker`.
 
 pub mod circuit_breaker_node;
 pub mod processor;

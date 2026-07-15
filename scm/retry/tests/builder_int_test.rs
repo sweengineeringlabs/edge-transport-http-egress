@@ -3,7 +3,7 @@
 //!
 //! Covers: `build_retry_layer`, `create_config_builder`, and config defaults.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 fn make_cfg(max_retries: u32) -> RetryConfig {
     RetryConfig {

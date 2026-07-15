@@ -1,6 +1,6 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-cache`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-cache`.
 
-use swe_edge_egress_cache::HttpCacheSvc;
+use edge_transport_http_egress_cache::HttpCacheSvc;
 
 /// @covers: Processor
 #[test]

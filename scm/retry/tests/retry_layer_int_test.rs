@@ -5,7 +5,7 @@
 //! exercise observable properties: Debug output, Send+Sync bounds, and the
 //! `reqwest_middleware::Middleware` impl that allows attaching to a client.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 fn make_cfg() -> RetryConfig {
     RetryConfig {

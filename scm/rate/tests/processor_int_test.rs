@@ -1,6 +1,6 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-rate`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-rate`.
 
-use swe_edge_egress_rate::HttpRateSvc;
+use edge_transport_http_egress_rate::HttpRateSvc;
 
 /// @covers: Processor
 #[test]

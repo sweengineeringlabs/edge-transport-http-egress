@@ -1,8 +1,8 @@
-//! Integration tests for `ApplicationConfigBuilder` in `swe-edge-egress-http-transport`.
+//! Integration tests for `ApplicationConfigBuilder` in `edge-transport-http-egress-transport`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_http_transport::HttpTransportSvc;
+use edge_transport_http_egress_transport::HttpTransportSvc;
 
 /// @covers: ApplicationConfigBuilder
 /// `ApplicationConfigBuilder` (an alias of `ConfigBuilderImpl`) is produced by

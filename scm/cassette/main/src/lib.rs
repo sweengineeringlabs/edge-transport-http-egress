@@ -1,4 +1,4 @@
-//! `swe_edge_egress_cassette` — VCR-style HTTP record/replay middleware.
+//! `edge_transport_http_egress_cassette` — VCR-style HTTP record/replay middleware.
 //!
 //! Intercepts outbound HTTP requests made through a
 //! `reqwest_middleware::ClientWithMiddleware` stack and either records the real
@@ -59,9 +59,9 @@
 //! # Quick start
 //!
 //! ```rust,no_run
-//! use swe_edge_egress_cassette::{HttpCassetteSvc, CassetteConfig};
+//! use edge_transport_http_egress_cassette::{HttpCassetteSvc, CassetteConfig};
 //!
-//! # fn main() -> Result<(), swe_edge_egress_cassette::CassetteError> {
+//! # fn main() -> Result<(), edge_transport_http_egress_cassette::CassetteError> {
 //! // SWE default: replay mode, tests/cassettes/, scrubs auth headers.
 //! let cassette = HttpCassetteSvc::build_cassette_layer(CassetteConfig::default(), "my_test")?;
 //!
@@ -75,9 +75,9 @@
 //! For production stacks where record/replay is not wanted:
 //!
 //! ```rust,no_run
-//! use swe_edge_egress_cassette::{HttpCassetteSvc, CassetteConfig};
+//! use edge_transport_http_egress_cassette::{HttpCassetteSvc, CassetteConfig};
 //!
-//! # fn main() -> Result<(), swe_edge_egress_cassette::CassetteError> {
+//! # fn main() -> Result<(), edge_transport_http_egress_cassette::CassetteError> {
 //! let cassette = HttpCassetteSvc::build_cassette_layer(CassetteConfig::disabled(), "unused")?;
 //! # Ok(())
 //! # }

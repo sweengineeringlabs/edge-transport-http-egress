@@ -9,7 +9,7 @@
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_breaker::Outcome;
+/// use edge_transport_http_egress_breaker::Outcome;
 ///
 /// assert_eq!(Outcome::Success, Outcome::Success);
 /// assert_ne!(Outcome::Success, Outcome::Failure);

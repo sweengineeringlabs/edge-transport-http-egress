@@ -3,7 +3,7 @@
 //! Rule 120: `src/api/types/http_transport_svc.rs` requires a corresponding
 //! test file.
 
-use swe_edge_egress_http_transport::HttpTransportSvc;
+use edge_transport_http_egress_transport::HttpTransportSvc;
 
 /// @covers: HttpTransportSvc::create_config_builder
 /// The factory type must expose a `create_config_builder` method that returns

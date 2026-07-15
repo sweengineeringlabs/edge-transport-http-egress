@@ -2,7 +2,7 @@
 //!
 //! Rule 120: `src/api/error/o_auth_error.rs` requires a corresponding test file.
 
-use swe_edge_egress_oauth::OAuthError;
+use edge_transport_http_egress_oauth::OAuthError;
 
 /// @covers: OAuthError variants
 /// Each variant must display a message that names the crate and the error kind.

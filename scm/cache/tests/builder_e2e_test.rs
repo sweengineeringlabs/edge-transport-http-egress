@@ -1,7 +1,7 @@
-//! End-to-end tests for the swe_edge_egress_cache SAF builder surface.
+//! End-to-end tests for the edge_transport_http_egress_cache SAF builder surface.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
 
 fn make_cfg() -> CacheConfig {
     CacheConfig {

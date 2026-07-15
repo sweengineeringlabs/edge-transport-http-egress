@@ -1,6 +1,6 @@
 //! Integration tests for `TransportConfig`.
 
-use swe_edge_egress_http_transport::{HttpConfig, TransportConfig};
+use edge_transport_http_egress_transport::{HttpConfig, TransportConfig};
 
 #[test]
 fn test_transport_config_struct_stores_http_config() {

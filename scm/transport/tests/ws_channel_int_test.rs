@@ -3,7 +3,7 @@
 use futures::stream;
 use tokio::sync::mpsc;
 
-use swe_edge_egress_http_transport::WsChannel;
+use edge_transport_http_egress_transport::WsChannel;
 
 #[test]
 fn test_ws_channel_struct_can_be_constructed() {

@@ -1,1 +1,1 @@
-# swe-edge-egress-transport
+# edge-transport-http-egress-transport

@@ -1,6 +1,6 @@
-//! Integration tests for `ApplicationConfigBuilder` in `swe-edge-egress-auth`.
+//! Integration tests for `ApplicationConfigBuilder` in `edge-transport-http-egress-auth`.
 
-use swe_edge_egress_auth::AuthSvc;
+use edge_transport_http_egress_auth::AuthSvc;
 
 /// @covers: ApplicationConfigBuilder
 /// `ApplicationConfigBuilder` (an alias of `ConfigBuilderImpl`) is produced by

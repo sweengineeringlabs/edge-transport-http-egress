@@ -6,35 +6,35 @@ pub enum HttpEgressBuildError {
     /// Auth middleware assembly failed.
     #[cfg(feature = "auth")]
     #[error("auth: {0}")]
-    Auth(#[from] swe_edge_egress_auth::AuthError),
+    Auth(#[from] edge_transport_http_egress_auth::AuthError),
     /// Retry middleware assembly failed.
     #[cfg(feature = "retry")]
     #[error("retry: {0}")]
-    Retry(#[from] swe_edge_egress_retry::RetryError),
+    Retry(#[from] edge_transport_http_egress_retry::RetryError),
     /// Rate-limiting middleware assembly failed.
     #[cfg(feature = "rate")]
     #[error("rate: {0}")]
-    Rate(#[from] swe_edge_egress_rate::RateError),
+    Rate(#[from] edge_transport_http_egress_rate::RateError),
     /// Circuit-breaker middleware assembly failed.
     #[cfg(feature = "breaker")]
     #[error("breaker: {0}")]
-    Breaker(#[from] swe_edge_egress_breaker::BreakerError),
+    Breaker(#[from] edge_transport_http_egress_breaker::BreakerError),
     /// Cache middleware assembly failed.
     #[cfg(feature = "cache")]
     #[error("cache: {0}")]
-    Cache(#[from] swe_edge_egress_cache::CacheError),
+    Cache(#[from] edge_transport_http_egress_cache::CacheError),
     /// Cassette middleware assembly failed.
     #[cfg(feature = "cassette")]
     #[error("cassette: {0}")]
-    Cassette(#[from] swe_edge_egress_cassette::CassetteError),
+    Cassette(#[from] edge_transport_http_egress_cassette::CassetteError),
     /// TLS middleware assembly failed.
     #[cfg(feature = "tls")]
     #[error("tls: {0}")]
-    Tls(#[from] swe_edge_egress_tls::TlsConfigError),
+    Tls(#[from] edge_transport_http_egress_tls::TlsConfigError),
     /// OAuth builder assembly failed.
     #[cfg(feature = "oauth")]
     #[error("oauth: {0}")]
-    OAuth(#[from] swe_edge_egress_oauth::OAuthError),
+    OAuth(#[from] edge_transport_http_egress_oauth::OAuthError),
     /// Reqwest client construction failed.
     #[error("reqwest: {0}")]
     Reqwest(#[from] reqwest::Error),

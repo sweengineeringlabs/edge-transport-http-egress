@@ -12,7 +12,7 @@
 //! without error, since path validation is deferred to request time.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 fn make_cfg(dir: &str, scrub_body_paths: Vec<String>) -> CassetteConfig {
     CassetteConfig {

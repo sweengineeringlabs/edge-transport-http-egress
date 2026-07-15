@@ -12,7 +12,7 @@
 //! selected → correct build outcome."
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_auth::{AuthConfig, AuthError, AuthSvc};
+use edge_transport_http_egress_auth::{AuthConfig, AuthError, AuthSvc};
 
 // ---------------------------------------------------------------------------
 // None → NoopStrategy (no env needed, no header attached)

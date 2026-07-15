@@ -1,6 +1,6 @@
 //! Integration tests for `HttpTlsSvc` SAF functions.
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig};
 
 /// @covers: HttpTlsSvc::create_config_builder
 #[test]

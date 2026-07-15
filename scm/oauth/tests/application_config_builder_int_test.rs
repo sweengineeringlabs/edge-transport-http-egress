@@ -1,6 +1,6 @@
-//! Integration tests for `application_config_builder` in `swe-edge-egress-oauth`.
+//! Integration tests for `application_config_builder` in `edge-transport-http-egress-oauth`.
 
-use swe_edge_egress_oauth::ApplicationConfigBuilder;
+use edge_transport_http_egress_oauth::ApplicationConfigBuilder;
 
 /// @covers: ApplicationConfigBuilder
 /// `ApplicationConfigBuilder` must be accessible from the public API.

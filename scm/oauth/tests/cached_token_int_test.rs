@@ -8,8 +8,8 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 
 /// A token source that counts how many times `get_access_token` is called,
 /// verifying that the caching layer reduces upstream calls.

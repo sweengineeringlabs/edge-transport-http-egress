@@ -1,4 +1,4 @@
-//! swe_edge_egress_cache — RFC-7234 HTTP cache middleware (wraps http-cache-reqwest with moka).
+//! edge_transport_http_egress_cache — RFC-7234 HTTP cache middleware (wraps http-cache-reqwest with moka).
 //!
 
 #![warn(missing_docs)]

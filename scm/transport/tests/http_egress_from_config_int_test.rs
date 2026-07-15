@@ -8,9 +8,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_oauth::OAuthTokenSource;
+use edge_transport_http_egress_transport::{HttpEgressBuildError, HttpTransportSvc};
 use swe_edge_configbuilder::ConfigLoaderFactory;
-use swe_edge_egress_http_transport::{HttpEgressBuildError, HttpTransportSvc};
-use swe_edge_egress_oauth::OAuthTokenSource;
 use tempfile::TempDir;
 
 fn loader(content: &str) -> (TempDir, swe_edge_configbuilder::SectionLoaderImpl) {
@@ -318,7 +318,7 @@ struct StaticTokenSource;
 impl OAuthTokenSource for StaticTokenSource {
     fn get_access_token(
         &self,
-    ) -> futures::future::BoxFuture<'_, swe_edge_egress_oauth::Result<String>> {
+    ) -> futures::future::BoxFuture<'_, edge_transport_http_egress_oauth::Result<String>> {
         Box::pin(async { Ok("test-token".to_owned()) })
     }
 }

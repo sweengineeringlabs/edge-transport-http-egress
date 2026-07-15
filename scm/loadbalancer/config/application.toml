@@ -1,4 +1,4 @@
-# Workspace overrides for swe-edge-egress-loadbalancer.
+# Workspace overrides for edge-transport-http-egress-loadbalancer.
 # Uncomment and adjust to override defaults from swe-edge-loadbalancer.
 
 # [loadbalancer]

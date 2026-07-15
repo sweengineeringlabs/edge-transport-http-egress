@@ -4,7 +4,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerError, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerError, BreakerLayer, HttpBreakerSvc,
+};
 
 // ---------------------------------------------------------------------------
 // build_breaker_layer — SAF entry point
@@ -156,7 +158,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = BreakerError::ParseFailed("bad toml".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_breaker"),
+        msg.contains("edge_transport_http_egress_breaker"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }

@@ -1,9 +1,9 @@
-//! Integration tests for `swe_edge_egress_cassette` SAF builder entry points.
+//! Integration tests for `edge_transport_http_egress_cassette` SAF builder entry points.
 //!
 //! Covers: `create_config_builder()`, `HttpCassetteSvc::build_cassette_layer(config, name)`, and all config variants.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_config(dir: &str) -> CassetteConfig {
     // Normalize backslashes so TOML doesn't treat `\U`, `\t`, etc. as escape

@@ -1,4 +1,4 @@
-﻿//! Integration tests for strategy selection driven by `AuthConfig` variants.
+//! Integration tests for strategy selection driven by `AuthConfig` variants.
 //!
 //! `AuthStrategy` itself is `pub(crate)` — these tests exercise strategy
 //! selection indirectly by building middleware from each config variant
@@ -13,8 +13,8 @@
 //! - `AuthMiddleware`'s `Debug` output reflects the processor kind
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_auth::{AuthConfig, AuthError, AuthMiddleware, AuthSvc};
 use reqwest_middleware::Middleware;
-use swe_edge_egress_auth::{AuthConfig, AuthError, AuthMiddleware, AuthSvc};
 
 // Verify AuthMiddleware implements the reqwest_middleware::Middleware trait
 // at compile time. If the impl is removed this function won't compile.

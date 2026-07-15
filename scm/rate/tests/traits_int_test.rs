@@ -6,7 +6,7 @@
 //! `dyn HttpRate + Send + Sync` object.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::RateLayer;
+use edge_transport_http_egress_rate::RateLayer;
 
 /// `RateLayer` must be `Send`.
 #[test]
@@ -25,7 +25,7 @@ fn test_rate_layer_satisfies_sync_required_by_http_rate_trait() {
 /// `RateLayer` can be coerced to a `Box<dyn Send + Sync>`.
 #[test]
 fn test_rate_layer_coercible_to_boxed_send_sync() {
-    use swe_edge_egress_rate::{HttpRateSvc, RateConfig};
+    use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig};
     let cfg = RateConfig {
         tokens_per_second: 5,
         burst_capacity: 10,

@@ -1,6 +1,6 @@
 //! Integration tests for `HttpStream`.
 
-use swe_edge_egress_http_transport::HttpStream;
+use edge_transport_http_egress_transport::HttpStream;
 
 #[test]
 fn test_http_stream_trait_is_object_safe() {

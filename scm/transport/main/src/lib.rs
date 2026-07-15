@@ -1,4 +1,4 @@
-//! `swe_edge_egress_http` — HTTP outbound domain.
+//! `edge_transport_http_egress` — HTTP outbound domain.
 
 // `unwrap`/`expect` are denied in production code (Cargo.toml `[lints.clippy]`)
 // but are the idiomatic assertion mechanism inside the crate's inline

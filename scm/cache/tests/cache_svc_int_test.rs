@@ -1,6 +1,6 @@
 //! Integration tests for `HttpCacheSvc::build_cache_layer`.
 
-use swe_edge_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 
 /// @covers: build_cache_layer
 #[test]

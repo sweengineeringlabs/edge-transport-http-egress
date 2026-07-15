@@ -6,8 +6,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_breaker::HttpBreakerSvc;
 use swe_edge_configbuilder::ConfigBuilderImpl;
-use swe_edge_egress_breaker::HttpBreakerSvc;
 
 /// @covers: create_config_builder
 /// Verifies the config builder can be constructed and a loader built from it.

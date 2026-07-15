@@ -7,7 +7,7 @@
 //! - That the layer is usable in the standard `apply_to + ClientBuilder` pattern.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
 
 // ---------------------------------------------------------------------------
 // TlsLayer construction via build_tls_layer

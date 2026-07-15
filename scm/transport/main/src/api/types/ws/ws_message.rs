@@ -11,7 +11,7 @@ use bytes::Bytes;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::WsMessage;
+/// use edge_transport_http_egress_transport::WsMessage;
 ///
 /// let text_frame = WsMessage::text("hello world");
 /// assert!(!text_frame.binary);

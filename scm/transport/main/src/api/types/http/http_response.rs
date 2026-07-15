@@ -13,7 +13,7 @@ use std::collections::HashMap;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpResponse;
+/// use edge_transport_http_egress_transport::HttpResponse;
 ///
 /// let resp = HttpResponse::new(200, b"{\"id\": 1}".to_vec());
 /// assert!(resp.is_success());

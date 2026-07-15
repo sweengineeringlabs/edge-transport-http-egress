@@ -14,7 +14,7 @@ use crate::api::error::BreakerError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_breaker::BreakerConfig;
+/// use edge_transport_http_egress_breaker::BreakerConfig;
 ///
 /// // SWE baseline: 5 failures, 30s cool-down, 3 probes to reset.
 /// let cfg = BreakerConfig::default();

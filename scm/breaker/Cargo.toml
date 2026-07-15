@@ -1,5 +1,5 @@
 [package]
-name = "swe-edge-egress-breaker"
+name = "edge-transport-http-egress-breaker"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

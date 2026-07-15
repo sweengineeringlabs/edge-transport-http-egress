@@ -4,7 +4,7 @@
 //! and cannot be imported in integration tests. These tests cover the public equivalent —
 //! `AuthStrategy` — which is the functional strategy contract exported from the crate root.
 
-use swe_edge_egress_auth::AuthStrategy;
+use edge_transport_http_egress_auth::AuthStrategy;
 
 /// @covers: api::strategy::traits::AuthStrategy — exported from crate root.
 ///

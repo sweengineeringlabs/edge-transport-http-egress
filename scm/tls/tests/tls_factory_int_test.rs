@@ -16,7 +16,7 @@
 //!   the `TlsLayer` Debug).
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError};
 
 // ---------------------------------------------------------------------------
 // None variant → noop provider

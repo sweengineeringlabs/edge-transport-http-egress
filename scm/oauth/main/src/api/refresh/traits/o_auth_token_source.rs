@@ -23,7 +23,7 @@ use crate::api::refresh::errors::Result;
 ///
 /// ```rust,no_run
 /// use futures::future::BoxFuture;
-/// use swe_edge_egress_oauth::{OAuthTokenSource, OAuthError};
+/// use edge_transport_http_egress_oauth::{OAuthTokenSource, OAuthError};
 ///
 /// /// Static token source — useful in tests and for long-lived service accounts.
 /// #[derive(Debug)]
@@ -44,7 +44,7 @@ pub trait OAuthTokenSource: Send + Sync + std::fmt::Debug + 'static {
     /// # Examples
     ///
     /// ```rust,no_run
-    /// use swe_edge_egress_oauth::{OAuthTokenSource, OAuthError};
+    /// use edge_transport_http_egress_oauth::{OAuthTokenSource, OAuthError};
     /// // Implement get_access_token to return a fresh token from your credential store.
     /// // The middleware calls this on every outbound request.
     /// ```

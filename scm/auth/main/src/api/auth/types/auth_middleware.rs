@@ -20,7 +20,7 @@ use crate::api::HttpAuth;
 /// Construct via `AuthSvc::build_auth_middleware(config)`. Use:
 ///
 /// ```ignore
-/// let mw = swe_edge_egress_auth::AuthSvc::build_auth_middleware(AuthConfig::None)?;
+/// let mw = edge_transport_http_egress_auth::AuthSvc::build_auth_middleware(AuthConfig::None)?;
 /// let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
 ///     .with(mw)
 ///     .build();

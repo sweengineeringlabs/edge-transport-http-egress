@@ -3,7 +3,7 @@
 //! Covers: `build_tls_layer`, `TlsConfig` variants, `TlsLayer` construction.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
 
 // ---------------------------------------------------------------------------
 // build_tls_layer — SAF entry point

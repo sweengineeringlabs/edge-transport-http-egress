@@ -8,7 +8,7 @@
 //! behavior through the public TLS layer API.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
 
 /// @covers: NoopHttpTlsMarker (via TlsConfig::None layer)
 /// Building a `TlsLayer` with `TlsConfig::None` uses the noop TLS provider

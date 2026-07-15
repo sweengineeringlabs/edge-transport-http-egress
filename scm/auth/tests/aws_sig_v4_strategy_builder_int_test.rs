@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_auth::{AuthError, AwsSigV4StrategyBuilder, AwsSigV4StrategyConfig};
+use edge_transport_http_egress_auth::{AuthError, AwsSigV4StrategyBuilder, AwsSigV4StrategyConfig};
 
 /// @covers: AwsSigV4StrategyBuilder::new
 /// Verifies the builder is constructible via `new()`.

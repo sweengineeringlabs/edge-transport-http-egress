@@ -9,7 +9,7 @@
 //! - `process()` is reachable end-to-end via the middleware handle path.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_auth::{AuthConfig, AuthError, AuthMiddleware, AuthSvc};
+use edge_transport_http_egress_auth::{AuthConfig, AuthError, AuthMiddleware, AuthSvc};
 
 // ---------------------------------------------------------------------------
 // describe() via AuthMiddleware Debug

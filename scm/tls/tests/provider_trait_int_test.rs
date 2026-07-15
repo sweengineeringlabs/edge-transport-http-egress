@@ -1,6 +1,6 @@
 //! Integration tests for `describe_tls_provider` — provider accessibility from crate root.
 
-use swe_edge_egress_tls::{describe_tls_provider, HttpTlsSvc};
+use edge_transport_http_egress_tls::{describe_tls_provider, HttpTlsSvc};
 
 /// @covers: describe_tls_provider
 /// Proves the SAF wrapper for `Provider::describe` is accessible from the crate root

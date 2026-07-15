@@ -18,7 +18,7 @@ use crate::api::error::CassetteError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_cassette::CassetteConfig;
+/// use edge_transport_http_egress_cassette::CassetteConfig;
 ///
 /// // Production: disabled pass-through (no cassette I/O).
 /// let cfg = CassetteConfig::disabled();

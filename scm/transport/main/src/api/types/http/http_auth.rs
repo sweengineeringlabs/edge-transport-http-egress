@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpAuth;
+/// use edge_transport_http_egress_transport::HttpAuth;
 ///
 /// let bearer = HttpAuth::bearer("my-token");
 /// assert!(matches!(bearer, HttpAuth::Bearer { .. }));

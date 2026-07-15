@@ -1,6 +1,6 @@
 //! Integration tests for the DefaultHttpEgress SAF factories.
 
-use swe_edge_egress_http_transport::{HttpConfig, HttpTransportSvc};
+use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc};
 
 /// @covers: default_http_egress
 #[test]

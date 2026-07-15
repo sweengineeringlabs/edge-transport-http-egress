@@ -1,6 +1,6 @@
-//! Integration tests for `create_config_builder` in `swe_edge_egress_cache`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cache`.
 
-use swe_edge_egress_cache::HttpCacheSvc;
+use edge_transport_http_egress_cache::HttpCacheSvc;
 
 /// @covers: HttpCacheSvc::create_config_builder — dep coverage for swe-edge-configbuilder
 #[test]

@@ -4,7 +4,7 @@
 //! and cannot be imported in integration tests. These tests cover the public equivalent —
 //! `OAuthTokenSource` — which is the functional strategy contract exported from the crate root.
 
-use swe_edge_egress_oauth::{OAuthError, OAuthTokenSource};
+use edge_transport_http_egress_oauth::{OAuthError, OAuthTokenSource};
 
 /// @covers: api::refresh::traits::OAuthTokenSource — exported from crate root.
 ///

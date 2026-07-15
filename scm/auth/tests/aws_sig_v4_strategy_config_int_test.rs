@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_auth::{AwsSigV4StrategyBuilder, AwsSigV4StrategyConfig};
+use edge_transport_http_egress_auth::{AwsSigV4StrategyBuilder, AwsSigV4StrategyConfig};
 
 /// @covers: AwsSigV4StrategyConfig Debug
 /// Debug output must redact `access_key_id` and `secret_access_key` to prevent

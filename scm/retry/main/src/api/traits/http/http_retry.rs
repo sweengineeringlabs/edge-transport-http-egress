@@ -20,7 +20,7 @@ use crate::api::types::retry::retry_config::RetryConfig;
 pub trait HttpRetry: Send + Sync {
     /// Identify this processor in log / trace output.
     ///
-    /// Returns the crate's canonical name (e.g. `"swe_edge_egress_retry"`).
+    /// Returns the crate's canonical name (e.g. `"edge_transport_http_egress_retry"`).
     fn describe(&self) -> &'static str;
 
     /// Return the underlying retry configuration.

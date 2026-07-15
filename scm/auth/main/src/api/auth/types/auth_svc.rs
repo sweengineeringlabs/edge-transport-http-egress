@@ -1,4 +1,4 @@
-//! `AuthSvc` — SAF service facade type for `swe-edge-egress-auth`.
+//! `AuthSvc` — SAF service facade type for `edge-transport-http-egress-auth`.
 
 /// Service facade for the auth middleware crate.
 ///

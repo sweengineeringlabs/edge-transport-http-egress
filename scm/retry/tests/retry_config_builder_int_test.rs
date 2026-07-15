@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_retry::RetryConfigBuilder;
+use edge_transport_http_egress_retry::RetryConfigBuilder;
 
 /// @covers: RetryConfigBuilder::new
 #[test]

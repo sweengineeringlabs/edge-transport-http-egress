@@ -12,7 +12,7 @@
 //!   immediately after the first attempt.
 //! - The `backoff_for` cap (`max_interval_ms`) is respected in timing.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig};
 
 fn make_cfg_with(
     max_retries: u32,

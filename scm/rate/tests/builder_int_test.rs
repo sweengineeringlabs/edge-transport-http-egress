@@ -3,7 +3,7 @@
 //! Covers the full public builder surface: `build_rate_layer` and `create_config_builder`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateError, RateLayer};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig, RateError, RateLayer};
 
 // ---------------------------------------------------------------------------
 // build_rate_layer with default config
@@ -162,7 +162,7 @@ fn test_error_parse_failed_display_names_crate_and_echoes_reason() {
     let err = RateError::ParseFailed(reason.to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_rate"),
+        msg.contains("edge_transport_http_egress_rate"),
         "ParseFailed display must name the crate; got: {msg}"
     );
     assert!(

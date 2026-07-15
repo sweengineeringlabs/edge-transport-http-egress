@@ -4,8 +4,8 @@
 //! Rule 95: `swe-edge-configbuilder` is used in `src/` and must have
 //! integration coverage with an explicit `use swe_edge_configbuilder::...` import.
 
+use edge_transport_http_egress_cassette::HttpCassetteSvc;
 use swe_edge_configbuilder::ConfigBuilderImpl;
-use swe_edge_egress_cassette::HttpCassetteSvc;
 
 /// @covers: swe-edge-configbuilder
 /// Confirms `create_config_builder` returns a `ConfigBuilderImpl` seeded with

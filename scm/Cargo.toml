@@ -19,7 +19,7 @@ edition      = "2021"
 license      = "MIT OR Apache-2.0"
 rust-version = "1.95"
 authors      = ["SWE Engineering Labs"]
-repository   = "https://github.com/sweengineeringlabs/edge-egress-http"
+repository   = "https://github.com/sweengineeringlabs/edge-transport-http-egress"
 
 [workspace.lints.rust]
 unsafe_code  = "deny"
@@ -44,16 +44,16 @@ swe-observ-metrics     = { package = "swe-observability-metrics", git = "ssh://g
 swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
 
 # ── internal middleware ───────────────────────────────────────────────────────
-swe-edge-egress-http         = { package = "swe-edge-egress-http-transport", path = "transport" }
-swe-edge-egress-auth         = { path = "auth" }
-swe-edge-egress-breaker      = { path = "breaker" }
-swe-edge-egress-cache        = { path = "cache" }
-swe-edge-egress-cassette     = { path = "cassette" }
-swe-edge-egress-loadbalancer = { path = "loadbalancer" }
-swe-edge-egress-oauth        = { path = "oauth" }
-swe-edge-egress-rate         = { path = "rate" }
-swe-edge-egress-retry        = { path = "retry" }
-swe-edge-egress-tls          = { path = "tls" }
+edge-transport-http-egress         = { package = "edge-transport-http-egress-transport", path = "transport" }
+edge-transport-http-egress-auth         = { path = "auth" }
+edge-transport-http-egress-breaker      = { path = "breaker" }
+edge-transport-http-egress-cache        = { path = "cache" }
+edge-transport-http-egress-cassette     = { path = "cassette" }
+edge-transport-http-egress-loadbalancer = { path = "loadbalancer" }
+edge-transport-http-egress-oauth        = { path = "oauth" }
+edge-transport-http-egress-rate         = { path = "rate" }
+edge-transport-http-egress-retry        = { path = "retry" }
+edge-transport-http-egress-tls          = { path = "tls" }
 
 # ── HTTP client stack ─────────────────────────────────────────────────────────
 reqwest            = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }

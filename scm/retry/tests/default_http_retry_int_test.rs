@@ -11,7 +11,7 @@
 //! - The factory pipeline does not modify the config values on the way through
 //!   `DefaultHttpRetry::new`.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 fn make_cfg(max_retries: u32, initial_ms: u64) -> RetryConfig {
     RetryConfig {

@@ -1,4 +1,4 @@
-//! swe_edge_egress_breaker — Circuit-breaker middleware — fail fast on degraded upstreams.
+//! edge_transport_http_egress_breaker — Circuit-breaker middleware — fail fast on degraded upstreams.
 //!
 
 #![warn(missing_docs)]

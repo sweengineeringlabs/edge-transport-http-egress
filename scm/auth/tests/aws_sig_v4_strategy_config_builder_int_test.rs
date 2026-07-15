@@ -1,6 +1,6 @@
 //! Integration tests for `AwsSigV4StrategyConfigBuilder`.
 
-use swe_edge_egress_auth::{AwsSigV4StrategyConfig, AwsSigV4StrategyConfigBuilder};
+use edge_transport_http_egress_auth::{AwsSigV4StrategyConfig, AwsSigV4StrategyConfigBuilder};
 
 /// @covers: AwsSigV4StrategyConfigBuilder::new
 #[test]

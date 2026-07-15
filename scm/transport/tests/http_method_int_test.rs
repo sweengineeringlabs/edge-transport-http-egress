@@ -1,6 +1,6 @@
 //! Integration tests for `HttpMethod`.
 
-use swe_edge_egress_http_transport::HttpMethod;
+use edge_transport_http_egress_transport::HttpMethod;
 
 #[test]
 fn test_http_method_enum_display_returns_uppercase_string() {

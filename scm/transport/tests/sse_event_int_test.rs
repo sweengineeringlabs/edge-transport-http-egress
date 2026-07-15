@@ -1,6 +1,6 @@
 //! Integration tests for `SseEvent`.
 
-use swe_edge_egress_http_transport::SseEvent;
+use edge_transport_http_egress_transport::SseEvent;
 
 /// @covers: data
 #[test]

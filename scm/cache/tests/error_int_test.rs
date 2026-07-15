@@ -5,7 +5,7 @@
 //! available.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::CacheError;
+use edge_transport_http_egress_cache::CacheError;
 
 // ---------------------------------------------------------------------------
 // CacheError::ParseFailed
@@ -26,7 +26,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = CacheError::ParseFailed("bad field".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_cache"),
+        msg.contains("edge_transport_http_egress_cache"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }

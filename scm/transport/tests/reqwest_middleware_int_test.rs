@@ -10,6 +10,7 @@ use std::convert::Infallible;
 use std::time::Duration;
 
 use bytes::Bytes;
+use edge_transport_http_egress_transport::{HttpConfig, HttpRequest, HttpTransportSvc};
 use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
@@ -17,7 +18,6 @@ use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use reqwest_middleware::ClientBuilder;
-use swe_edge_egress_http_transport::{HttpConfig, HttpRequest, HttpTransportSvc};
 
 /// Spawn a single-connection HTTP/1 test server.
 async fn spawn_once<F, Fut>(handler: F) -> (u16, tokio::task::JoinHandle<()>)

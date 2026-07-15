@@ -1,7 +1,7 @@
 //! Integration tests for `CachedEntryBuilder`.
 
+use edge_transport_http_egress_cache::CachedEntryBuilder;
 use std::time::{Duration, Instant};
-use swe_edge_egress_cache::CachedEntryBuilder;
 
 /// @covers: CachedEntryBuilder::build
 #[test]

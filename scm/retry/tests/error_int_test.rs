@@ -1,10 +1,10 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for `swe_edge_egress_retry::RetryError`.
+//! Integration tests for `edge_transport_http_egress_retry::RetryError`.
 //!
 //! Covers: `RetryRetryError::ParseFailed` — Display messages
 //! must be actionable: name the crate, embed the payload, be non-empty.
 
-use swe_edge_egress_retry::RetryError;
+use edge_transport_http_egress_retry::RetryError;
 
 // ---------------------------------------------------------------------------
 // RetryError::ParseFailed
@@ -16,7 +16,7 @@ fn test_parse_failed_display_names_the_crate() {
     let err = RetryError::ParseFailed("unexpected field `max_retry`".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_retry"),
+        msg.contains("edge_transport_http_egress_retry"),
         "ParseFailed Display must name the crate; got: {msg}"
     );
 }

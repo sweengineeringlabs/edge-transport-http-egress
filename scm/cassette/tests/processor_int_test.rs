@@ -1,7 +1,7 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-cassette`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-cassette`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::HttpCassetteSvc;
+use edge_transport_http_egress_cassette::HttpCassetteSvc;
 
 /// @covers: Processor
 #[test]

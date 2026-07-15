@@ -1,4 +1,4 @@
-//! `swe_edge_egress_oauth` — OAuth2 token-refresh middleware for edge egress.
+//! `edge_transport_http_egress_oauth` — OAuth2 token-refresh middleware for edge egress.
 //!
 //! Defines the [`OAuthTokenSource`] trait and a `reqwest-middleware` shell
 //! ([`OAuthMiddleware`]) that wraps it. Concrete implementations (credential
@@ -9,7 +9,7 @@
 //! ```rust,no_run
 //! use std::sync::Arc;
 //! use futures::future::BoxFuture;
-//! use swe_edge_egress_oauth::{OAuthBuilderOps, OAuthTokenSource, OAuthSvc, Result};
+//! use edge_transport_http_egress_oauth::{OAuthBuilderOps, OAuthTokenSource, OAuthSvc, Result};
 //!
 //! #[derive(Debug)]
 //! struct MyTokenSource;
@@ -20,7 +20,7 @@
 //!     }
 //! }
 //!
-//! # fn main() -> std::result::Result<(), swe_edge_egress_oauth::OAuthError> {
+//! # fn main() -> std::result::Result<(), edge_transport_http_egress_oauth::OAuthError> {
 //! let mw = OAuthSvc::builder()
 //!     .with_token_source(Arc::new(MyTokenSource))
 //!     .build()?;

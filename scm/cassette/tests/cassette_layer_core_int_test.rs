@@ -14,7 +14,7 @@
 //!   matches the incoming request.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 fn make_cfg(dir: &str, mode: &str, match_on: Vec<String>) -> CassetteConfig {
     CassetteConfig {
@@ -121,7 +121,8 @@ async fn test_middleware_replay_mode_returns_error_on_cache_miss() {
     );
     let err_msg = result.unwrap_err().to_string();
     assert!(
-        err_msg.contains("swe_edge_egress_cassette") || err_msg.contains("no recorded interaction"),
+        err_msg.contains("edge_transport_http_egress_cassette")
+            || err_msg.contains("no recorded interaction"),
         "error must identify the cassette miss; got: {err_msg}"
     );
 }

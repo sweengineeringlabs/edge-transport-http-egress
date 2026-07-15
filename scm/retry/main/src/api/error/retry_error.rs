@@ -6,6 +6,6 @@ pub enum RetryError {
     /// Config TOML didn't parse as the expected schema.
     /// Wraps the underlying `toml::de::Error` message, which
     /// names the missing or unknown field when that's the cause.
-    #[error("swe_edge_egress_retry: config parse failed — {0}")]
+    #[error("edge_transport_http_egress_retry: config parse failed — {0}")]
     ParseFailed(String),
 }

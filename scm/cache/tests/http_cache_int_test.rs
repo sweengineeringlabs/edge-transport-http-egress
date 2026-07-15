@@ -7,7 +7,7 @@
 //! bounds.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // Send + Sync — compile-time proof that HttpCache's supertrait bounds hold

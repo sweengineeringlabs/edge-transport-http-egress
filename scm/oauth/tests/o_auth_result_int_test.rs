@@ -4,7 +4,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_oauth::{OAuthError, Result};
+use edge_transport_http_egress_oauth::{OAuthError, Result};
 
 /// @covers: Result type alias
 /// The `Result` alias must be usable as a return type and must propagate errors.

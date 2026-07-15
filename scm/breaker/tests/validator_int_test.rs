@@ -1,6 +1,6 @@
-//! Integration tests for the `Validator` trait in `swe-edge-egress-breaker`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-breaker`.
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerError};
+use edge_transport_http_egress_breaker::{BreakerConfig, BreakerError};
 
 /// @covers: Validator
 /// The `Validator` trait is implemented internally by the config layer.

@@ -2,7 +2,7 @@
 //!
 //! Rule 120: `src/api/types/o_auth_svc.rs` requires a corresponding test file.
 
-use swe_edge_egress_oauth::{OAuthBuilderOps, OAuthSvc};
+use edge_transport_http_egress_oauth::{OAuthBuilderOps, OAuthSvc};
 
 /// @covers: OAuthSvc::builder
 /// `OAuthSvc::builder()` must return an `OAuthBuilder` (verified by calling build()).

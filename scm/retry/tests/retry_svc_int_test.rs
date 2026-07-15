@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used)]
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig};
 
 #[test]
 fn test_create_config_builder_returns_named_builder_happy() {

@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_http_transport::{HttpConfig, HttpRequest, HttpStream, HttpTransportSvc};
+use edge_transport_http_egress_transport::{HttpConfig, HttpRequest, HttpStream, HttpTransportSvc};
 
 // ─── plain_http_egress ──────────────────────────────────────────────────────
 
@@ -89,6 +89,7 @@ mod oauth_factory {
     use std::time::Duration;
 
     use bytes::Bytes;
+    use edge_transport_http_egress_oauth::{OAuthError, OAuthTokenSource};
     use futures::future::BoxFuture;
     use http_body_util::Full;
     use hyper::body::Incoming;
@@ -96,7 +97,6 @@ mod oauth_factory {
     use hyper::service::service_fn;
     use hyper::{Request, Response};
     use hyper_util::rt::TokioIo;
-    use swe_edge_egress_oauth::{OAuthError, OAuthTokenSource};
 
     use super::*;
 
@@ -225,7 +225,7 @@ mod oauth_factory {
         assert!(
             matches!(
                 err,
-                swe_edge_egress_http_transport::HttpEgressError::Unauthorized(_)
+                edge_transport_http_egress_transport::HttpEgressError::Unauthorized(_)
             ),
             "HTTP 401 must map to HttpEgressError::Unauthorized, got: {err:?}"
         );

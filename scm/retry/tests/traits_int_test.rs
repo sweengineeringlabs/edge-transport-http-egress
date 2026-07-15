@@ -1,12 +1,12 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for `swe_edge_egress_retry` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_retry` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` defines the `pub(crate)` type alias `HttpRetryTrait`
 //! for `dyn HttpRetry`. The relevant integration-level contract is that the
 //! SAF re-export surface is complete and `RetryLayer` satisfies all trait
 //! bounds required for use inside `reqwest_middleware::ClientBuilder`.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 fn make_cfg() -> RetryConfig {
     RetryConfig {

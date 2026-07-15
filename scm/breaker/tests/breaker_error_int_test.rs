@@ -1,7 +1,7 @@
-//! Integration tests for `breaker_error` in `swe-edge-egress-breaker`.
+//! Integration tests for `breaker_error` in `edge-transport-http-egress-breaker`.
 
 use core::marker::PhantomData;
-use swe_edge_egress_breaker::BreakerError;
+use edge_transport_http_egress_breaker::BreakerError;
 
 /// @covers: BreakerError
 /// Confirms `BreakerError` is part of the public API by naming the type and

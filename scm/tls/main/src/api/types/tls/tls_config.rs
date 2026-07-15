@@ -18,7 +18,7 @@ use crate::api::error::TlsConfigError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_tls::TlsConfig;
+/// use edge_transport_http_egress_tls::TlsConfig;
 ///
 /// // Default: no client TLS.
 /// let cfg = TlsConfig::default();

@@ -1,7 +1,7 @@
 //! Integration tests for `validate_tls_config` — `Validator` contract via SAF wrapper.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{validate_tls_config, TlsConfig};
+use edge_transport_http_egress_tls::{validate_tls_config, TlsConfig};
 
 /// @covers: validate_tls_config
 #[test]

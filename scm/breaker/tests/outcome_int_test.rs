@@ -1,7 +1,7 @@
 //! Integration tests for `api/types/breaker/outcome.rs`.
 //! @covers: src/api/types/breaker/outcome.rs
 
-use swe_edge_egress_breaker::Outcome;
+use edge_transport_http_egress_breaker::Outcome;
 
 /// @covers: Outcome
 /// Confirms `Success` and `Failure` are distinct variants — the breaker

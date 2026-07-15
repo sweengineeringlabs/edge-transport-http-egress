@@ -1,4 +1,4 @@
-# Architecture — edge-egress-http
+# Architecture — edge-transport-http-egress
 
 Eight independent middleware crates compose into a `reqwest-middleware` chain: `auth → retry → rate → breaker → cache → cassette → tls`. Each is opt-in; policy lives in TOML.
 
@@ -38,12 +38,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-    A["HttpRequest\n───────────\nmethod, url\nheaders, body"] --> B["swe-edge-egress-auth\nBearer / OAuth2 token\ninjected into headers"]
-    B --> C["swe-edge-egress-retry\nmax_attempts, backoff\nretries on 5xx / timeout"]
-    C --> D["swe-edge-egress-rate\ntokens-per-second\n429 if exhausted"]
-    D --> E["swe-edge-egress-breaker\nfailure threshold\nopen → Err immediately"]
-    E --> F["swe-edge-egress-cache\nLRU in-memory\ncache-hit → skip wire"]
-    F --> G["swe-edge-egress-tls\nmTLS / custom CA\napplied to rustls"]
+    A["HttpRequest\n───────────\nmethod, url\nheaders, body"] --> B["edge-transport-http-egress-auth\nBearer / OAuth2 token\ninjected into headers"]
+    B --> C["edge-transport-http-egress-retry\nmax_attempts, backoff\nretries on 5xx / timeout"]
+    C --> D["edge-transport-http-egress-rate\ntokens-per-second\n429 if exhausted"]
+    D --> E["edge-transport-http-egress-breaker\nfailure threshold\nopen → Err immediately"]
+    E --> F["edge-transport-http-egress-cache\nLRU in-memory\ncache-hit → skip wire"]
+    F --> G["edge-transport-http-egress-tls\nmTLS / custom CA\napplied to rustls"]
     G --> H["HTTP wire\n(reqwest)"]
     H --> I["HttpResponse\n───────────\nstatus, headers, body"]
     I --> J["Result<HttpResponse, EgressError>"]

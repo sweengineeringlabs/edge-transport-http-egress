@@ -10,7 +10,7 @@
 //! these assertions catch it.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // SWE baseline — verify default config has production-safe values

@@ -1,6 +1,6 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-auth`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-auth`.
 
-use swe_edge_egress_auth::AuthSvc;
+use edge_transport_http_egress_auth::AuthSvc;
 
 /// @covers: Processor
 #[test]

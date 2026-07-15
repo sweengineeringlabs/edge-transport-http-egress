@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_loadbalancer::{
+use edge_transport_http_egress_loadbalancer::{
     build_loadbalancer_layer, validate_loadbalancer_config, BackendConfig, LoadbalancerConfig,
     LoadbalancerSvc, Strategy,
 };
@@ -162,7 +162,7 @@ fn test_describe_layer_has_non_empty_debug_repr_happy() {
 
 #[test]
 fn test_describe_svc_type_constructible_error() {
-    let svc = swe_edge_egress_loadbalancer::LoadbalancerSvc;
+    let svc = edge_transport_http_egress_loadbalancer::LoadbalancerSvc;
     let _ = svc;
 }
 

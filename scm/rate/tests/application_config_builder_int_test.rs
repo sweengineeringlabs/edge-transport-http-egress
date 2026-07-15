@@ -1,6 +1,6 @@
-//! Integration tests for `create_config_builder` in `swe_edge_egress_rate`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_rate`.
 
-use swe_edge_egress_rate::HttpRateSvc;
+use edge_transport_http_egress_rate::HttpRateSvc;
 
 /// @covers: HttpRateSvc::create_config_builder — dep coverage for swe-edge-configbuilder
 #[test]

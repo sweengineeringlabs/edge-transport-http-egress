@@ -5,6 +5,6 @@
 pub trait Processor: Send + Sync {
     /// Identify this processor in log / trace output.
     ///
-    /// Returns the crate's canonical name (e.g. `"swe-edge-egress-loadbalancer"`).
+    /// Returns the crate's canonical name (e.g. `"edge-transport-http-egress-loadbalancer"`).
     fn describe(&self) -> &'static str;
 }

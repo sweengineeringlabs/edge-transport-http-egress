@@ -7,7 +7,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::BreakerLayer;
+use edge_transport_http_egress_breaker::BreakerLayer;
 
 /// @covers: BreakerLayer
 #[test]
@@ -26,7 +26,7 @@ fn test_breaker_layer_satisfies_sync_required_by_http_breaker_trait() {
 /// @covers: BreakerLayer
 #[test]
 fn test_breaker_layer_coercible_to_boxed_send_sync() {
-    use swe_edge_egress_breaker::{BreakerConfig, HttpBreakerSvc};
+    use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvc};
     let cfg = BreakerConfig {
         failure_threshold: 3,
         half_open_after_seconds: 5,

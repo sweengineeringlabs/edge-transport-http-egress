@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use swe_edge_egress_http_transport::ObservationConfig;
+use edge_transport_http_egress_transport::ObservationConfig;
 use swe_observ_metrics::{create_local_metrics_backend, MetricsProvider};
 
 #[test]

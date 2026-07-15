@@ -16,7 +16,7 @@ use crate::api::types::form_part::FormPart;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpBody;
+/// use edge_transport_http_egress_transport::HttpBody;
 ///
 /// let json = HttpBody::Json(serde_json::json!({ "key": "value" }));
 /// assert!(matches!(json, HttpBody::Json(_)));

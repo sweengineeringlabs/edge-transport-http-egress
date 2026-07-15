@@ -8,7 +8,7 @@
 //! the public retry API: a middleware-level error must not be retried; the retry
 //! layer must respect that policy.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig};
 
 /// @covers: RetryErrorClassifier (via RetryLayer)
 /// A `RetryLayer` built with default config must succeed — confirming the
@@ -28,7 +28,7 @@ fn retry_struct_retry_error_classifier_layer_builds_without_panic_int_test() {
 /// the embedded classifier is also `Send + Sync`.
 #[test]
 fn retry_struct_retry_error_classifier_layer_is_send_and_sync_int_test() {
-    use swe_edge_egress_retry::RetryLayer;
+    use edge_transport_http_egress_retry::RetryLayer;
     fn require_send_sync<T: Send + Sync>() {}
     require_send_sync::<RetryLayer>();
 }

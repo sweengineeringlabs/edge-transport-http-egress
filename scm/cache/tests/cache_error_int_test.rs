@@ -1,6 +1,6 @@
-//! Integration tests for `cache_error` in `swe-edge-egress-cache`.
+//! Integration tests for `cache_error` in `edge-transport-http-egress-cache`.
 
-use swe_edge_egress_cache::CacheError;
+use edge_transport_http_egress_cache::CacheError;
 
 /// @covers: CacheError
 #[test]

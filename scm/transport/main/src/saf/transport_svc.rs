@@ -1,9 +1,9 @@
 //! SAF factory methods on [`HttpTransportSvc`](crate::HttpTransportSvc) for assembling [`HttpEgress`](crate::HttpEgress) instances.
 
+#[cfg(feature = "oauth")]
+use edge_transport_http_egress_oauth::OAuthBuilderOps as _;
 use std::sync::Arc;
 use std::time::Duration;
-#[cfg(feature = "oauth")]
-use swe_edge_egress_oauth::OAuthBuilderOps as _;
 
 use reqwest_middleware::ClientBuilder;
 use swe_observ_metrics::MetricsProvider;
@@ -62,9 +62,9 @@ impl HttpTransportSvc {
         // runtime token_source — use `http_egress_from_config_with_oauth` for it.
         #[cfg(feature = "auth")]
         if let FeatureState::Enabled(auth_cfg) =
-            swe_edge_egress_auth::AuthConfig::load_optional(loader)?
+            edge_transport_http_egress_auth::AuthConfig::load_optional(loader)?
         {
-            let auth = swe_edge_egress_auth::AuthSvc::build_auth_middleware(auth_cfg)?;
+            let auth = edge_transport_http_egress_auth::AuthSvc::build_auth_middleware(auth_cfg)?;
             builder = builder.with(auth);
         }
 
@@ -92,14 +92,14 @@ impl HttpTransportSvc {
     #[cfg(feature = "oauth")]
     pub fn http_egress_from_config_with_oauth(
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        token_source: Arc<dyn swe_edge_egress_oauth::OAuthTokenSource>,
+        token_source: Arc<dyn edge_transport_http_egress_oauth::OAuthTokenSource>,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let http_cfg = HttpConfig::default();
         let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
         let mut builder = ClientBuilder::new(client);
 
         // OAuth occupies the auth slot, replacing any static [auth] section.
-        let oauth = swe_edge_egress_oauth::OAuthSvc::builder()
+        let oauth = edge_transport_http_egress_oauth::OAuthSvc::builder()
             .with_token_source(token_source)
             .build()?;
         builder = builder.with(oauth);
@@ -147,19 +147,19 @@ impl HttpTransportSvc {
     ) -> Result<swe_edge_configbuilder::FeatureSummary, HttpEgressBuildError> {
         let mut registry = swe_edge_configbuilder::FeatureRegistry::new();
         #[cfg(feature = "auth")]
-        registry.load::<swe_edge_egress_auth::AuthConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_auth::AuthConfig>(loader)?;
         #[cfg(feature = "tls")]
-        registry.load::<swe_edge_egress_tls::TlsConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_tls::TlsConfig>(loader)?;
         #[cfg(feature = "retry")]
-        registry.load::<swe_edge_egress_retry::RetryConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
         #[cfg(feature = "rate")]
-        registry.load::<swe_edge_egress_rate::RateConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_rate::RateConfig>(loader)?;
         #[cfg(feature = "breaker")]
-        registry.load::<swe_edge_egress_breaker::BreakerConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_breaker::BreakerConfig>(loader)?;
         #[cfg(feature = "cache")]
-        registry.load::<swe_edge_egress_cache::CacheConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_cache::CacheConfig>(loader)?;
         #[cfg(feature = "cassette")]
-        registry.load::<swe_edge_egress_cassette::CassetteConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_cassette::CassetteConfig>(loader)?;
         Ok(registry.summary())
     }
 
@@ -170,7 +170,7 @@ impl HttpTransportSvc {
         Ok(Box::new(Self::build_default_egress(
             HttpConfig::default(),
             #[cfg(feature = "cassette")]
-            swe_edge_egress_cassette::CassetteConfig::default(),
+            edge_transport_http_egress_cassette::CassetteConfig::default(),
             #[cfg(feature = "cassette")]
             "default",
         )?))
@@ -187,7 +187,7 @@ impl HttpTransportSvc {
         Ok(Box::new(Self::build_default_egress(
             http,
             #[cfg(feature = "cassette")]
-            swe_edge_egress_cassette::CassetteConfig::disabled(),
+            edge_transport_http_egress_cassette::CassetteConfig::disabled(),
             #[cfg(feature = "cassette")]
             "unused",
         )?))
@@ -226,7 +226,7 @@ impl HttpTransportSvc {
         Ok(Box::new(Self::build_default_egress(
             HttpConfig::default(),
             #[cfg(feature = "cassette")]
-            swe_edge_egress_cassette::CassetteConfig::default(),
+            edge_transport_http_egress_cassette::CassetteConfig::default(),
             #[cfg(feature = "cassette")]
             "default",
         )?))
@@ -298,10 +298,10 @@ impl HttpTransportSvc {
     #[cfg(feature = "oauth")]
     pub fn plain_http_egress_with_oauth(
         config: HttpConfig,
-        token_source: Arc<dyn swe_edge_egress_oauth::OAuthTokenSource>,
+        token_source: Arc<dyn edge_transport_http_egress_oauth::OAuthTokenSource>,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let client = Self::configure_http_builder(reqwest::Client::builder(), &config).build()?;
-        let oauth = swe_edge_egress_oauth::OAuthSvc::builder()
+        let oauth = edge_transport_http_egress_oauth::OAuthSvc::builder()
             .with_token_source(token_source)
             .build()?;
         let mw_client = ClientBuilder::new(client).with(oauth).build();
@@ -346,9 +346,9 @@ impl HttpTransportSvc {
         // [tls] present ⇒ build and apply the TLS layer; absent ⇒ no TLS layer.
         #[cfg(feature = "tls")]
         if let FeatureState::Enabled(tls_cfg) =
-            swe_edge_egress_tls::TlsConfig::load_optional(loader)?
+            edge_transport_http_egress_tls::TlsConfig::load_optional(loader)?
         {
-            let tls = swe_edge_egress_tls::HttpTlsSvc::build_tls_layer(tls_cfg)?;
+            let tls = edge_transport_http_egress_tls::HttpTlsSvc::build_tls_layer(tls_cfg)?;
             cb = tls.apply_to(cb)?;
         }
         cb = Self::configure_http_builder(cb, http_cfg);
@@ -385,41 +385,43 @@ impl HttpTransportSvc {
 
         #[cfg(feature = "retry")]
         if let FeatureState::Enabled(retry_cfg) =
-            swe_edge_egress_retry::RetryConfig::load_optional(loader)?
+            edge_transport_http_egress_retry::RetryConfig::load_optional(loader)?
         {
-            builder = builder.with(swe_edge_egress_retry::HttpRetrySvc::build_retry_layer(
-                retry_cfg,
-            )?);
+            builder = builder.with(
+                edge_transport_http_egress_retry::HttpRetrySvc::build_retry_layer(retry_cfg)?,
+            );
         }
         #[cfg(feature = "rate")]
         if let FeatureState::Enabled(rate_cfg) =
-            swe_edge_egress_rate::RateConfig::load_optional(loader)?
+            edge_transport_http_egress_rate::RateConfig::load_optional(loader)?
         {
-            builder = builder.with(swe_edge_egress_rate::HttpRateSvc::build_rate_layer(
-                rate_cfg,
-            )?);
+            builder = builder
+                .with(edge_transport_http_egress_rate::HttpRateSvc::build_rate_layer(rate_cfg)?);
         }
         #[cfg(feature = "breaker")]
         if let FeatureState::Enabled(breaker_cfg) =
-            swe_edge_egress_breaker::BreakerConfig::load_optional(loader)?
+            edge_transport_http_egress_breaker::BreakerConfig::load_optional(loader)?
         {
-            builder = builder
-                .with(swe_edge_egress_breaker::HttpBreakerSvc::build_breaker_layer(breaker_cfg)?);
+            builder = builder.with(
+                edge_transport_http_egress_breaker::HttpBreakerSvc::build_breaker_layer(
+                    breaker_cfg,
+                )?,
+            );
         }
         #[cfg(feature = "cache")]
         if let FeatureState::Enabled(cache_cfg) =
-            swe_edge_egress_cache::CacheConfig::load_optional(loader)?
+            edge_transport_http_egress_cache::CacheConfig::load_optional(loader)?
         {
-            builder = builder.with(swe_edge_egress_cache::HttpCacheSvc::build_cache_layer(
-                cache_cfg,
-            )?);
+            builder = builder.with(
+                edge_transport_http_egress_cache::HttpCacheSvc::build_cache_layer(cache_cfg)?,
+            );
         }
         #[cfg(feature = "cassette")]
         if let FeatureState::Enabled(cassette_cfg) =
-            swe_edge_egress_cassette::CassetteConfig::load_optional(loader)?
+            edge_transport_http_egress_cassette::CassetteConfig::load_optional(loader)?
         {
             builder = builder.with(
-                swe_edge_egress_cassette::HttpCassetteSvc::build_cassette_layer(
+                edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
                     cassette_cfg,
                     "default",
                 )?,
@@ -445,13 +447,15 @@ impl HttpTransportSvc {
     )]
     fn build_default_egress(
         http_cfg: HttpConfig,
-        #[cfg(feature = "cassette")] cassette_cfg: swe_edge_egress_cassette::CassetteConfig,
+        #[cfg(feature = "cassette")]
+        cassette_cfg: edge_transport_http_egress_cassette::CassetteConfig,
         #[cfg(feature = "cassette")] cassette_name: &str,
     ) -> Result<DefaultHttpEgress, HttpEgressBuildError> {
         let mut cb = reqwest::Client::builder();
         #[cfg(feature = "tls")]
         {
-            let tls = swe_edge_egress_tls::HttpTlsSvc::build_tls_layer(Default::default())?;
+            let tls =
+                edge_transport_http_egress_tls::HttpTlsSvc::build_tls_layer(Default::default())?;
             cb = tls.apply_to(cb)?;
         }
         cb = Self::configure_http_builder(cb, &http_cfg);
@@ -459,38 +463,47 @@ impl HttpTransportSvc {
         let mut builder = ClientBuilder::new(cb.build()?);
         #[cfg(feature = "auth")]
         {
-            builder = builder.with(swe_edge_egress_auth::AuthSvc::build_auth_middleware(
-                Default::default(),
-            )?);
+            builder =
+                builder.with(
+                    edge_transport_http_egress_auth::AuthSvc::build_auth_middleware(
+                        Default::default(),
+                    )?,
+                );
         }
         #[cfg(feature = "retry")]
         {
-            builder = builder.with(swe_edge_egress_retry::HttpRetrySvc::build_retry_layer(
-                Default::default(),
-            )?);
+            builder = builder.with(
+                edge_transport_http_egress_retry::HttpRetrySvc::build_retry_layer(
+                    Default::default(),
+                )?,
+            );
         }
         #[cfg(feature = "rate")]
         {
-            builder = builder.with(swe_edge_egress_rate::HttpRateSvc::build_rate_layer(
-                Default::default(),
-            )?);
+            builder = builder.with(
+                edge_transport_http_egress_rate::HttpRateSvc::build_rate_layer(Default::default())?,
+            );
         }
         #[cfg(feature = "breaker")]
         {
             builder = builder.with(
-                swe_edge_egress_breaker::HttpBreakerSvc::build_breaker_layer(Default::default())?,
+                edge_transport_http_egress_breaker::HttpBreakerSvc::build_breaker_layer(
+                    Default::default(),
+                )?,
             );
         }
         #[cfg(feature = "cache")]
         {
-            builder = builder.with(swe_edge_egress_cache::HttpCacheSvc::build_cache_layer(
-                Default::default(),
-            )?);
+            builder = builder.with(
+                edge_transport_http_egress_cache::HttpCacheSvc::build_cache_layer(
+                    Default::default(),
+                )?,
+            );
         }
         #[cfg(feature = "cassette")]
         {
             builder = builder.with(
-                swe_edge_egress_cassette::HttpCassetteSvc::build_cassette_layer(
+                edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
                     cassette_cfg,
                     cassette_name,
                 )?,

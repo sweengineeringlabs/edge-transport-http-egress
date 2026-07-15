@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 // ── create_config_builder (rule 221) ─────────────────────────────────────────
 
@@ -70,20 +70,20 @@ fn test_build_cassette_layer_two_different_names_independent_edge() {
 #[test]
 fn test_describe_svc_type_exists_and_builds_happy() {
     // HttpCassetteSvc unit struct must be constructible
-    let svc = swe_edge_egress_cassette::HttpCassetteSvc;
+    let svc = edge_transport_http_egress_cassette::HttpCassetteSvc;
     let _ = svc;
 }
 
 #[test]
 fn test_describe_svc_does_not_panic_on_construction_error() {
-    let svc = swe_edge_egress_cassette::HttpCassetteSvc;
+    let svc = edge_transport_http_egress_cassette::HttpCassetteSvc;
     let _ = svc;
 }
 
 #[test]
 fn test_describe_svc_is_send_sync_edge() {
     fn assert_send_sync<T: Send + Sync>(_: T) {}
-    assert_send_sync(swe_edge_egress_cassette::HttpCassetteSvc);
+    assert_send_sync(edge_transport_http_egress_cassette::HttpCassetteSvc);
 }
 
 // ── config (rule 222: HttpCassette::config) ───────────────────────────────────

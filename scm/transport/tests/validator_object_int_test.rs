@@ -8,7 +8,7 @@
 
 use core::marker::PhantomData;
 
-use swe_edge_egress_http_transport::DefaultValidatorAlias;
+use edge_transport_http_egress_transport::DefaultValidatorAlias;
 
 /// @covers: ValidatorObject (alias accessibility)
 /// Naming the SAF-exported `DefaultValidatorAlias` is a compile-time contract:

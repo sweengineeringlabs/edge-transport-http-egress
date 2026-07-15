@@ -1,6 +1,6 @@
 //! Integration tests for `HttpConfig`.
 
-use swe_edge_egress_http_transport::HttpConfig;
+use edge_transport_http_egress_transport::HttpConfig;
 
 /// @covers: with_base_url
 #[test]

@@ -1,4 +1,4 @@
-//! Primary trait declarations for `swe_edge_egress_cassette`.
+//! Primary trait declarations for `edge_transport_http_egress_cassette`.
 
 pub mod http_cassette;
 pub mod processor;

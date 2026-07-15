@@ -1,6 +1,6 @@
 //! Integration tests for `HttpRateSvc::build_rate_layer`.
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig};
 
 /// @covers: build_rate_layer
 #[test]

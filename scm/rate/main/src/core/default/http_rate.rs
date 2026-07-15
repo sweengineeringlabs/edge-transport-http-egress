@@ -61,7 +61,7 @@ mod tests {
     fn test_describe_returns_crate_name() {
         let cfg = RateConfig::default();
         let d = DefaultHttpRate::new(cfg);
-        assert_eq!(d.describe(), "swe-edge-egress-rate");
+        assert_eq!(d.describe(), "edge-transport-http-egress-rate");
     }
 
     /// @covers: validate

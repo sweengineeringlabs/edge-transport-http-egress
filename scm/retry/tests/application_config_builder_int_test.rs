@@ -1,6 +1,6 @@
-//! Integration tests for `create_config_builder` in `swe_edge_egress_retry`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_retry`.
 
-use swe_edge_egress_retry::HttpRetrySvc;
+use edge_transport_http_egress_retry::HttpRetrySvc;
 
 /// @covers: HttpRetrySvc::create_config_builder — dep coverage for swe-edge-configbuilder
 #[test]

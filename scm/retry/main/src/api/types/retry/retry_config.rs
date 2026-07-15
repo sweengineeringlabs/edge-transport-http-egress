@@ -25,7 +25,7 @@ use crate::api::error::RetryError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_retry::RetryConfig;
+/// use edge_transport_http_egress_retry::RetryConfig;
 ///
 /// // SWE baseline.
 /// let cfg = RetryConfig::default();
@@ -137,13 +137,13 @@ impl RetryConfig {
     pub fn validate(&self) -> Result<(), String> {
         if self.multiplier <= 0.0 {
             return Err(format!(
-                "swe_edge_egress_retry: multiplier must be > 0.0, got {}",
+                "edge_transport_http_egress_retry: multiplier must be > 0.0, got {}",
                 self.multiplier
             ));
         }
         if self.max_interval_ms < self.initial_interval_ms {
             return Err(format!(
-                "swe_edge_egress_retry: max_interval_ms ({}) must be >= initial_interval_ms ({})",
+                "edge_transport_http_egress_retry: max_interval_ms ({}) must be >= initial_interval_ms ({})",
                 self.max_interval_ms, self.initial_interval_ms
             ));
         }

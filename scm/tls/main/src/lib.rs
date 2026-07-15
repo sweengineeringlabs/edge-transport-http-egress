@@ -1,16 +1,16 @@
-//! swe_edge_egress_tls — client-side mTLS identity for reqwest.
+//! edge_transport_http_egress_tls — client-side mTLS identity for reqwest.
 //!
-//! Sibling crate to `swe_edge_egress_auth`. Different integration
+//! Sibling crate to `edge_transport_http_egress_auth`. Different integration
 //! surface: this crate augments a `reqwest::ClientBuilder` with
 //! a client identity (PKCS12 or PEM) *before* the TLS handshake,
-//! whereas `swe_edge_egress_auth` attaches HTTP headers *after* the
+//! whereas `edge_transport_http_egress_auth` attaches HTTP headers *after* the
 //! handshake. Both "auth" semantically; different layers
 //! mechanically.
 //!
 //! ## Usage
 //!
 //! ```ignore
-//! use swe_edge_egress_tls::{build_tls_layer, TlsConfig};
+//! use edge_transport_http_egress_tls::{build_tls_layer, TlsConfig};
 //! let tls = build_tls_layer(TlsConfig::default())?;
 //! let client = tls.apply_to(reqwest::Client::builder())?.build()?;
 //! ```

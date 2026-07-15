@@ -7,7 +7,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 
 /// Verify that the cache layer (which uses request snapshots internally)
 /// constructs without error — proving the snapshot module is functional.
@@ -18,6 +18,6 @@ fn cache_struct_request_snapshot_layer_constructs_using_snapshot_internally_int_
     // CacheLayer uses RequestSnapshot in handle(); Send + Sync proves the layer
     // satisfies the middleware contract.
     fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<swe_edge_egress_cache::CacheLayer>();
+    assert_send_sync::<edge_transport_http_egress_cache::CacheLayer>();
     let _ = layer;
 }

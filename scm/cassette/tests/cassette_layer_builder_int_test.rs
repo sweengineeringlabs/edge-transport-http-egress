@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteError, CassetteLayerBuilder};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteError, CassetteLayerBuilder};
 
 /// @covers: CassetteLayerBuilder::new
 /// Verifies the builder is constructible with no arguments.

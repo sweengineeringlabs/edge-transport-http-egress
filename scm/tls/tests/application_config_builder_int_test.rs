@@ -1,7 +1,7 @@
-//! Integration tests for `ApplicationConfigBuilder` in `swe-edge-egress-tls`.
+//! Integration tests for `ApplicationConfigBuilder` in `edge-transport-http-egress-tls`.
 
+use edge_transport_http_egress_tls::HttpTlsSvc;
 use swe_edge_configbuilder::ConfigBuilderImpl;
-use swe_edge_egress_tls::HttpTlsSvc;
 
 /// @covers: ApplicationConfigBuilder
 /// Proves `HttpTlsSvc::create_config_builder` returns a `ConfigBuilderImpl`

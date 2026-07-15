@@ -1,5 +1,5 @@
 [package]
-name = "swe-edge-egress-loadbalancer"
+name = "edge-transport-http-egress-loadbalancer"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

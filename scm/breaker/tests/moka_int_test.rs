@@ -5,8 +5,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
 use moka::future::Cache;
-use swe_edge_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
 
 fn cfg() -> BreakerConfig {
     BreakerConfig {

@@ -1,5 +1,5 @@
 [package]
-name         = "swe-edge-egress-oauth"
+name         = "edge-transport-http-egress-oauth"
 version.workspace      = true
 edition.workspace      = true
 license.workspace      = true

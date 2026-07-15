@@ -11,8 +11,8 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 
 /// A static-token source for integration testing.
 #[derive(Debug)]

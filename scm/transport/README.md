@@ -1,3 +1,3 @@
-# swe-edge-egress-http-transport
+# edge-transport-http-egress-transport
 
 A Rust project.

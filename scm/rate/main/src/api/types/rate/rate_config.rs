@@ -14,7 +14,7 @@ use crate::api::error::RateError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_rate::RateConfig;
+/// use edge_transport_http_egress_rate::RateConfig;
 ///
 /// // SWE baseline: 10 req/s, 20-request burst, per-host buckets.
 /// let cfg = RateConfig::default();

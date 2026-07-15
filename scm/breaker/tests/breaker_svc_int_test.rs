@@ -1,6 +1,6 @@
 //! Integration tests for `HttpBreakerSvc::build_breaker_layer`.
 
-use swe_edge_egress_breaker::{BreakerConfig, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvc};
 
 /// @covers: build_breaker_layer
 #[test]

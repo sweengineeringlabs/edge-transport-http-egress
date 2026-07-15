@@ -2,7 +2,7 @@
 
 use tokio::sync::mpsc;
 
-use swe_edge_egress_http_transport::{WsMessage, WsSender};
+use edge_transport_http_egress_transport::{WsMessage, WsSender};
 
 #[test]
 fn test_ws_sender_type_can_be_constructed_from_mpsc_channel() {

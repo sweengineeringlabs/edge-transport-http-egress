@@ -11,10 +11,10 @@
 
 use std::sync::Arc;
 
-use swe_edge_configbuilder::ConfigLoaderFactory;
-use swe_edge_egress_http_transport::{
+use edge_transport_http_egress_transport::{
     AlwaysValidConfig, HttpConfig, HttpRequest, HttpTransportSvc,
 };
+use swe_edge_configbuilder::ConfigLoaderFactory;
 use swe_observ_metrics::{create_local_metrics_backend, MetricsProvider};
 use tempfile::TempDir;
 
@@ -546,7 +546,7 @@ fn test_send_with_context_egress_builds_for_default_config_happy() {
 
 #[test]
 fn test_send_with_context_security_context_is_constructible_error() {
-    use swe_edge_egress_http_transport::SecurityContext;
+    use edge_transport_http_egress_transport::SecurityContext;
     let ctx = SecurityContext {
         principal: None,
         tenant_id: None,
@@ -612,9 +612,9 @@ fn test_connect_websocket_two_independent_stream_outbounds_edge() {
 mod oauth_svc_coverage {
     use std::sync::Arc;
 
+    use edge_transport_http_egress_oauth::{OAuthError, OAuthTokenSource};
+    use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc};
     use futures::future::BoxFuture;
-    use swe_edge_egress_http_transport::{HttpConfig, HttpTransportSvc};
-    use swe_edge_egress_oauth::{OAuthError, OAuthTokenSource};
 
     #[derive(Debug)]
     struct StaticToken(String);

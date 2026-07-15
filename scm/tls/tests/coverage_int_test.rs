@@ -6,7 +6,9 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{describe_tls_provider, validate_tls_config, HttpTlsSvc, TlsConfig};
+use edge_transport_http_egress_tls::{
+    describe_tls_provider, validate_tls_config, HttpTlsSvc, TlsConfig,
+};
 
 // ── create_config_builder (rule 221) ─────────────────────────────────────────
 

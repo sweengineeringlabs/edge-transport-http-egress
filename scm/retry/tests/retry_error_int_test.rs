@@ -1,6 +1,6 @@
-//! Integration tests for `retry_error` in `swe-edge-egress-retry`.
+//! Integration tests for `retry_error` in `edge-transport-http-egress-retry`.
 
-use swe_edge_egress_retry::RetryError;
+use edge_transport_http_egress_retry::RetryError;
 
 /// @covers: RetryError
 #[test]

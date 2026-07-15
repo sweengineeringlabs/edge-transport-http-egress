@@ -1,4 +1,4 @@
-//! swe-edge-egress-loadbalancer — Client-side load-balancer middleware.
+//! edge-transport-http-egress-loadbalancer — Client-side load-balancer middleware.
 //!
 //! Provides a [`LoadbalancerLayer`] that plugs into `reqwest_middleware::ClientBuilder`
 //! and rewrites the request URL to a healthy backend selected by [`LoadbalancerConfig`]

@@ -5,7 +5,7 @@
 //! struct literal construction, field visibility, Clone, and that values
 //! flow through the build_retry_layer pipeline to the RetryLayer without mutation.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 // ---------------------------------------------------------------------------
 // Struct construction — all public fields must be writable

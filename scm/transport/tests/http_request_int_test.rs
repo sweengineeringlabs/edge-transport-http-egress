@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use swe_edge_egress_http_transport::{HttpBody, HttpMethod, HttpRequest};
+use edge_transport_http_egress_transport::{HttpBody, HttpMethod, HttpRequest};
 
 /// @covers: get
 /// @covers: with_header

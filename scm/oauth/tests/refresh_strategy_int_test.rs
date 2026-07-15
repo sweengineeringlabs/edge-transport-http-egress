@@ -3,8 +3,8 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthBuilderOps, OAuthSvc, OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilderOps, OAuthSvc, OAuthTokenSource, Result};
 
 #[derive(Debug)]
 struct StaticSource(String);

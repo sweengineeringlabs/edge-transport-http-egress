@@ -1,6 +1,6 @@
-//! Integration tests for `tls_error` in `swe-edge-egress-tls`.
+//! Integration tests for `tls_error` in `edge-transport-http-egress-tls`.
 
-use swe_edge_egress_tls::TlsConfigError;
+use edge_transport_http_egress_tls::TlsConfigError;
 
 /// @covers: TlsConfigError
 /// Proves `TlsConfigError` is accessible from the crate root and that each variant

@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig};
 
 // ── create_config_builder (rule 221) ─────────────────────────────────────────
 

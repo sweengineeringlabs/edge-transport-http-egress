@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_oauth::{OAuthConfig, OAuthProvider};
+use edge_transport_http_egress_oauth::{OAuthConfig, OAuthProvider};
 
 /// @covers: OAuthConfig::from_config
 #[test]

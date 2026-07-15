@@ -2,8 +2,8 @@
 
 use std::collections::HashMap;
 
+use edge_transport_http_egress_transport::HttpStreamResponse;
 use futures::stream;
-use swe_edge_egress_http_transport::HttpStreamResponse;
 
 #[test]
 fn test_http_stream_response_struct_debug_does_not_expose_stream_internals() {

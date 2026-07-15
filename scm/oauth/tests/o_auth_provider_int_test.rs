@@ -2,7 +2,7 @@
 //!
 //! Rule 120: `src/api/oauth/o_auth_provider.rs` requires a corresponding test file.
 
-use swe_edge_egress_oauth::OAuthProvider;
+use edge_transport_http_egress_oauth::OAuthProvider;
 
 /// @covers: OAuthProvider variants
 /// Each variant must be distinct and comparable.

@@ -1,7 +1,7 @@
 //! Integration tests for `api/types/breaker/admission.rs`.
 //! @covers: src/api/types/breaker/admission.rs
 
-use swe_edge_egress_breaker::Admission;
+use edge_transport_http_egress_breaker::Admission;
 
 /// @covers: Admission
 /// Confirms `Proceed` and `RejectOpen` are distinct variants — the breaker

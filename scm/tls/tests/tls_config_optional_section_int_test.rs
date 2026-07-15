@@ -8,8 +8,8 @@
 //! implementing both traits during the migration.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_tls::TlsConfig;
 use swe_edge_configbuilder::{ConfigError, ConfigLoaderFactory, OptionalSection};
-use swe_edge_egress_tls::TlsConfig;
 use tempfile::TempDir;
 
 fn loader_with(content: &str) -> (TempDir, swe_edge_configbuilder::SectionLoaderImpl) {

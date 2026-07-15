@@ -1,13 +1,13 @@
-//! Integration tests for the `Validator` trait in `swe-edge-egress-oauth`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-oauth`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::sync::Arc;
 
-use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{
+use edge_transport_http_egress_oauth::{
     OAuthBuilder, OAuthBuilderOps, OAuthError, OAuthMiddleware, OAuthTokenSource, Result,
 };
+use futures::future::BoxFuture;
 
 #[derive(Debug)]
 struct ValidSource;

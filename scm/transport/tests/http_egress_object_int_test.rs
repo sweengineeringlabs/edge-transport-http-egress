@@ -8,7 +8,7 @@
 
 use core::marker::PhantomData;
 
-use swe_edge_egress_http_transport::{DefaultEgress, HttpEgress};
+use edge_transport_http_egress_transport::{DefaultEgress, HttpEgress};
 
 /// @covers: HttpEgressObject (object safety via HttpEgress)
 /// `dyn HttpEgress` only forms a valid type if `HttpEgress` is object-safe, so

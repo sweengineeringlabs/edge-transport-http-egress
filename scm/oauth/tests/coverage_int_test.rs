@@ -5,7 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_oauth::{OAuthBuilderOps as _, OAuthSvc};
+use edge_transport_http_egress_oauth::{OAuthBuilderOps as _, OAuthSvc};
 
 // ── builder (rule 221) ────────────────────────────────────────────────────────
 
@@ -117,7 +117,7 @@ fn test_build_builder_is_consumed_per_call_edge() {
 #[test]
 fn test_get_access_token_trait_accessible_via_saf_happy() {
     // OAuthTokenSource is pub via saf/mod.rs — verify it can be named
-    fn _uses_trait_bound<T: swe_edge_egress_oauth::OAuthTokenSource>(_: T) {}
+    fn _uses_trait_bound<T: edge_transport_http_egress_oauth::OAuthTokenSource>(_: T) {}
     // trait is accessible — compile-time check
 }
 
@@ -142,7 +142,7 @@ fn test_get_access_token_builder_requires_source_before_build_edge() {
 
 #[test]
 fn test_process_oauth_svc_type_exists_happy() {
-    let svc = swe_edge_egress_oauth::OAuthSvc;
+    let svc = edge_transport_http_egress_oauth::OAuthSvc;
     let _ = svc;
 }
 
@@ -155,7 +155,7 @@ fn test_process_middleware_not_constructible_without_token_source_error() {
 #[test]
 fn test_process_oauth_svc_is_send_sync_edge() {
     fn assert_send_sync<T: Send + Sync>(_: T) {}
-    assert_send_sync(swe_edge_egress_oauth::OAuthSvc);
+    assert_send_sync(edge_transport_http_egress_oauth::OAuthSvc);
 }
 
 // ── validate (rule 222: Validator trait) ─────────────────────────────────────

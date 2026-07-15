@@ -7,7 +7,7 @@
 //! implementations. The concrete factory behavior is exercised through
 //! `HttpTlsSvc::build_tls_layer`.
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig};
 
 /// @covers: TlsProviderFactory (via HttpTlsSvc)
 /// The factory must produce a `TlsLayer` for `TlsConfig::None`.

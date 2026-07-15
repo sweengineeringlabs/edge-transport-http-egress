@@ -1,4 +1,4 @@
-//! Integration tests for `swe_edge_egress_tls` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_tls` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` defines the `pub(crate)` type alias `HttpTlsTrait` for
 //! `dyn HttpTls`. The integration-level contract is:
@@ -9,7 +9,7 @@
 //! - `TlsLayer` is `Send + Sync` (flows from `HttpTls: Send + Sync + Debug`).
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsConfigError, TlsLayer};
 
 // ---------------------------------------------------------------------------
 // SAF re-export completeness — compile-time proof

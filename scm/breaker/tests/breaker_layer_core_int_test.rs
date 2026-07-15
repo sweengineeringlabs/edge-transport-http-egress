@@ -9,7 +9,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
 
 // ---------------------------------------------------------------------------
 // Low threshold — breaker trips quickly

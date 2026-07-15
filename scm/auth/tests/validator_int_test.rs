@@ -1,7 +1,7 @@
-//! Integration tests for the `Validator` trait in `swe-edge-egress-auth`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-auth`.
 
 use core::marker::PhantomData;
-use swe_edge_egress_auth::AuthConfig;
+use edge_transport_http_egress_auth::AuthConfig;
 
 /// @covers: Validator
 /// `Validator` is an internal crate trait; its contract is enforced through

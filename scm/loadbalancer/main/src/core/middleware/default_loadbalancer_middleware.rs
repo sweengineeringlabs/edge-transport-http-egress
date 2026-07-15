@@ -75,7 +75,7 @@ mod tests {
     fn test_describe_returns_crate_name() {
         let cfg = config_with(vec![healthy_backend("https://api.test")]);
         let d = DefaultLoadbalancerMiddleware::new(cfg);
-        assert_eq!(d.describe(), "swe-edge-egress-loadbalancer");
+        assert_eq!(d.describe(), "edge-transport-http-egress-loadbalancer");
     }
 
     /// @covers: validate

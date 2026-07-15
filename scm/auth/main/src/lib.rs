@@ -1,4 +1,4 @@
-//! swe_edge_egress_auth — HTTP auth middleware for reqwest-middleware.
+//! edge_transport_http_egress_auth — HTTP auth middleware for reqwest-middleware.
 //!
 //! Attaches bearer tokens, basic-auth credentials, or custom
 //! API-key headers to outbound HTTP requests. Credentials are

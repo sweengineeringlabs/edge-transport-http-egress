@@ -1,4 +1,4 @@
-//! Integration tests for the `loadbalancer` feature of `swe-edge-egress-breaker`.
+//! Integration tests for the `loadbalancer` feature of `edge-transport-http-egress-breaker`.
 //!
 //! Verifies that `BreakerLayer` reports circuit-trip and recovery events back
 //! to the attached `BackendPoolInstance`, keeping pool health in sync with the
@@ -20,7 +20,7 @@ use hyper_util::rt::TokioIo;
 use reqwest_middleware::{Middleware, Next};
 use tokio::net::TcpListener;
 
-use swe_edge_egress_breaker::{BreakerConfig, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvc};
 use swe_edge_loadbalancer::{
     build_backend_pool, select_backend, BackendConfig, BackendId, BackendPoolInstance,
     LoadbalancerConfig, LoadbalancerError, Strategy,

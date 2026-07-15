@@ -1,6 +1,6 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-breaker`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-breaker`.
 
-use swe_edge_egress_breaker::HttpBreakerSvc;
+use edge_transport_http_egress_breaker::HttpBreakerSvc;
 
 /// @covers: Processor
 #[test]

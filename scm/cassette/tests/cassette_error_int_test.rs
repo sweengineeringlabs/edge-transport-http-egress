@@ -1,7 +1,7 @@
-//! Integration tests for `cassette_error` in `swe-edge-egress-cassette`.
+//! Integration tests for `cassette_error` in `edge-transport-http-egress-cassette`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::CassetteError;
+use edge_transport_http_egress_cassette::CassetteError;
 
 /// @covers: CassetteError
 /// Confirms `CassetteError` is a publicly accessible type.

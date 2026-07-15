@@ -1,11 +1,11 @@
-//! Integration tests for `swe_edge_egress_tls::TlsConfigError`.
+//! Integration tests for `edge_transport_http_egress_tls::TlsConfigError`.
 //!
 //! Covers: `TlsConfigError::Config`, `TlsConfigError::MissingEnvVar`, `TlsConfigError::CertLoad`,
 //! `TlsConfigError::CertParse` — Display messages
 //! must be actionable: embed the payload, be non-empty.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::TlsConfigError;
+use edge_transport_http_egress_tls::TlsConfigError;
 
 // ---------------------------------------------------------------------------
 // TlsConfigError::Config

@@ -10,7 +10,7 @@
 //!   be accepted by the builder.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
 
 // ---------------------------------------------------------------------------
 // burst_capacity == tokens_per_second — no burst beyond steady rate

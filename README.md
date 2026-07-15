@@ -1,4 +1,4 @@
-# swe-edge-egress-http
+# edge-transport-http-egress
 
 > **TLDR:** Outbound HTTP client for swe-edge — reqwest-backed with composable middleware (auth, retry, rate limit, circuit breaker, cache, cassette, OAuth, TLS) behind one `HttpEgress` trait. See [Overview](scm/docs/README.md) for details.
 

@@ -1,5 +1,5 @@
 [package]
-name = "swe-edge-egress-cache"
+name = "edge-transport-http-egress-cache"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

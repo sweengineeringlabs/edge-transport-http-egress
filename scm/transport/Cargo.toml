@@ -1,5 +1,5 @@
 [package]
-name         = "swe-edge-egress-http-transport"
+name         = "edge-transport-http-egress-transport"
 version.workspace      = true
 edition.workspace      = true
 license.workspace      = true
@@ -26,14 +26,14 @@ path = "main/src/lib.rs"
 # consumers use `default-features = false` and enable only what they need.
 [features]
 default = ["auth", "oauth", "tls", "retry", "rate", "breaker", "cache", "cassette"]
-auth     = ["dep:swe-edge-egress-auth"]
-oauth    = ["dep:swe-edge-egress-oauth"]
-tls      = ["dep:swe-edge-egress-tls"]
-retry    = ["dep:swe-edge-egress-retry"]
-rate     = ["dep:swe-edge-egress-rate"]
-breaker  = ["dep:swe-edge-egress-breaker"]
-cache    = ["dep:swe-edge-egress-cache"]
-cassette = ["dep:swe-edge-egress-cassette"]
+auth     = ["dep:edge-transport-http-egress-auth"]
+oauth    = ["dep:edge-transport-http-egress-oauth"]
+tls      = ["dep:edge-transport-http-egress-tls"]
+retry    = ["dep:edge-transport-http-egress-retry"]
+rate     = ["dep:edge-transport-http-egress-rate"]
+breaker  = ["dep:edge-transport-http-egress-breaker"]
+cache    = ["dep:edge-transport-http-egress-cache"]
+cassette = ["dep:edge-transport-http-egress-cassette"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
@@ -46,14 +46,14 @@ http.workspace              = true
 tokio                       = { workspace = true, features = ["rt", "net"] }
 reqwest.workspace           = true
 reqwest-middleware.workspace = true
-swe-edge-egress-auth     = { workspace = true, optional = true }
-swe-edge-egress-retry    = { workspace = true, optional = true }
-swe-edge-egress-rate     = { workspace = true, optional = true }
-swe-edge-egress-breaker  = { workspace = true, optional = true }
-swe-edge-egress-cache    = { workspace = true, optional = true }
-swe-edge-egress-cassette = { workspace = true, optional = true }
-swe-edge-egress-tls      = { workspace = true, optional = true }
-swe-edge-egress-oauth    = { workspace = true, optional = true }
+edge-transport-http-egress-auth     = { workspace = true, optional = true }
+edge-transport-http-egress-retry    = { workspace = true, optional = true }
+edge-transport-http-egress-rate     = { workspace = true, optional = true }
+edge-transport-http-egress-breaker  = { workspace = true, optional = true }
+edge-transport-http-egress-cache    = { workspace = true, optional = true }
+edge-transport-http-egress-cassette = { workspace = true, optional = true }
+edge-transport-http-egress-tls      = { workspace = true, optional = true }
+edge-transport-http-egress-oauth    = { workspace = true, optional = true }
 bytes.workspace                    = true
 swe-observ-metrics.workspace       = true
 tokio-tungstenite      = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
@@ -73,14 +73,14 @@ bytes               = "1"
 serde_json          = { workspace = true }
 http                    = { workspace = true }
 reqwest-middleware      = { workspace = true }
-swe-edge-egress-tls     = { workspace = true }
-swe-edge-egress-auth    = { workspace = true }
-swe-edge-egress-retry   = { workspace = true }
-swe-edge-egress-rate    = { workspace = true }
-swe-edge-egress-breaker = { workspace = true }
-swe-edge-egress-cache   = { workspace = true }
-swe-edge-egress-cassette = { workspace = true }
-swe-edge-egress-oauth    = { workspace = true }
+edge-transport-http-egress-tls     = { workspace = true }
+edge-transport-http-egress-auth    = { workspace = true }
+edge-transport-http-egress-retry   = { workspace = true }
+edge-transport-http-egress-rate    = { workspace = true }
+edge-transport-http-egress-breaker = { workspace = true }
+edge-transport-http-egress-cache   = { workspace = true }
+edge-transport-http-egress-cassette = { workspace = true }
+edge-transport-http-egress-oauth    = { workspace = true }
 futures                  = { workspace = true }
 tokio-tungstenite        = { version = "0.26", features = ["rustls-tls-native-roots"] }
 tempfile                 = "3"

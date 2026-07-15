@@ -7,7 +7,9 @@
 //! The SWE default mode is "replay" (prevents accidental real-network recording).
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteError, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{
+    CassetteConfig, CassetteError, CassetteLayer, HttpCassetteSvc,
+};
 
 // ---------------------------------------------------------------------------
 // create_config_builder() — SAF entry point: always returns a loader
@@ -115,7 +117,8 @@ fn test_saf_build_uses_cassette_name_in_path() {
 fn test_saf_error_parse_failed_display_names_crate() {
     let err = CassetteError::ParseFailed("bad field".to_string());
     assert!(
-        err.to_string().contains("swe_edge_egress_cassette"),
+        err.to_string()
+            .contains("edge_transport_http_egress_cassette"),
         "CassetteError::ParseFailed from SAF layer must name the crate"
     );
 }

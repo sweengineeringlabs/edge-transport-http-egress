@@ -1,7 +1,7 @@
-//! End-to-end tests for the swe_edge_egress_rate SAF builder surface.
+//! End-to-end tests for the edge_transport_http_egress_rate SAF builder surface.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
 
 fn make_cfg() -> RateConfig {
     RateConfig {

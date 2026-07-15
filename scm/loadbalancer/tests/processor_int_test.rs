@@ -1,7 +1,9 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Integration tests for the Processor contract.
 
-use swe_edge_egress_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
+use edge_transport_http_egress_loadbalancer::{
+    BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy,
+};
 
 fn one_backend_config() -> LoadbalancerConfig {
     LoadbalancerConfig {

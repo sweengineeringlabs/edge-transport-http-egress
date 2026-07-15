@@ -2,7 +2,7 @@
 //! @covers: src/api/recorded/interaction/request.rs
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 /// @covers: Request
 /// Confirms `CassetteLayer` can be built with a disabled config — this exercises
@@ -22,7 +22,7 @@ fn cassette_trait_recorded_request_layer_builds_with_disabled_mode_int_test() {
 /// with `replay` mode for request matching.
 #[test]
 fn cassette_trait_recorded_request_builder_replay_mode_int_test() {
-    use swe_edge_egress_cassette::CassetteConfigBuilder;
+    use edge_transport_http_egress_cassette::CassetteConfigBuilder;
     let cfg = CassetteConfigBuilder::new()
         .with_mode("replay")
         .with_cassette_dir("tests/cassettes")

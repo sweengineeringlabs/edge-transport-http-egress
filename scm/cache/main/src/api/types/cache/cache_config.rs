@@ -22,7 +22,7 @@ use crate::api::error::CacheError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_cache::CacheConfig;
+/// use edge_transport_http_egress_cache::CacheConfig;
 ///
 /// // SWE baseline: 5-min TTL, 10k entries, honor Cache-Control.
 /// let cfg = CacheConfig::default();

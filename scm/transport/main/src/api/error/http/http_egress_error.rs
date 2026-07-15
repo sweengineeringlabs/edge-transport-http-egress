@@ -11,7 +11,7 @@ use thiserror::Error;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpEgressError;
+/// use edge_transport_http_egress_transport::HttpEgressError;
 ///
 /// fn http_status(e: &HttpEgressError) -> u16 {
 ///     match e {

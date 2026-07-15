@@ -16,7 +16,7 @@ use super::http_request::HttpRequest;
 ///
 /// ```rust
 /// use std::time::Duration;
-/// use swe_edge_egress_http_transport::{HttpMethod, HttpRequestBuilder};
+/// use edge_transport_http_egress_transport::{HttpMethod, HttpRequestBuilder};
 ///
 /// let req = HttpRequestBuilder::new(HttpMethod::Get, "https://api.example.com/items")
 ///     .with_header("Authorization", "Bearer my-token")

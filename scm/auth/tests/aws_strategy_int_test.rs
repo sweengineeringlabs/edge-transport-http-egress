@@ -3,7 +3,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_auth::AwsSigV4StrategyBuilder;
+use edge_transport_http_egress_auth::AwsSigV4StrategyBuilder;
 
 /// @covers: AwsStrategy
 /// Confirms the builder produces a valid config object with required fields.

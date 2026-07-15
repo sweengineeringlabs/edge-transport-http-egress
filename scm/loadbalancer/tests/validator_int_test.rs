@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Integration tests for the Validator contract (via SAF).
 
-use swe_edge_egress_loadbalancer::{
+use edge_transport_http_egress_loadbalancer::{
     validate_loadbalancer_config, BackendConfig, LoadbalancerConfig, Strategy,
 };
 

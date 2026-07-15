@@ -8,7 +8,7 @@
 //! - `Send + Sync` must hold after construction.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
 
 // ---------------------------------------------------------------------------
 // Global bucket (per_host = false)

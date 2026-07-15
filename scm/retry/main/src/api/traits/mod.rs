@@ -1,4 +1,4 @@
-//! SEA interface contracts — primary traits for `swe-edge-egress-retry`.
+//! SEA interface contracts — primary traits for `edge-transport-http-egress-retry`.
 
 pub mod processor;
 pub mod validator;

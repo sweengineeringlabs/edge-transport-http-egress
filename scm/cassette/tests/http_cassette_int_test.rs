@@ -12,7 +12,7 @@
 //!   `CassetteLayer` completes without error.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 // ---------------------------------------------------------------------------
 // Observable effect: describe() crate name embedded in Debug

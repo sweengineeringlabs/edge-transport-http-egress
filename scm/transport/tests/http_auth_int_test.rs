@@ -1,6 +1,6 @@
 //! Integration tests for `HttpAuth`.
 
-use swe_edge_egress_http_transport::HttpAuth;
+use edge_transport_http_egress_transport::HttpAuth;
 
 /// @covers: bearer
 #[test]

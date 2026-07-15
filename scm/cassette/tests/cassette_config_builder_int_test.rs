@@ -4,7 +4,7 @@
 //! corresponding test file.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfigBuilder, CassetteError};
+use edge_transport_http_egress_cassette::{CassetteConfigBuilder, CassetteError};
 
 /// @covers: CassetteConfigBuilder::new
 /// Verifies the builder is constructible with no arguments.

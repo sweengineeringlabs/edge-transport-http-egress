@@ -6,13 +6,13 @@
 //!
 //! - The layer built via `build_cassette_layer` correctly encapsulates the
 //!   config that `DefaultHttpCassette::new` was given.
-//! - The `describe()` return value ("swe_edge_egress_cassette") appears in the
+//! - The `describe()` return value ("edge_transport_http_egress_cassette") appears in the
 //!   layer's Debug output, confirming the impl is connected.
 //! - The layer is `Send + Sync`, which requires `DefaultHttpCassette`
 //!   (held inside via `Arc<CassetteConfig>`) to also be `Send + Sync`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_cfg(dir: &str) -> CassetteConfig {
     CassetteConfig {
@@ -50,10 +50,10 @@ fn test_builder_pipeline_stores_config_in_default_http_cassette() {
 }
 
 // ---------------------------------------------------------------------------
-// DefaultHttpCassette::describe — "swe_edge_egress_cassette" embedded in Debug
+// DefaultHttpCassette::describe — "edge_transport_http_egress_cassette" embedded in Debug
 // ---------------------------------------------------------------------------
 
-/// `DefaultHttpCassette::describe()` returns "swe_edge_egress_cassette". Although
+/// `DefaultHttpCassette::describe()` returns "edge_transport_http_egress_cassette". Although
 /// the concrete type is `pub(crate)`, the mode field in `CassetteLayer`'s
 /// Debug output confirms the inner config (and by extension the impl) is
 /// correctly wired. Two distinct modes must produce distinct Debug strings.

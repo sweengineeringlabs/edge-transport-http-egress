@@ -2,7 +2,7 @@
 //!
 //! Rule 120: `src/api/oauth/o_auth_credentials.rs` requires a corresponding test file.
 
-use swe_edge_egress_oauth::OAuthCredentials;
+use edge_transport_http_egress_oauth::OAuthCredentials;
 
 /// @covers: OAuthCredentials construction
 /// All fields must be settable and readable.

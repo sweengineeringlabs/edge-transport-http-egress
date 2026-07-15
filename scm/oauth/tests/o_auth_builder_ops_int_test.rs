@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 
 #[derive(Debug)]
 struct DummySource;
@@ -34,7 +34,7 @@ fn oauth_trait_o_auth_builder_ops_with_token_source_is_callable_int_test() {
 /// `build()` without a source must return a `Configuration` error.
 #[test]
 fn oauth_trait_o_auth_builder_ops_build_without_source_returns_configuration_error_int_test() {
-    use swe_edge_egress_oauth::OAuthError;
+    use edge_transport_http_egress_oauth::OAuthError;
     let err = OAuthBuilder::new().build().unwrap_err();
     assert!(
         matches!(err, OAuthError::Configuration(_)),

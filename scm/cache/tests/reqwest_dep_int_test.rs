@@ -4,8 +4,8 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 use reqwest::Client;
-use swe_edge_egress_cache::{CacheConfig, HttpCacheSvc};
 
 /// @covers: reqwest
 #[test]
@@ -14,7 +14,7 @@ fn cache_struct_dep_reqwest_layer_attaches_to_middleware_client_int_test() {
     let layer = HttpCacheSvc::build_cache_layer(cfg).expect("build_cache_layer must succeed");
     // Verify the layer satisfies reqwest_middleware::Middleware (compile-time proof)
     fn assert_middleware<T: reqwest_middleware::Middleware>() {}
-    assert_middleware::<swe_edge_egress_cache::CacheLayer>();
+    assert_middleware::<edge_transport_http_egress_cache::CacheLayer>();
     let _client = reqwest_middleware::ClientBuilder::new(Client::new())
         .with(layer)
         .build();

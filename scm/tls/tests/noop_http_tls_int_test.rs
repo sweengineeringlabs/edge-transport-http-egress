@@ -10,7 +10,7 @@
 //! - The layer is `Send + Sync`, which requires `NoopHttpTls` to be too.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
 
 // ---------------------------------------------------------------------------
 // NoopHttpTls::describe — "noop" in TlsLayer Debug

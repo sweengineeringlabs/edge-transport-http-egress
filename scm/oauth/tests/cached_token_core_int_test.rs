@@ -10,8 +10,8 @@
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthTokenSource, Result};
 
 /// Counts how many times the underlying token endpoint is called.
 #[derive(Debug)]

@@ -9,7 +9,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_oauth::OAuthSvc;
+use edge_transport_http_egress_oauth::OAuthSvc;
 
 /// @covers: TimeHelper (via OAuth middleware clock usage)
 /// The time helper is used internally to check token expiry. We verify
@@ -17,7 +17,7 @@ use swe_edge_egress_oauth::OAuthSvc;
 /// which transitively exercises the time helper.
 #[test]
 fn oauth_trait_time_helper_middleware_builds_int_test() {
-    use swe_edge_egress_oauth::{OAuthBuilderOps, OAuthError};
+    use edge_transport_http_egress_oauth::{OAuthBuilderOps, OAuthError};
     let err = OAuthSvc::builder().build().unwrap_err();
     assert!(
         matches!(err, OAuthError::Configuration(_)),

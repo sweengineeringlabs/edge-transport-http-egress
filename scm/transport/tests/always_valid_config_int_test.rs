@@ -1,6 +1,6 @@
 //! Integration tests for `AlwaysValidConfig`.
 
-use swe_edge_egress_http_transport::{AlwaysValidConfig, HttpTransportSvc};
+use edge_transport_http_egress_transport::{AlwaysValidConfig, HttpTransportSvc};
 
 #[test]
 fn test_always_valid_config_struct_validate_returns_ok() {

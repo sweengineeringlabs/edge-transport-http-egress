@@ -17,7 +17,7 @@ use super::http_method::HttpMethod;
 ///
 /// ```rust
 /// use std::time::Duration;
-/// use swe_edge_egress_http_transport::{HttpMethod, HttpRequest};
+/// use edge_transport_http_egress_transport::{HttpMethod, HttpRequest};
 ///
 /// // Quick GET.
 /// let req = HttpRequest::get("https://api.example.com/users");

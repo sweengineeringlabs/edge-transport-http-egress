@@ -1,7 +1,7 @@
 //! Integration tests for the `CircuitBreakerNode` trait.
 
 use core::marker::PhantomData;
-use swe_edge_egress_breaker::BreakerLayer;
+use edge_transport_http_egress_breaker::BreakerLayer;
 
 /// @covers: CircuitBreakerNode
 /// `CircuitBreakerNode` is a `pub(crate)` trait; its contract is enforced

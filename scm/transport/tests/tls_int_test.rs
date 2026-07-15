@@ -1,18 +1,18 @@
-//! Integration tests covering the `swe-edge-egress-tls` dependency.
+//! Integration tests covering the `edge-transport-http-egress-tls` dependency.
 //!
 //! Verifies that TLS configuration flows through the SAF factory and that
 //! plaintext (non-TLS) connections work correctly with the TLS middleware
 //! present in the middleware stack when TLS is not required.
 
-use swe_edge_egress_http_transport::HttpTransportSvc;
-use swe_edge_egress_tls::TlsConfig;
+use edge_transport_http_egress_tls::TlsConfig;
+use edge_transport_http_egress_transport::HttpTransportSvc;
 
 /// @covers: default_http_egress
 #[test]
 fn test_tls_config_swe_default_parses_successfully() {
     // Verify the SWE default TLS config parses without error.
     // TlsConfig::None is always valid — no cert files to resolve.
-    let tls_cfg: Result<_, swe_edge_egress_tls::TlsError> = Ok(TlsConfig::None);
+    let tls_cfg: Result<_, edge_transport_http_egress_tls::TlsError> = Ok(TlsConfig::None);
     assert!(
         tls_cfg.is_ok(),
         "TlsConfig::None must always be valid: {:?}",

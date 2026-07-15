@@ -14,7 +14,7 @@
 //!   different Vary paths at runtime.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // TTL-positive layers (entries will be stored)

@@ -1,7 +1,7 @@
 //! Integration tests for `api/error.rs` — the public `RateError` enum.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::RateError;
+use edge_transport_http_egress_rate::RateError;
 
 // ---------------------------------------------------------------------------
 // RateError::ParseFailed
@@ -19,7 +19,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = RateError::ParseFailed("bad field".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_rate"),
+        msg.contains("edge_transport_http_egress_rate"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }

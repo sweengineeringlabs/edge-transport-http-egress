@@ -14,7 +14,7 @@ use crate::api::traits::HttpTls;
 /// `reqwest::ClientBuilder` via `apply_to(..)`.
 ///
 /// ```ignore
-/// let tls = swe_edge_egress_tls::HttpTlsSvc::build_tls_layer(TlsConfig::None)?;
+/// let tls = edge_transport_http_egress_tls::HttpTlsSvc::build_tls_layer(TlsConfig::None)?;
 /// let client = tls.apply_to(reqwest::Client::builder())?.build()?;
 /// ```
 pub struct TlsLayer {

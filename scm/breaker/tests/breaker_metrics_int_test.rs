@@ -1,7 +1,7 @@
 //! Integration tests for `get_failure_threshold` — `BreakerMetrics` contract via SAF wrapper.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{get_failure_threshold, BreakerConfig, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{get_failure_threshold, BreakerConfig, HttpBreakerSvc};
 
 /// @covers: get_failure_threshold
 #[test]

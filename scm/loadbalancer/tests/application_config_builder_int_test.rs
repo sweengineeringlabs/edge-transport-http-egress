@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Integration tests for `ApplicationConfigBuilder`.
 
-use swe_edge_egress_loadbalancer::LoadbalancerSvc;
+use edge_transport_http_egress_loadbalancer::LoadbalancerSvc;
 
 /// @covers: LoadbalancerSvc::create_config_builder — produces a ConfigBuilderImpl
 #[test]

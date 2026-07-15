@@ -7,7 +7,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_oauth::OAuthSvc;
+use edge_transport_http_egress_oauth::OAuthSvc;
 
 /// @covers: RefreshSpec (via OAuthSvc builder)
 /// The OAuth refresh strategy machinery that implements `RefreshSpec` is exercised
@@ -18,7 +18,7 @@ fn oauth_trait_refresh_spec_refresh_strategy_is_wired_int_test() {
     // OAuthSvc::builder() internally constructs a refresh strategy that
     // implements RefreshSpec. Missing source → Configuration error confirms
     // the path is active.
-    use swe_edge_egress_oauth::{OAuthBuilderOps, OAuthError};
+    use edge_transport_http_egress_oauth::{OAuthBuilderOps, OAuthError};
     let err = OAuthSvc::builder().build().unwrap_err();
     assert!(
         matches!(err, OAuthError::Configuration(_)),

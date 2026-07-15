@@ -9,7 +9,7 @@
 
 use core::marker::PhantomData;
 
-use swe_edge_egress_http_transport::MetricsEgress;
+use edge_transport_http_egress_transport::MetricsEgress;
 
 /// @covers: MetricsHttpEgressSpec (via MetricsEgress)
 /// Naming the public `MetricsEgress` alias is a compile-time contract: this test

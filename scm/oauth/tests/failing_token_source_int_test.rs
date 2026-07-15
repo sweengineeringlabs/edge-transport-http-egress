@@ -11,8 +11,10 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{
+    OAuthBuilder, OAuthBuilderOps, OAuthError, OAuthTokenSource, Result,
+};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthBuilder, OAuthBuilderOps, OAuthError, OAuthTokenSource, Result};
 
 /// An `OAuthTokenSource` that always returns `OAuthError::RefreshFailed`.
 #[derive(Debug)]

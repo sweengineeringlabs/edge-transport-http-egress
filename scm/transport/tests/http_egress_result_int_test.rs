@@ -1,6 +1,6 @@
 //! Integration tests for `HttpEgressResult`.
 
-use swe_edge_egress_http_transport::{HttpEgressError, HttpEgressResult};
+use edge_transport_http_egress_transport::{HttpEgressError, HttpEgressResult};
 
 #[test]
 fn test_http_egress_result_type_ok_wraps_value() {

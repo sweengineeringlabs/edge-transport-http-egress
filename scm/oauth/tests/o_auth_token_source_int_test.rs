@@ -6,8 +6,8 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_oauth::{OAuthTokenSource, Result};
 use futures::future::BoxFuture;
-use swe_edge_egress_oauth::{OAuthTokenSource, Result};
 
 /// A minimal `OAuthTokenSource` implementation for testing object safety and
 /// `get_access_token` return behavior.

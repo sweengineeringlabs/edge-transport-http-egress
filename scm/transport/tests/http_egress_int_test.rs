@@ -7,16 +7,16 @@ use std::convert::Infallible;
 use std::time::Duration;
 
 use bytes::Bytes;
+use edge_transport_http_egress_transport::{
+    FormPart, HttpAuth, HttpBody, HttpConfig, HttpEgressError, HttpMethod, HttpRequest,
+    HttpResponse, HttpTransportSvc,
+};
 use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
-use swe_edge_egress_http_transport::{
-    FormPart, HttpAuth, HttpBody, HttpConfig, HttpEgressError, HttpMethod, HttpRequest,
-    HttpResponse, HttpTransportSvc,
-};
 
 // ─── test-server helpers ─────────────────────────────────────────────────────
 

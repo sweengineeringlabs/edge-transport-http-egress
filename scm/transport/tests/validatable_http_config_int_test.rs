@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_http_transport::{HttpConfig, HttpTransportSvc, ValidatableHttpConfig};
+use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc, ValidatableHttpConfig};
 
 #[test]
 fn test_validatable_http_config_struct_ok_for_defaults() {

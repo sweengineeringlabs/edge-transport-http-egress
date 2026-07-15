@@ -1,8 +1,8 @@
-//! Integration tests for the `Validator` trait in `swe-edge-egress-retry`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-retry`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_retry::RetryConfigBuilder;
+use edge_transport_http_egress_retry::RetryConfigBuilder;
 
 /// @covers: Validator — valid config passes validation
 #[test]

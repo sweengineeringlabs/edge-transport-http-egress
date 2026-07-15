@@ -1,4 +1,4 @@
-//! Primary trait declarations for `swe-edge-egress-cache`.
+//! Primary trait declarations for `edge-transport-http-egress-cache`.
 
 pub mod http_cache;
 pub mod processor;

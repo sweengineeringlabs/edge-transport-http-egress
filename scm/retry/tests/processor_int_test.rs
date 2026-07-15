@@ -1,6 +1,6 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-retry`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-retry`.
 
-use swe_edge_egress_retry::HttpRetrySvc;
+use edge_transport_http_egress_retry::HttpRetrySvc;
 
 /// @covers: Processor
 #[test]

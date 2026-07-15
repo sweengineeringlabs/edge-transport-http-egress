@@ -5,7 +5,7 @@
 //! surface and honour the `HttpTls` contract.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig};
 
 /// `TlsConfig::None` produces a provider that returns no identity,
 /// so `apply_to` passes the ClientBuilder through unmodified.
@@ -23,7 +23,7 @@ fn test_identity_none_config_produces_no_identity() {
 #[test]
 fn test_identity_provider_is_send_sync() {
     fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<swe_edge_egress_tls::TlsLayer>();
+    assert_send_sync::<edge_transport_http_egress_tls::TlsLayer>();
 }
 
 /// Each `TlsConfig` variant that does NOT require external key material

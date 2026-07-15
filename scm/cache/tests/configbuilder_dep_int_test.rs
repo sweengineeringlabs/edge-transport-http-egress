@@ -2,8 +2,8 @@
 //! Verifies that the configbuilder integration works through the
 //! cache public API.
 
+use edge_transport_http_egress_cache::HttpCacheSvc;
 use swe_edge_configbuilder::ConfigBuilderImpl;
-use swe_edge_egress_cache::HttpCacheSvc;
 
 /// @covers: swe-edge-configbuilder
 #[test]

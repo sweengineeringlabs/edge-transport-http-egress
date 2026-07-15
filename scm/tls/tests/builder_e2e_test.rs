@@ -1,7 +1,7 @@
-//! End-to-end tests for the swe_edge_egress_tls SAF builder surface.
+//! End-to-end tests for the edge_transport_http_egress_tls SAF builder surface.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
+use edge_transport_http_egress_tls::{HttpTlsSvc, TlsConfig, TlsLayer};
 
 /// @covers: build_tls_layer with None config
 #[test]

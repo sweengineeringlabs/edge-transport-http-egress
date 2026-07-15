@@ -1,6 +1,6 @@
 //! Integration tests for `HttpConfigBuilder`.
 
-use swe_edge_egress_http_transport::HttpConfigBuilder;
+use edge_transport_http_egress_transport::HttpConfigBuilder;
 
 #[test]
 fn test_http_config_builder_struct_new_creates_builder_with_default_values() {

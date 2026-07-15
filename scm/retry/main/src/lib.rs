@@ -1,4 +1,4 @@
-//! swe_edge_egress_retry — Opinionated retry middleware (wraps reqwest-retry with SWE defaults).
+//! edge_transport_http_egress_retry — Opinionated retry middleware (wraps reqwest-retry with SWE defaults).
 //!
 
 #![warn(missing_docs)]

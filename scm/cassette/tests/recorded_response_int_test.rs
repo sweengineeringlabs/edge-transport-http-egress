@@ -2,7 +2,7 @@
 //! @covers: src/api/recorded/interaction/response.rs
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 /// @covers: Response
 /// Confirms `CassetteLayer` Debug output includes the mode, which is derived
@@ -24,7 +24,7 @@ fn cassette_trait_recorded_response_layer_debug_shows_mode_int_test() {
 /// cassette path derived from config dir and cassette name.
 #[test]
 fn cassette_trait_recorded_response_builder_layer_path_int_test() {
-    use swe_edge_egress_cassette::CassetteLayerBuilder;
+    use edge_transport_http_egress_cassette::CassetteLayerBuilder;
     let layer = CassetteLayerBuilder::new()
         .with_config(CassetteConfig::disabled())
         .with_cassette_name("response_test")

@@ -1,6 +1,6 @@
 //! Integration tests for `HttpBody`.
 
-use swe_edge_egress_http_transport::HttpBody;
+use edge_transport_http_egress_transport::HttpBody;
 
 #[test]
 fn test_http_body_enum_json_holds_value() {

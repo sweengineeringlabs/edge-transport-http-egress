@@ -2,7 +2,7 @@
 //! and their observable semantics from outside the crate.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // Struct literal construction — all four fields are public

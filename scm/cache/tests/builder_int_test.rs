@@ -3,7 +3,7 @@
 //! Covers: `build_cache_layer`, `CacheConfig` fields, `CacheLayer` construction.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheError, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, CacheError, CacheLayer, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // build_cache_layer — SAF entry point

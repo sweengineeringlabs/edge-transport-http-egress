@@ -1,4 +1,4 @@
-//! Integration tests for `swe_edge_egress_cassette` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_cassette` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` declares a `pub(crate)` type alias `HttpCassetteTrait`
 //! for `dyn HttpCassette`. That alias is internal-only. From the integration
@@ -12,7 +12,7 @@
 //! broken, consumers of the crate would fail to compile.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 // ---------------------------------------------------------------------------
 // reqwest_middleware::Middleware — CassetteLayer must implement it

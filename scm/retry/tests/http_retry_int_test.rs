@@ -11,7 +11,7 @@
 //! - The layer produced by the factory pipeline is non-trivially wired —
 //!   it has a non-zero `max_retries` field visible in Debug.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 
 // ---------------------------------------------------------------------------
 // reqwest_middleware::Middleware — compile-time proof
@@ -50,7 +50,7 @@ fn test_retry_layer_is_arc_send_sync() {
 }
 
 // ---------------------------------------------------------------------------
-// describe() contract — "swe_edge_egress_retry" embedded in Debug
+// describe() contract — "edge_transport_http_egress_retry" embedded in Debug
 // ---------------------------------------------------------------------------
 
 /// The `RetryLayer` Debug output must include `max_retries`, which flows

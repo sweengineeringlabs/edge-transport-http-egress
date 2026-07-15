@@ -12,7 +12,7 @@ use std::fmt;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpMethod;
+/// use edge_transport_http_egress_transport::HttpMethod;
 ///
 /// assert_eq!(HttpMethod::Get.to_string(), "GET");
 /// assert_eq!(HttpMethod::Post.to_string(), "POST");

@@ -7,7 +7,7 @@
 //! construction, and edge-case configs must be accepted without error.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
 
 // ---------------------------------------------------------------------------
 // Zero TTL — "cache only when upstream provides Cache-Control max-age"

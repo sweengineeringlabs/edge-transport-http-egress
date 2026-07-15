@@ -5,7 +5,7 @@
 //! path derivation from `cassette_dir` + cassette name.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_cfg(dir: &str, mode: &str) -> CassetteConfig {
     CassetteConfig {

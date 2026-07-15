@@ -12,7 +12,7 @@
 //! - Values flow unchanged through `build_tls_layer`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_tls::{TlsConfig, TlsConfigError};
+use edge_transport_http_egress_tls::{TlsConfig, TlsConfigError};
 
 // ---------------------------------------------------------------------------
 // Direct variant construction

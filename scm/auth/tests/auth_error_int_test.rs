@@ -1,7 +1,7 @@
-//! Integration tests for `auth_error` in `swe-edge-egress-auth`.
+//! Integration tests for `auth_error` in `edge-transport-http-egress-auth`.
 
 use core::marker::PhantomData;
-use swe_edge_egress_auth::AuthError;
+use edge_transport_http_egress_auth::AuthError;
 
 /// @covers: AuthError
 /// Fails to compile if `AuthError` is removed from the crate's public surface.

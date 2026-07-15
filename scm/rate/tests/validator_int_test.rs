@@ -1,8 +1,8 @@
-//! Integration tests for the `Validator` trait in `swe-edge-egress-rate`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-rate`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig};
+use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig};
 
 /// @covers: Validator
 #[test]

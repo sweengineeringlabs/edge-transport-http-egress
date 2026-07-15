@@ -21,7 +21,7 @@ use crate::api::AuthError;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_auth::AuthConfig;
+/// use edge_transport_http_egress_auth::AuthConfig;
 ///
 /// // No auth (baseline — passes requests unmodified).
 /// let cfg = AuthConfig::default();
