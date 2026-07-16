@@ -48,9 +48,3 @@ pub enum AuthError {
     #[error("edge_transport_http_egress_auth: credential resolution failed — {0}")]
     MissingCredential(String),
 }
-
-impl From<AuthError> for swe_edge_security::SecurityError {
-    fn from(e: AuthError) -> Self {
-        swe_edge_security::SecurityError::Auth(e.to_string())
-    }
-}

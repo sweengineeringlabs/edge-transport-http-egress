@@ -34,7 +34,6 @@ expect_used = "deny"
 edge-application        = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
 
 # ── security primitives ───────────────────────────────────────────────────────
-swe-edge-security      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.4" }
 
 # ── config ────────────────────────────────────────────────────────────────────
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }

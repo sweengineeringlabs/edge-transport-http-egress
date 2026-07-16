@@ -48,7 +48,6 @@ time = { workspace = true }
 # SigV4 canonical-request percent-encodes URI path + query.
 percent-encoding = { workspace = true }
 swe-edge-configbuilder.workspace = true
-swe-edge-security.workspace      = true
 tracing = { workspace = true, optional = true }
 # Home directory expansion for credential file paths
 dirs = "5"

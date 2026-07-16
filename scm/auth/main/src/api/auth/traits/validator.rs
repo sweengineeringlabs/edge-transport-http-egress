@@ -1,4 +1,7 @@
-//! [`Validator`] — re-exported from `swe-edge-security`.
-//!
-//! The canonical definition lives in the shared security primitives crate.
-pub use swe_edge_security::Validator;
+//! [`Validator`] — self-validation contract for constructed auth types.
+
+/// Types that can assert their own post-construction validity.
+pub trait Validator: Send + Sync {
+    /// Validate `self`, returning `Ok(())` if valid or an error message otherwise.
+    fn validate(&self) -> Result<(), String>;
+}

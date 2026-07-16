@@ -34,7 +34,6 @@ tracing.workspace            = true
 serde.workspace              = true
 toml.workspace               = true
 swe-edge-configbuilder.workspace = true
-swe-edge-security.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
