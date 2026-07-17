@@ -1,14 +1,15 @@
 //! End-to-end test for ADR-006 config-driven activation in `transport`.
 //!
-//! Proves the consumer experience: adding a `[tls]` section to `application.toml`
-//! wires client TLS into the assembled egress; omitting it (or `enabled = false`)
-//! leaves TLS off. We exploit the fact that `build_tls_layer` resolves the cert
-//! eagerly — so a present `[tls]` with a missing cert path fails at build time,
-//! which is direct evidence that the TLS layer was actually attached.
+//! Proves the consumer experience: adding a `[retry]`/`[rate]`/`[breaker]`/
+//! `[cache]`/`[cassette]` section to `application.toml` wires that layer into
+//! the assembled egress; omitting it (or `enabled = false`) leaves it off.
+//! `auth` and `tls` have no config-section form (BYOSec reversed 2026-07-16/
+//! 2026-07-17) — see the auth tests below and `tls_int_test.rs` for their
+//! construct-and-pass-in equivalents.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_oauth::OAuthTokenSource;
+use edge_security_transport_egress_http_oauth::OAuthTokenSource;
 use edge_transport_http_egress_transport::{HttpEgressBuildError, HttpTransportSvc};
 use swe_edge_configbuilder::ConfigLoaderFactory;
 use tempfile::TempDir;
@@ -18,54 +19,6 @@ fn loader(content: &str) -> (TempDir, swe_edge_configbuilder::SectionLoaderImpl)
     std::fs::write(dir.path().join("application.toml"), content).expect("write application.toml");
     let loader = ConfigLoaderFactory::create_loader_for_dir(dir.path());
     (dir, loader)
-}
-
-/// @covers: http_egress_from_config — `[tls]` present wires the TLS layer; eager
-/// cert resolution fails on the missing file, proving the layer was attached.
-#[test]
-fn test_tls_section_present_wires_tls_layer() {
-    let (_d, l) = loader("[tls]\nkind = \"pem\"\npath = \"/definitely/missing-xyz.pem\"");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
-    assert!(
-        matches!(result, Err(HttpEgressBuildError::Tls(_))),
-        "[tls] present must wire TLS and fail eagerly on the missing cert"
-    );
-}
-
-/// @covers: http_egress_from_config — no `[tls]` section ⇒ TLS off; the egress
-/// builds successfully without touching any cert.
-#[test]
-fn test_no_tls_section_builds_without_tls() {
-    let (_d, l) = loader("[unrelated]\nkey = \"value\"");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
-    assert!(
-        result.is_ok(),
-        "absent [tls] must build successfully with TLS off"
-    );
-}
-
-/// @covers: http_egress_from_config — `enabled = false` disables a present
-/// `[tls]` section (no cert resolution, builds clean).
-#[test]
-fn test_tls_enabled_false_disables_tls() {
-    let (_d, l) = loader("[tls]\nkind = \"pem\"\npath = \"/missing.pem\"\nenabled = false");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
-    assert!(
-        result.is_ok(),
-        "enabled = false must disable TLS — no cert resolution attempted"
-    );
-}
-
-/// @covers: http_egress_from_config — an invalid `[tls]` (empty path) surfaces a
-/// Config validation error, not a silent pass.
-#[test]
-fn test_tls_invalid_section_returns_config_error() {
-    let (_d, l) = loader("[tls]\nkind = \"pem\"\npath = \"\"");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
-    assert!(
-        matches!(result, Err(HttpEgressBuildError::Config(_))),
-        "invalid [tls] must surface a Config error from validate_enabled"
-    );
 }
 
 // ── [retry] section ────────────────────────────────────────────────────────
@@ -288,8 +241,8 @@ fn test_preflight_reports_enabled_and_disabled() {
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
     assert_eq!(
         summary.total_count(),
-        6,
-        "all 6 config-driven egress features are reported (auth has no config-section form)"
+        5,
+        "all 5 config-driven egress features are reported (auth and tls have no config-section form)"
     );
     assert_eq!(summary.enabled_count(), 1, "only [cache] is enabled");
     let text = summary.to_string();
@@ -301,7 +254,7 @@ fn test_preflight_reports_enabled_and_disabled() {
 fn test_preflight_all_disabled_when_no_sections() {
     let (_d, l) = loader("[unrelated]\nx = 1");
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
-    assert_eq!(summary.total_count(), 6);
+    assert_eq!(summary.total_count(), 5);
     assert_eq!(summary.enabled_count(), 0, "no sections ⇒ nothing enabled");
 }
 
@@ -324,11 +277,20 @@ fn test_preflight_invalid_section_returns_config_error() {
 #[derive(Debug)]
 struct StaticTokenSource;
 
+#[async_trait::async_trait]
 impl OAuthTokenSource for StaticTokenSource {
-    fn get_access_token(
+    async fn get_access_token(
         &self,
-    ) -> futures::future::BoxFuture<'_, edge_transport_http_egress_oauth::Result<String>> {
-        Box::pin(async { Ok("test-token".to_owned()) })
+        _request: edge_security_transport_egress_http_oauth::AccessTokenRequest,
+    ) -> Result<
+        edge_security_transport_egress_http_oauth::AccessTokenResponse,
+        edge_security_transport_egress_http_oauth::OAuthError,
+    > {
+        Ok(
+            edge_security_transport_egress_http_oauth::AccessTokenResponse {
+                token: "test-token".to_owned(),
+            },
+        )
     }
 }
 

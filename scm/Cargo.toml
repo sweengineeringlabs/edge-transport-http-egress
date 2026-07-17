@@ -5,10 +5,8 @@ members  = [
   "cache",
   "cassette",
   "loadbalancer",
-  "oauth",
   "rate",
   "retry",
-  "tls",
   "transport",
 ]
 

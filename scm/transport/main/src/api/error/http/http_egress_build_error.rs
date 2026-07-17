@@ -32,11 +32,11 @@ pub enum HttpEgressBuildError {
     /// TLS middleware assembly failed.
     #[cfg(feature = "tls")]
     #[error("tls: {0}")]
-    Tls(#[from] edge_transport_http_egress_tls::TlsConfigError),
+    Tls(#[from] edge_security_transport_egress_http_tls::TlsConfigError),
     /// OAuth builder assembly failed.
     #[cfg(feature = "oauth")]
     #[error("oauth: {0}")]
-    OAuth(#[from] edge_transport_http_egress_oauth::OAuthError),
+    OAuth(#[from] edge_security_transport_egress_http_oauth::OAuthError),
     /// Reqwest client construction failed.
     #[error("reqwest: {0}")]
     Reqwest(#[from] reqwest::Error),

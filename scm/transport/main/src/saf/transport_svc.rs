@@ -1,7 +1,5 @@
 //! SAF factory methods on [`HttpTransportSvc`](crate::HttpTransportSvc) for assembling [`HttpEgress`](crate::HttpEgress) instances.
 
-#[cfg(feature = "oauth")]
-use edge_transport_http_egress_oauth::OAuthBuilderOps as _;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -29,25 +27,24 @@ impl HttpTransportSvc {
     /// consumer's configuration (ADR-006 config-driven activation): a feature is
     /// wired **iff** its `[section]` is present in the loaded config.
     ///
-    /// Config-drives `[tls]`, `[retry]`, `[rate]`, `[breaker]`, `[cache]`, and
+    /// Config-drives `[retry]`, `[rate]`, `[breaker]`, `[cache]`, and
     /// `[cassette]` — present ⇒ the feature is wired; absent (or
     /// `enabled = false`) ⇒ it is **omitted from the chain**, not added as a
     /// no-op (zero overhead when disabled).
     ///
-    /// Auth has no config-section form (BYOSec reversed 2026-07-16: auth now
-    /// depends on `edge-security`'s `bearer` crate, which has no
-    /// `swe-edge-configbuilder` integration) — supply a strategy through
-    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth).
+    /// Auth and TLS have no config-section form (BYOSec reversed 2026-07-16/17:
+    /// both now depend on `edge-security` crates that have no usable
+    /// `swe-edge-configbuilder` integration from this crate's perspective —
+    /// `bearer` has none at all; `tls`'s `OptionalSection` impl resolves
+    /// against `edge-security`'s own vendored `swe-edge-configbuilder`
+    /// instance, a different compiled crate than the external one this repo
+    /// depends on, so the trait bound can never be satisfied cross-crate) —
+    /// supply a strategy/layer through
+    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth) /
+    /// [`http_egress_from_config_with_tls`](HttpTransportSvc::http_egress_from_config_with_tls).
     /// OAuth token-refresh auth is likewise a runtime `token_source` (a trait
     /// object), not a config section — use
     /// [`http_egress_from_config_with_oauth`](HttpTransportSvc::http_egress_from_config_with_oauth).
-    ///
-    /// ```toml
-    /// # enabling TLS is all the consumer writes:
-    /// [tls]
-    /// kind = "pem"
-    /// path = "/etc/certs/client.pem"
-    /// ```
     ///
     /// # Errors
     ///
@@ -57,7 +54,7 @@ impl HttpTransportSvc {
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let http_cfg = HttpConfig::default();
-        let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
+        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
         let builder = ClientBuilder::new(client);
 
         let builder = Self::with_optional_layers(loader, builder)?;
@@ -71,7 +68,7 @@ impl HttpTransportSvc {
     /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is a caller-supplied
     /// [`HttpEgressAuthStrategy`](edge_security_transport_egress_http::HttpEgressAuthStrategy)
     /// — the construct-and-pass-in replacement for the old `[auth]` TOML
-    /// section (BYOSec reversed 2026-07-16). The `[tls]`/`[retry]`/`[rate]`/
+    /// section (BYOSec reversed 2026-07-16). The `[retry]`/`[rate]`/
     /// `[breaker]`/`[cache]`/`[cassette]` sections are honoured as usual.
     ///
     /// # Errors
@@ -84,7 +81,7 @@ impl HttpTransportSvc {
         strategy: Arc<dyn edge_security_transport_egress_http::HttpEgressAuthStrategy>,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let http_cfg = HttpConfig::default();
-        let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
+        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
         let mut builder = ClientBuilder::new(client);
         builder = builder.with(SecurityAuthMiddleware::new(strategy));
 
@@ -96,13 +93,44 @@ impl HttpTransportSvc {
         )))
     }
 
+    /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the TLS layer is a caller-supplied,
+    /// already-built [`TlsLayer`](edge_security_transport_egress_http_tls::TlsLayer)
+    /// — the construct-and-pass-in replacement for the old `[tls]` TOML
+    /// section (BYOSec reversed 2026-07-17; see
+    /// [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment for why). The
+    /// `[retry]`/`[rate]`/`[breaker]`/`[cache]`/`[cassette]` sections are
+    /// honoured as usual.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`HttpEgressBuildError::Reqwest`] if applying the TLS layer or
+    /// building the client fails, [`HttpEgressBuildError::Config`] if a
+    /// section fails to load or validate, or the relevant middleware build
+    /// error.
+    #[cfg(feature = "tls")]
+    pub fn http_egress_from_config_with_tls(
+        loader: &swe_edge_configbuilder::SectionLoaderImpl,
+        tls: edge_security_transport_egress_http_tls::TlsLayer,
+    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
+        let http_cfg = HttpConfig::default();
+        let cb = tls.apply_to(reqwest::Client::builder())?;
+        let client = Self::configure_http_builder(cb, &http_cfg).build()?;
+        let builder = ClientBuilder::new(client);
+
+        let builder = Self::with_optional_layers(loader, builder)?;
+        Ok(Box::new(DefaultHttpEgress::new(
+            builder.build(),
+            http_cfg.base_url,
+            http_cfg.max_response_bytes,
+        )))
+    }
+
     /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is an **OAuth
     /// token-refresh** layer built from `token_source` instead of the static
     /// `[auth]` section. This is how OAuth — which cannot be expressed in TOML
     /// (the token source is a runtime trait object) — is combined with the
-    /// config-driven middleware stack. The `[tls]`/`[retry]`/`[rate]`/
-    /// `[breaker]`/`[cache]`/`[cassette]` sections are honoured as usual; the
-    /// `[auth]` section is ignored (OAuth takes the auth slot).
+    /// config-driven middleware stack. The `[retry]`/`[rate]`/`[breaker]`/
+    /// `[cache]`/`[cassette]` sections are honoured as usual.
     ///
     /// # Errors
     ///
@@ -112,16 +140,14 @@ impl HttpTransportSvc {
     #[cfg(feature = "oauth")]
     pub fn http_egress_from_config_with_oauth(
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        token_source: Arc<dyn edge_transport_http_egress_oauth::OAuthTokenSource>,
+        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let http_cfg = HttpConfig::default();
-        let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
+        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
         let mut builder = ClientBuilder::new(client);
 
         // OAuth occupies the auth slot, replacing any static [auth] section.
-        let oauth = edge_transport_http_egress_oauth::OAuthSvc::builder()
-            .with_token_source(token_source)
-            .build()?;
+        let oauth = Self::build_oauth_middleware(token_source)?;
         builder = builder.with(oauth);
 
         builder = Self::with_optional_layers(loader, builder)?;
@@ -138,10 +164,10 @@ impl HttpTransportSvc {
     /// operators see exactly which features are on (and why); it is the
     /// visibility guardrail against silent config-driven activation.
     ///
-    /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[tls]`,
-    /// `[retry]`, `[rate]`, `[breaker]`, `[cache]`, `[cassette]`. `auth` has no
-    /// config-section form (see [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment), so it is
-    /// not part of this summary.
+    /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[retry]`,
+    /// `[rate]`, `[breaker]`, `[cache]`, `[cassette]`. `auth` and `tls` have
+    /// no config-section form (see [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment),
+    /// so neither is part of this summary.
     ///
     /// # Errors
     ///
@@ -154,7 +180,6 @@ impl HttpTransportSvc {
     // unread and `registry` is never mutated before `summary()`.
     #[cfg_attr(
         not(any(
-            feature = "tls",
             feature = "retry",
             feature = "rate",
             feature = "breaker",
@@ -167,8 +192,6 @@ impl HttpTransportSvc {
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
     ) -> Result<swe_edge_configbuilder::FeatureSummary, HttpEgressBuildError> {
         let mut registry = swe_edge_configbuilder::FeatureRegistry::new();
-        #[cfg(feature = "tls")]
-        registry.load::<edge_transport_http_egress_tls::TlsConfig>(loader)?;
         #[cfg(feature = "retry")]
         registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
         #[cfg(feature = "rate")]
@@ -318,18 +341,41 @@ impl HttpTransportSvc {
     #[cfg(feature = "oauth")]
     pub fn plain_http_egress_with_oauth(
         config: HttpConfig,
-        token_source: Arc<dyn edge_transport_http_egress_oauth::OAuthTokenSource>,
+        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let client = Self::configure_http_builder(reqwest::Client::builder(), &config).build()?;
-        let oauth = edge_transport_http_egress_oauth::OAuthSvc::builder()
-            .with_token_source(token_source)
-            .build()?;
+        let oauth = Self::build_oauth_middleware(token_source)?;
         let mw_client = ClientBuilder::new(client).with(oauth).build();
         Ok(Box::new(DefaultHttpEgress::new(
             mw_client,
             config.base_url,
             config.max_response_bytes,
         )))
+    }
+
+    /// Assemble an `edge-security` OAuth middleware from a runtime token
+    /// source. Shared by [`http_egress_from_config_with_oauth`](HttpTransportSvc::http_egress_from_config_with_oauth) and
+    /// [`plain_http_egress_with_oauth`](HttpTransportSvc::plain_http_egress_with_oauth) — both take the same
+    /// `token_source` input and only differ in which other layers surround it.
+    #[cfg(feature = "oauth")]
+    fn build_oauth_middleware(
+        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
+    ) -> Result<edge_security_transport_egress_http_oauth::OAuthMiddleware, HttpEgressBuildError>
+    {
+        use edge_security_transport_egress_http_oauth::{
+            AssembleRequest, AssemblyRequest, OAuthBuilderOps as _, OAuthSvcFactory,
+            WithTokenSourceRequest,
+        };
+        let assembly = OAuthSvcFactory::builder()
+            .with_token_source(WithTokenSourceRequest {
+                source: token_source,
+            })?
+            .builder
+            .build(AssemblyRequest)?;
+        Ok(assembly
+            .middleware
+            .assemble(AssembleRequest)?
+            .into_middleware())
     }
 
     /// Validate that an [`HttpConfig`] value is well-formed.
@@ -348,31 +394,6 @@ impl HttpTransportSvc {
     /// through the SAF boundary without holding a direct reference to the trait.
     pub fn validate<V: crate::api::traits::Validator>(v: &V) -> Result<(), String> {
         v.validate()
-    }
-
-    /// Build the reqwest client for a config-driven egress: apply the `[tls]`
-    /// section if present, then the [`HttpConfig`] transport settings.
-    // Without the `tls` feature, `loader` is unread (no `[tls]` section to load).
-    #[cfg_attr(not(feature = "tls"), allow(unused_variables))]
-    fn reqwest_client_from_config(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        http_cfg: &HttpConfig,
-    ) -> Result<reqwest::Client, HttpEgressBuildError> {
-        #[cfg(feature = "tls")]
-        use swe_edge_configbuilder::{FeatureState, OptionalSection as _};
-
-        #[cfg_attr(not(feature = "tls"), allow(unused_mut))]
-        let mut cb = reqwest::Client::builder();
-        // [tls] present ⇒ build and apply the TLS layer; absent ⇒ no TLS layer.
-        #[cfg(feature = "tls")]
-        if let FeatureState::Enabled(tls_cfg) =
-            edge_transport_http_egress_tls::TlsConfig::load_optional(loader)?
-        {
-            let tls = edge_transport_http_egress_tls::HttpTlsSvc::build_tls_layer(tls_cfg)?;
-            cb = tls.apply_to(cb)?;
-        }
-        cb = Self::configure_http_builder(cb, http_cfg);
-        Ok(cb.build()?)
     }
 
     /// Append the non-auth optional middleware — `[retry]`, `[rate]`,
@@ -474,8 +495,9 @@ impl HttpTransportSvc {
         let mut cb = reqwest::Client::builder();
         #[cfg(feature = "tls")]
         {
-            let tls =
-                edge_transport_http_egress_tls::HttpTlsSvc::build_tls_layer(Default::default())?;
+            let tls = edge_security_transport_egress_http_tls::HttpTlsSvc::build_tls_layer(
+                Default::default(),
+            )?;
             cb = tls.apply_to(cb)?;
         }
         cb = Self::configure_http_builder(cb, &http_cfg);

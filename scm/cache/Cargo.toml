@@ -23,7 +23,7 @@ path = "main/src/lib.rs"
 
 [dependencies]
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
-reqwest-middleware = { version = "0.3", features = ["json", "multipart"] }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 http = "1"
 moka = { version = "0.12", features = ["future"] }
 anyhow = "1"

@@ -89,8 +89,9 @@ mod oauth_factory {
     use std::time::Duration;
 
     use bytes::Bytes;
-    use edge_transport_http_egress_oauth::{OAuthError, OAuthTokenSource};
-    use futures::future::BoxFuture;
+    use edge_security_transport_egress_http_oauth::{
+        AccessTokenRequest, AccessTokenResponse, OAuthError, OAuthTokenSource,
+    };
     use http_body_util::Full;
     use hyper::body::Incoming;
     use hyper::server::conn::http1;
@@ -103,10 +104,15 @@ mod oauth_factory {
     #[derive(Debug)]
     struct StaticTokenSource(String);
 
+    #[async_trait::async_trait]
     impl OAuthTokenSource for StaticTokenSource {
-        fn get_access_token(&self) -> BoxFuture<'_, Result<String, OAuthError>> {
-            let token = self.0.clone();
-            Box::pin(async move { Ok(token) })
+        async fn get_access_token(
+            &self,
+            _request: AccessTokenRequest,
+        ) -> Result<AccessTokenResponse, OAuthError> {
+            Ok(AccessTokenResponse {
+                token: self.0.clone(),
+            })
         }
     }
 
@@ -114,13 +120,15 @@ mod oauth_factory {
     #[allow(dead_code)]
     struct FailingTokenSource;
 
+    #[async_trait::async_trait]
     impl OAuthTokenSource for FailingTokenSource {
-        fn get_access_token(&self) -> BoxFuture<'_, Result<String, OAuthError>> {
-            Box::pin(async move {
-                Err(OAuthError::CredentialsNotFound(
-                    "no credentials available".into(),
-                ))
-            })
+        async fn get_access_token(
+            &self,
+            _request: AccessTokenRequest,
+        ) -> Result<AccessTokenResponse, OAuthError> {
+            Err(OAuthError::CredentialsNotFound(
+                "no credentials available".into(),
+            ))
         }
     }
 

@@ -97,10 +97,12 @@ fn test_preflight_invalid_section_returns_err_error() {
 fn test_preflight_total_count_matches_feature_set_edge() {
     let (_d, l) = empty_loader();
     let summary = HttpTransportSvc::preflight(&l).expect("ok");
-    // tls + retry + rate + breaker + cache + cassette = 6 (auth has no
-    // config-section form since BYOSec was reversed for auth 2026-07-16 —
-    // edge-security's bearer crate has no swe-edge-configbuilder integration)
-    assert_eq!(summary.total_count(), 6);
+    // retry + rate + breaker + cache + cassette = 5 (auth and tls have no
+    // config-section form since BYOSec was reversed 2026-07-16/17 — bearer
+    // has no swe-edge-configbuilder integration at all, and tls's
+    // OptionalSection impl resolves against edge-security's own vendored
+    // swe-edge-configbuilder, a different compiled crate than this repo's)
+    assert_eq!(summary.total_count(), 5);
 }
 
 // ── default_http_egress (rule 221) ────────────────────────────────────────────
@@ -614,17 +616,23 @@ fn test_connect_websocket_two_independent_stream_outbounds_edge() {
 mod oauth_svc_coverage {
     use std::sync::Arc;
 
-    use edge_transport_http_egress_oauth::{OAuthError, OAuthTokenSource};
+    use edge_security_transport_egress_http_oauth::{
+        AccessTokenRequest, AccessTokenResponse, OAuthError, OAuthTokenSource,
+    };
     use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc};
-    use futures::future::BoxFuture;
 
     #[derive(Debug)]
     struct StaticToken(String);
 
+    #[async_trait::async_trait]
     impl OAuthTokenSource for StaticToken {
-        fn get_access_token(&self) -> BoxFuture<'_, std::result::Result<String, OAuthError>> {
-            let token = self.0.clone();
-            Box::pin(async move { Ok(token) })
+        async fn get_access_token(
+            &self,
+            _request: AccessTokenRequest,
+        ) -> std::result::Result<AccessTokenResponse, OAuthError> {
+            Ok(AccessTokenResponse {
+                token: self.0.clone(),
+            })
         }
     }
 
