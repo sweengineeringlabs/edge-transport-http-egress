@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members  = [
-  "auth",
   "breaker",
   "cache",
   "cassette",
@@ -28,58 +27,3 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"
-
-[workspace.dependencies]
-# ── domain contracts ──────────────────────────────────────────────────────────
-edge-application        = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
-
-# ── security primitives ───────────────────────────────────────────────────────
-
-# ── config ────────────────────────────────────────────────────────────────────
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
-swe-observ-metrics     = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
-
-# ── loadbalancer contract ─────────────────────────────────────────────────────
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
-
-# ── internal middleware ───────────────────────────────────────────────────────
-edge-transport-http-egress         = { package = "edge-transport-http-egress-transport", path = "transport" }
-edge-transport-http-egress-auth         = { path = "auth" }
-edge-transport-http-egress-breaker      = { path = "breaker" }
-edge-transport-http-egress-cache        = { path = "cache" }
-edge-transport-http-egress-cassette     = { path = "cassette" }
-edge-transport-http-egress-loadbalancer = { path = "loadbalancer" }
-edge-transport-http-egress-oauth        = { path = "oauth" }
-edge-transport-http-egress-rate         = { path = "rate" }
-edge-transport-http-egress-retry        = { path = "retry" }
-edge-transport-http-egress-tls          = { path = "tls" }
-
-# ── HTTP client stack ─────────────────────────────────────────────────────────
-reqwest            = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
-reqwest-middleware = { version = "0.3", features = ["json", "multipart"] }
-http               = "1"
-moka               = { version = "0.12", features = ["future"] }
-
-# ── Auth / TLS crypto ─────────────────────────────────────────────────────────
-secrecy          = "0.10"
-sha2             = "0.10"
-hmac             = "0.12"
-hex              = "0.4"
-time             = { version = "0.3", features = ["formatting", "macros"] }
-percent-encoding = "2.3"
-base64           = "0.22"
-
-# ── Common ────────────────────────────────────────────────────────────────────
-anyhow      = "1"
-async-trait = "0.1"
-bytes       = "1"
-chrono      = { version = "0.4", features = ["serde"] }
-futures     = "0.3"
-parking_lot = "0.12"
-serde       = { version = "1.0", features = ["derive"] }
-serde_json  = "1.0"
-serde-saphyr = "0.0.27"
-thiserror   = "2"
-tokio       = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
-toml        = "0.8"
-tracing     = { version = "0.1", default-features = false }

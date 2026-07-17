@@ -9,7 +9,7 @@ echo "pre-commit ── $(basename $REPO_ROOT) ──"
 cd "$SCM_DIR"
 echo "  1/4 fmt..."
 # Run per-package to avoid Windows MAX_PATH (os error 206) with workspace-level cargo fmt.
-for pkg in edge-transport-http-egress-tls edge-transport-http-egress-auth edge-transport-http-egress-oauth \
+for pkg in edge-transport-http-egress-tls edge-transport-http-egress-oauth \
             edge-transport-http-egress-cache edge-transport-http-egress-rate edge-transport-http-egress-retry \
             edge-transport-http-egress-breaker edge-transport-http-egress-loadbalancer \
             edge-transport-http-egress-cassette edge-transport-http-egress-transport; do

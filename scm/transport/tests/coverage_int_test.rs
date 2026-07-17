@@ -97,8 +97,10 @@ fn test_preflight_invalid_section_returns_err_error() {
 fn test_preflight_total_count_matches_feature_set_edge() {
     let (_d, l) = empty_loader();
     let summary = HttpTransportSvc::preflight(&l).expect("ok");
-    // auth + tls + retry + rate + breaker + cache + cassette = 7
-    assert_eq!(summary.total_count(), 7);
+    // tls + retry + rate + breaker + cache + cassette = 6 (auth has no
+    // config-section form since BYOSec was reversed for auth 2026-07-16 —
+    // edge-security's bearer crate has no swe-edge-configbuilder integration)
+    assert_eq!(summary.total_count(), 6);
 }
 
 // ── default_http_egress (rule 221) ────────────────────────────────────────────

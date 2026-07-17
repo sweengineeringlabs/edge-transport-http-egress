@@ -12,6 +12,8 @@ use crate::api::error::HttpEgressBuildError;
 use crate::api::traits::Validator as _;
 use crate::api::traits::{HttpEgress, HttpStream};
 use crate::api::types::{HttpConfig, HttpTransportSvc};
+#[cfg(feature = "auth")]
+use crate::core::SecurityAuthMiddleware;
 use crate::core::{DefaultHttpEgress, MetricsHttpEgress};
 
 impl HttpTransportSvc {
@@ -27,15 +29,18 @@ impl HttpTransportSvc {
     /// consumer's configuration (ADR-006 config-driven activation): a feature is
     /// wired **iff** its `[section]` is present in the loaded config.
     ///
-    /// Config-drives `[auth]`, `[tls]`, `[retry]`, `[rate]`, `[breaker]`,
-    /// `[cache]`, and `[cassette]` — present ⇒ the feature is wired; absent (or
+    /// Config-drives `[tls]`, `[retry]`, `[rate]`, `[breaker]`, `[cache]`, and
+    /// `[cassette]` — present ⇒ the feature is wired; absent (or
     /// `enabled = false`) ⇒ it is **omitted from the chain**, not added as a
     /// no-op (zero overhead when disabled).
     ///
-    /// `[auth]` wires the static auth strategy. OAuth token-refresh auth is a
-    /// runtime `token_source` (a trait object), not a config section, so it is
-    /// not activated here — supply it through the explicit `http_egress` /
-    /// `http_egress_oauth` factories.
+    /// Auth has no config-section form (BYOSec reversed 2026-07-16: auth now
+    /// depends on `edge-security`'s `bearer` crate, which has no
+    /// `swe-edge-configbuilder` integration) — supply a strategy through
+    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth).
+    /// OAuth token-refresh auth is likewise a runtime `token_source` (a trait
+    /// object), not a config section — use
+    /// [`http_egress_from_config_with_oauth`](HttpTransportSvc::http_egress_from_config_with_oauth).
     ///
     /// ```toml
     /// # enabling TLS is all the consumer writes:
@@ -51,22 +56,37 @@ impl HttpTransportSvc {
     pub fn http_egress_from_config(
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        #[cfg(feature = "auth")]
-        use swe_edge_configbuilder::{FeatureState, OptionalSection as _};
+        let http_cfg = HttpConfig::default();
+        let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
+        let builder = ClientBuilder::new(client);
 
+        let builder = Self::with_optional_layers(loader, builder)?;
+        Ok(Box::new(DefaultHttpEgress::new(
+            builder.build(),
+            http_cfg.base_url,
+            http_cfg.max_response_bytes,
+        )))
+    }
+
+    /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is a caller-supplied
+    /// [`HttpEgressAuthStrategy`](edge_security_transport_egress_http::HttpEgressAuthStrategy)
+    /// — the construct-and-pass-in replacement for the old `[auth]` TOML
+    /// section (BYOSec reversed 2026-07-16). The `[tls]`/`[retry]`/`[rate]`/
+    /// `[breaker]`/`[cache]`/`[cassette]` sections are honoured as usual.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`HttpEgressBuildError::Config`] if a section fails to load or
+    /// validate, or the relevant middleware build error.
+    #[cfg(feature = "auth")]
+    pub fn http_egress_from_config_with_auth(
+        loader: &swe_edge_configbuilder::SectionLoaderImpl,
+        strategy: Arc<dyn edge_security_transport_egress_http::HttpEgressAuthStrategy>,
+    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         let http_cfg = HttpConfig::default();
         let client = Self::reqwest_client_from_config(loader, &http_cfg)?;
         let mut builder = ClientBuilder::new(client);
-
-        // [auth] present ⇒ add the static auth layer. OAuth token-refresh is a
-        // runtime token_source — use `http_egress_from_config_with_oauth` for it.
-        #[cfg(feature = "auth")]
-        if let FeatureState::Enabled(auth_cfg) =
-            edge_transport_http_egress_auth::AuthConfig::load_optional(loader)?
-        {
-            let auth = edge_transport_http_egress_auth::AuthSvc::build_auth_middleware(auth_cfg)?;
-            builder = builder.with(auth);
-        }
+        builder = builder.with(SecurityAuthMiddleware::new(strategy));
 
         builder = Self::with_optional_layers(loader, builder)?;
         Ok(Box::new(DefaultHttpEgress::new(
@@ -118,8 +138,10 @@ impl HttpTransportSvc {
     /// operators see exactly which features are on (and why); it is the
     /// visibility guardrail against silent config-driven activation.
     ///
-    /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[auth]`,
-    /// `[tls]`, `[retry]`, `[rate]`, `[breaker]`, `[cache]`, `[cassette]`.
+    /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[tls]`,
+    /// `[retry]`, `[rate]`, `[breaker]`, `[cache]`, `[cassette]`. `auth` has no
+    /// config-section form (see [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment), so it is
+    /// not part of this summary.
     ///
     /// # Errors
     ///
@@ -132,7 +154,6 @@ impl HttpTransportSvc {
     // unread and `registry` is never mutated before `summary()`.
     #[cfg_attr(
         not(any(
-            feature = "auth",
             feature = "tls",
             feature = "retry",
             feature = "rate",
@@ -146,8 +167,6 @@ impl HttpTransportSvc {
         loader: &swe_edge_configbuilder::SectionLoaderImpl,
     ) -> Result<swe_edge_configbuilder::FeatureSummary, HttpEgressBuildError> {
         let mut registry = swe_edge_configbuilder::FeatureRegistry::new();
-        #[cfg(feature = "auth")]
-        registry.load::<edge_transport_http_egress_auth::AuthConfig>(loader)?;
         #[cfg(feature = "tls")]
         registry.load::<edge_transport_http_egress_tls::TlsConfig>(loader)?;
         #[cfg(feature = "retry")]
@@ -164,8 +183,9 @@ impl HttpTransportSvc {
     }
 
     /// Build an [`HttpEgress`](crate::HttpEgress) using the SWE-shipped defaults for every
-    /// middleware layer (pass-through auth, no TLS, sensible retry/rate/breaker
-    /// policies from each crate's `config/application.toml`).
+    /// middleware layer (no auth — construct-and-pass a strategy via
+    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth) instead — no TLS, sensible
+    /// retry/rate/breaker policies from each crate's `config/application.toml`).
     pub fn default_http_egress() -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         Ok(Box::new(Self::build_default_egress(
             HttpConfig::default(),
@@ -431,12 +451,12 @@ impl HttpTransportSvc {
     }
 
     /// Build a [`DefaultHttpEgress`] with the full SWE-default middleware stack —
-    /// pass-through auth, default retry/rate/breaker/cache, the supplied cassette
-    /// config, and no client TLS. Shared by the `default_*` factories; built
-    /// directly (no `assemble`) so each layer can be feature-gated independently.
+    /// no auth (see [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth)), default
+    /// retry/rate/breaker/cache, the supplied cassette config, and no client
+    /// TLS. Shared by the `default_*` factories; built directly (no
+    /// `assemble`) so each layer can be feature-gated independently.
     #[cfg_attr(
         not(any(
-            feature = "auth",
             feature = "retry",
             feature = "rate",
             feature = "breaker",
@@ -461,15 +481,6 @@ impl HttpTransportSvc {
         cb = Self::configure_http_builder(cb, &http_cfg);
 
         let mut builder = ClientBuilder::new(cb.build()?);
-        #[cfg(feature = "auth")]
-        {
-            builder =
-                builder.with(
-                    edge_transport_http_egress_auth::AuthSvc::build_auth_middleware(
-                        Default::default(),
-                    )?,
-                );
-        }
         #[cfg(feature = "retry")]
         {
             builder = builder.with(

@@ -1,12 +1,14 @@
 //! Error type for assembling an [`HttpEgress`](crate::HttpEgress) at startup.
 
 /// Error returned when assembling an [`HttpEgress`](crate::HttpEgress) fails at startup.
+///
+/// There is no `Auth` variant: since BYOSec was reversed (2026-07-16), the
+/// auth strategy is caller-constructed and passed in already-built (see
+/// [`HttpTransportSvc::http_egress_from_config_with_auth`](crate::api::types::HttpTransportSvc::http_egress_from_config_with_auth)),
+/// so this crate never constructs one itself and has no build-time auth
+/// failure to report.
 #[derive(Debug, thiserror::Error)]
 pub enum HttpEgressBuildError {
-    /// Auth middleware assembly failed.
-    #[cfg(feature = "auth")]
-    #[error("auth: {0}")]
-    Auth(#[from] edge_transport_http_egress_auth::AuthError),
     /// Retry middleware assembly failed.
     #[cfg(feature = "retry")]
     #[error("retry: {0}")]

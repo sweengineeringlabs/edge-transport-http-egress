@@ -227,43 +227,52 @@ fn test_cassette_invalid_section_returns_config_error() {
     );
 }
 
-// ── [auth] section (static auth; OAuth is programmatic, not config-driven) ───
+// ── auth (construct-and-pass-in strategy; BYOSec reversed 2026-07-16 — no
+// [auth] TOML section, `edge-security`'s bearer crate has no config-section
+// form) ──────────────────────────────────────────────────────────────────────
 
-/// @covers: http_egress_from_config — a valid `[auth]` section wires the static
-/// auth layer (`kind = "none"` is a pass-through and builds clean).
+use edge_security_transport_egress_http::{
+    AuthorizeRequest, AuthorizeResponse, HttpEgressAuthError, HttpEgressAuthStrategy,
+};
+
+/// A no-op [`HttpEgressAuthStrategy`] that leaves the request untouched.
+struct NoopAuthStrategy;
+
+impl HttpEgressAuthStrategy for NoopAuthStrategy {
+    fn authorize(
+        &self,
+        request: AuthorizeRequest,
+    ) -> Result<AuthorizeResponse, HttpEgressAuthError> {
+        Ok(AuthorizeResponse {
+            request: request.request,
+        })
+    }
+}
+
+/// @covers: http_egress_from_config_with_auth — a caller-supplied strategy
+/// wires the auth layer; the config-driven middleware (`[retry]` here) is
+/// wired alongside it.
 #[test]
-fn test_auth_section_present_builds() {
-    let (_d, l) = loader("[auth]\nkind = \"none\"");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
+fn test_auth_with_config_driven_middleware_builds() {
+    let (_d, l) = loader(RETRY_TOML);
+    let strategy: std::sync::Arc<dyn HttpEgressAuthStrategy> =
+        std::sync::Arc::new(NoopAuthStrategy);
+    let result = HttpTransportSvc::http_egress_from_config_with_auth(&l, strategy);
     assert!(
         result.is_ok(),
-        "valid [auth] must build with the auth layer wired"
+        "auth strategy + [retry] must assemble into one egress"
     );
 }
 
-/// @covers: http_egress_from_config — `[auth]` is config-driven: a malformed
-/// section surfaces a Config error.
+/// @covers: http_egress_from_config_with_auth — an auth-only egress (no
+/// middleware sections present) builds.
 #[test]
-fn test_auth_invalid_section_returns_config_error() {
-    let (_d, l) = loader("[auth]\nkind = \"bogus_scheme\"");
-    assert!(
-        matches!(
-            HttpTransportSvc::http_egress_from_config(&l),
-            Err(HttpEgressBuildError::Config(_))
-        ),
-        "[auth] must be config-driven and reject an unknown kind"
-    );
-}
-
-/// @covers: http_egress_from_config — `[auth]` with `enabled = false` is omitted.
-#[test]
-fn test_auth_enabled_false_omits_auth() {
-    let (_d, l) = loader("[auth]\nenabled = false\nkind = \"none\"");
-    let result = HttpTransportSvc::http_egress_from_config(&l);
-    assert!(
-        result.is_ok(),
-        "enabled=false [auth] must build with auth omitted"
-    );
+fn test_auth_only_builds() {
+    let (_d, l) = loader("[unrelated]\nx = 1");
+    let strategy: std::sync::Arc<dyn HttpEgressAuthStrategy> =
+        std::sync::Arc::new(NoopAuthStrategy);
+    let result = HttpTransportSvc::http_egress_from_config_with_auth(&l, strategy);
+    assert!(result.is_ok(), "auth-only egress must build");
 }
 
 // ── preflight summary ───────────────────────────────────────────────────────
@@ -279,8 +288,8 @@ fn test_preflight_reports_enabled_and_disabled() {
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
     assert_eq!(
         summary.total_count(),
-        7,
-        "all 7 egress features are reported"
+        6,
+        "all 6 config-driven egress features are reported (auth has no config-section form)"
     );
     assert_eq!(summary.enabled_count(), 1, "only [cache] is enabled");
     let text = summary.to_string();
@@ -292,7 +301,7 @@ fn test_preflight_reports_enabled_and_disabled() {
 fn test_preflight_all_disabled_when_no_sections() {
     let (_d, l) = loader("[unrelated]\nx = 1");
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
-    assert_eq!(summary.total_count(), 7);
+    assert_eq!(summary.total_count(), 6);
     assert_eq!(summary.enabled_count(), 0, "no sections ⇒ nothing enabled");
 }
 

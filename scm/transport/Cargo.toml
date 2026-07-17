@@ -26,7 +26,11 @@ path = "main/src/lib.rs"
 # consumers use `default-features = false` and enable only what they need.
 [features]
 default = ["auth", "oauth", "tls", "retry", "rate", "breaker", "cache", "cassette"]
-auth     = ["dep:edge-transport-http-egress-auth"]
+auth     = ["dep:edge-security-transport-egress-http"]
+# oauth/tls stay on the local crates: edge-security's own oauth/tls crates
+# inherit their workspace's stale reqwest 0.11 / reqwest-middleware 0.2 pins
+# (bearer independently pins reqwest 0.12, so it doesn't have this problem) —
+# see edge-security#<pending> filed 2026-07-16.
 oauth    = ["dep:edge-transport-http-egress-oauth"]
 tls      = ["dep:edge-transport-http-egress-tls"]
 retry    = ["dep:edge-transport-http-egress-retry"]
@@ -37,51 +41,58 @@ cassette = ["dep:edge-transport-http-egress-cassette"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
-edge-application.workspace  = true
-serde.workspace             = true
-serde_json.workspace        = true
-thiserror.workspace         = true
-futures.workspace           = true
-http.workspace              = true
-tokio                       = { workspace = true, features = ["rt", "net"] }
-reqwest.workspace           = true
-reqwest-middleware.workspace = true
-edge-transport-http-egress-auth     = { workspace = true, optional = true }
-edge-transport-http-egress-retry    = { workspace = true, optional = true }
-edge-transport-http-egress-rate     = { workspace = true, optional = true }
-edge-transport-http-egress-breaker  = { workspace = true, optional = true }
-edge-transport-http-egress-cache    = { workspace = true, optional = true }
-edge-transport-http-egress-cassette = { workspace = true, optional = true }
-edge-transport-http-egress-tls      = { workspace = true, optional = true }
-edge-transport-http-egress-oauth    = { workspace = true, optional = true }
-bytes.workspace                    = true
-swe-observ-metrics.workspace       = true
-tokio-tungstenite      = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
-swe-edge-configbuilder = { workspace = true }
+edge-application     = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
+serde                = { version = "1.0", features = ["derive"] }
+serde_json           = "1.0"
+thiserror            = "2"
+futures              = "0.3"
+http                 = "1"
+tokio                = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
+reqwest              = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
+reqwest-middleware   = { version = "0.3", features = ["json", "multipart"] }
+# BYOSec reversed (2026-07-16): auth now depends on edge-security's bearer
+# crate instead of a hand-rolled local implementation. oauth/tls stay local
+# for now (see feature-flag comment above).
+edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.16", optional = true }
+edge-transport-http-egress-oauth    = { path = "../oauth", optional = true }
+edge-transport-http-egress-tls      = { path = "../tls", optional = true }
+edge-transport-http-egress-retry    = { path = "../retry", optional = true }
+edge-transport-http-egress-rate     = { path = "../rate", optional = true }
+edge-transport-http-egress-breaker  = { path = "../breaker", optional = true }
+edge-transport-http-egress-cache    = { path = "../cache", optional = true }
+edge-transport-http-egress-cassette = { path = "../cassette", optional = true }
+async-trait          = "0.1"
+bytes                = "1"
+swe-observ-metrics   = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
+tokio-tungstenite    = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
 
 # Integration tests live in tests/*.rs and are auto-discovered by Cargo — one
 # test target per file, named after the file stem. No explicit [[test]] entries
 # are needed (and listing them risks silently omitting newly-added test files).
 
 [dev-dependencies]
-edge-application    = { workspace = true }
-tokio               = { workspace = true, features = ["rt-multi-thread", "macros", "net", "time"] }
+edge-application    = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
+tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "rt-multi-thread", "macros"] }
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }
 http-body-util      = "0.1"
 bytes               = "1"
-serde_json          = { workspace = true }
-http                    = { workspace = true }
-reqwest-middleware      = { workspace = true }
-edge-transport-http-egress-tls     = { workspace = true }
-edge-transport-http-egress-auth    = { workspace = true }
-edge-transport-http-egress-retry   = { workspace = true }
-edge-transport-http-egress-rate    = { workspace = true }
-edge-transport-http-egress-breaker = { workspace = true }
-edge-transport-http-egress-cache   = { workspace = true }
-edge-transport-http-egress-cassette = { workspace = true }
-edge-transport-http-egress-oauth    = { workspace = true }
-futures                  = { workspace = true }
+serde_json          = "1.0"
+http                    = "1"
+reqwest-middleware      = { version = "0.3", features = ["json", "multipart"] }
+edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.16" }
+edge-security-runtime-credential = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.16" }
+edge-security-runtime            = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.16" }
+edge-transport-http-egress-oauth   = { path = "../oauth" }
+edge-transport-http-egress-tls     = { path = "../tls" }
+edge-transport-http-egress-retry   = { path = "../retry" }
+edge-transport-http-egress-rate    = { path = "../rate" }
+edge-transport-http-egress-breaker = { path = "../breaker" }
+edge-transport-http-egress-cache   = { path = "../cache" }
+edge-transport-http-egress-cassette = { path = "../cassette" }
+async-trait              = "0.1"
+futures                  = "0.3"
 tokio-tungstenite        = { version = "0.26", features = ["rustls-tls-native-roots"] }
 tempfile                 = "3"
 
