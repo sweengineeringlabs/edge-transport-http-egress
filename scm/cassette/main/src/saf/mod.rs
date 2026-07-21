@@ -1,10 +1,9 @@
 //! SAF layer — public facade.
 
-mod cassette_svc;
-mod http_cassette_svc;
-mod interaction_svc;
-mod processor_svc;
-mod request_svc;
-mod response_svc;
-mod scrubber_svc;
-mod validator_svc;
+mod http_cassette_svc_factory;
+mod processor_svc_factory;
+mod validator_svc_factory;
+
+pub use http_cassette_svc_factory::HttpCassetteFactory;
+pub use processor_svc_factory::ProcessorFactory;
+pub use validator_svc_factory::ValidatorFactory;

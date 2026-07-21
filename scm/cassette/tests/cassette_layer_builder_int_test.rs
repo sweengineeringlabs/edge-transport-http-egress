@@ -7,14 +7,20 @@
 
 use edge_transport_http_egress_cassette::{CassetteConfig, CassetteError, CassetteLayerBuilder};
 
-/// @covers: CassetteLayerBuilder::new
-/// Verifies the builder is constructible with no arguments.
+/// @covers: new
+/// A freshly-constructed builder must reject `build_layer()` until a cassette
+/// name is supplied — proving `new()` starts in an unconfigured state rather
+/// than silently succeeding.
 #[test]
 fn cassette_struct_cassette_layer_builder_new_returns_default_int_test() {
-    let _builder = CassetteLayerBuilder::new();
+    let result = CassetteLayerBuilder::new().build_layer();
+    assert!(
+        matches!(result, Err(CassetteError::ParseFailed(_))),
+        "a builder from new() must require a cassette name; got: {result:?}"
+    );
 }
 
-/// @covers: CassetteLayerBuilder::build_layer
+/// @covers: build_layer
 /// Building without a cassette name must fail with `CassetteError::ParseFailed`.
 #[test]
 fn cassette_struct_cassette_layer_builder_build_layer_missing_name_fails_int_test() {
@@ -30,7 +36,7 @@ fn cassette_struct_cassette_layer_builder_build_layer_missing_name_fails_int_tes
     );
 }
 
-/// @covers: CassetteLayerBuilder::with_cassette_name
+/// @covers: with_cassette_name
 /// Builder with a cassette name and a temp dir config must succeed.
 #[test]
 fn cassette_struct_cassette_layer_builder_with_name_and_dir_succeeds_int_test() {
@@ -57,7 +63,38 @@ fn cassette_struct_cassette_layer_builder_with_name_and_dir_succeeds_int_test() 
     );
 }
 
-/// @covers: CassetteLayerBuilder::build_layer
+/// @covers: with_config
+/// A config's `mode` must be reflected in the built layer's Debug output —
+/// proving `with_config` genuinely applies the supplied config rather than
+/// falling back to the default regardless of input.
+#[test]
+fn cassette_struct_cassette_layer_builder_with_config_reflects_mode_int_test() {
+    let tmpdir = tempfile::tempdir().expect("tempdir must succeed");
+    let dir = tmpdir
+        .path()
+        .to_str()
+        .expect("path must be utf-8")
+        .replace('\\', "/");
+    let cfg = CassetteConfig {
+        mode: "record".to_string(),
+        cassette_dir: dir,
+        match_on: vec!["method".to_string()],
+        scrub_headers: vec![],
+        scrub_body_paths: vec![],
+    };
+    let layer = CassetteLayerBuilder::new()
+        .with_config(cfg)
+        .with_cassette_name("with_config_test")
+        .build_layer()
+        .expect("build must succeed");
+    let dbg = format!("{layer:?}");
+    assert!(
+        dbg.contains("record"),
+        "with_config's mode must reach the built layer; got: {dbg}"
+    );
+}
+
+/// @covers: build_layer
 /// The built `CassetteLayer` must produce non-empty Debug output.
 #[test]
 fn cassette_struct_cassette_layer_builder_built_layer_debug_non_empty_int_test() {

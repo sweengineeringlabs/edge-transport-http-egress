@@ -34,11 +34,16 @@ fn test_parse_failed_display_contains_supplied_reason() {
     );
 }
 
-/// `ParseFailed` must be `Debug`-printable without panicking.
+/// `ParseFailed` must be `Debug`-printable and the Debug output must name the
+/// variant and embed the payload, so logs pinpoint the failure.
 #[test]
 fn test_parse_failed_is_debug_printable() {
     let err = CassetteError::ParseFailed("bad config".to_string());
-    let _ = format!("{err:?}");
+    let dbg = format!("{err:?}");
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains("bad config"),
+        "Debug must name the variant and embed the payload; got: {dbg}"
+    );
 }
 
 /// `ParseFailed` must be displayable as a `std::error::Error` trait object,

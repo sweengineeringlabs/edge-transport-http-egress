@@ -1,15 +1,9 @@
-//! Integration tests for `core::default_http_cassette::DefaultHttpCassette`.
-//!
-//! `DefaultHttpCassette` is `pub(crate)` — integration tests verify its
-//! contract through observable effects produced by the public builder
-//! pipeline:
+//! Integration tests for the SWE-default `CassetteConfig` baseline used by
+//! `HttpCassetteSvc::build_cassette_layer()`.
 //!
 //! - The layer built via `build_cassette_layer` correctly encapsulates the
-//!   config that `DefaultHttpCassette::new` was given.
-//! - The `describe()` return value ("edge_transport_http_egress_cassette") appears in the
-//!   layer's Debug output, confirming the impl is connected.
-//! - The layer is `Send + Sync`, which requires `DefaultHttpCassette`
-//!   (held inside via `Arc<CassetteConfig>`) to also be `Send + Sync`.
+//!   config it was given.
+//! - The layer is `Send + Sync`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
@@ -78,9 +72,10 @@ fn test_layer_debug_differs_for_different_modes() {
     };
     let l1 = HttpCassetteSvc::build_cassette_layer(cfg_replay, "mode_replay_debug").unwrap();
     let l2 = HttpCassetteSvc::build_cassette_layer(cfg_record, "mode_record_debug").unwrap();
+    let dbg_replay = format!("{l1:?}");
+    let dbg_record = format!("{l2:?}");
     assert_ne!(
-        format!("{l1:?}"),
-        format!("{l2:?}"),
+        dbg_replay, dbg_record,
         "layers with different modes must have different Debug output"
     );
 }
@@ -91,11 +86,26 @@ fn test_layer_debug_differs_for_different_modes() {
 
 /// `CassetteLayer` holds an `Arc<CassetteConfig>` (via `DefaultHttpCassette`)
 /// inside a `Mutex`. All of these must be `Send + Sync` for the layer to
-/// be usable across async tasks.
+/// be usable across async tasks — proven here by sharing a reference to a
+/// built layer across a real OS thread and asserting its Debug is intact.
 #[test]
 fn test_cassette_layer_is_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<CassetteLayer>();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let dir = tmpdir.path().to_str().unwrap();
+    let layer: CassetteLayer =
+        HttpCassetteSvc::build_cassette_layer(make_cfg(dir), "default_send_sync")
+            .expect("build must succeed");
+    std::thread::scope(|s| {
+        let borrowed = &layer;
+        let dbg = s
+            .spawn(move || format!("{borrowed:?}"))
+            .join()
+            .expect("thread sharing &layer must not panic");
+        assert!(
+            dbg.contains("default_send_sync"),
+            "layer shared across a thread must retain its cassette name: {dbg}"
+        );
+    });
 }
 
 // ---------------------------------------------------------------------------

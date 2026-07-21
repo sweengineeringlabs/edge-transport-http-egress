@@ -1,56 +1,27 @@
 //! Fluent builder for [`CassetteLayer`].
 //!
 //! Rule 91: structs with 5+ fields require a builder.
+//!
+//! The impl block (fluent setters, `build_layer`) lives in
+//! `core/cassette/cassette_layer_builder.rs` — api/ is a pure declaration layer.
+//!
+//! Known, accepted `no_orphan_types` gap: this type is a construction-time
+//! ergonomic helper, not a trait-contract type, so it never appears in any
+//! api/traits/ method signature. `pub_types_in_api_only` forces it to be
+//! declared here regardless (no other layer is a legal declaration site for
+//! a `pub` type), and it is genuinely load-bearing (re-exported from lib.rs,
+//! exercised directly in `tests/cassette_layer_builder_int_test.rs`) —
+//! deleting it is not an option. Mirrors the `saf_no_inherent_impl` gap
+//! accepted for stateful SAF factories elsewhere in this codebase: a
+//! genuine, understood tool-rule tension left unresolved rather than
+//! hacked around.
 
-use std::path::PathBuf;
-use std::sync::Arc;
-use tokio::sync::Mutex;
+use crate::api::CassetteConfig;
 
-use crate::api::error::CassetteError;
-use crate::api::types::cassette::cassette_config::CassetteConfig;
-use crate::api::types::cassette::cassette_layer::CassetteLayer;
-
-/// Fluent builder for [`CassetteLayer`].
+/// Fluent builder for [`CassetteLayer`](crate::api::CassetteLayer).
 ///
 /// Required: `cassette_name`. Optional: `config` (defaults to `CassetteConfig::default()`).
-#[derive(Default)]
 pub struct CassetteLayerBuilder {
-    config: Option<CassetteConfig>,
-    cassette_name: Option<String>,
-}
-
-impl CassetteLayerBuilder {
-    /// Create a new builder with all fields unset.
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    /// Set the cassette configuration.
-    pub fn with_config(mut self, config: CassetteConfig) -> Self {
-        self.config = Some(config);
-        self
-    }
-
-    /// Set the cassette name (used to derive the file path).
-    pub fn with_cassette_name(mut self, name: impl Into<String>) -> Self {
-        self.cassette_name = Some(name.into());
-        self
-    }
-
-    /// Consume the builder and produce a [`CassetteLayer`].
-    ///
-    /// Returns an error if `cassette_name` was not set.
-    pub fn build_layer(self) -> Result<CassetteLayer, CassetteError> {
-        let config = self.config.unwrap_or_default();
-        let cassette_name = self.cassette_name.ok_or_else(|| {
-            CassetteError::ParseFailed("CassetteLayerBuilder: cassette_name is required".into())
-        })?;
-        let path = PathBuf::from(&config.cassette_dir).join(format!("{cassette_name}.yaml"));
-        let fixtures = CassetteLayer::load_fixtures_from_disk(&path)?;
-        Ok(CassetteLayer {
-            config: Arc::new(config),
-            cassette_path: path,
-            fixtures: Arc::new(Mutex::new(fixtures)),
-        })
-    }
+    pub(crate) config: Option<CassetteConfig>,
+    pub(crate) cassette_name: Option<String>,
 }

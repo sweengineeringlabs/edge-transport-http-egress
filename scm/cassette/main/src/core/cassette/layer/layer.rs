@@ -10,9 +10,7 @@ use base64::Engine;
 use sha2::{Digest, Sha256};
 use tokio::sync::Mutex;
 
-use crate::api::error::CassetteError;
-use crate::api::types::cassette::cassette_config::CassetteConfig;
-use crate::api::types::cassette::cassette_layer::CassetteLayer;
+use crate::api::{CassetteConfig, CassetteError, CassetteLayer};
 
 use crate::core::body::BodyScrubber;
 use crate::core::recorded::interaction::{RecordedInteraction, RecordedRequest, RecordedResponse};
@@ -35,7 +33,9 @@ impl CassetteLayer {
         Ok(Self {
             config: Arc::new(config),
             cassette_path: path,
-            fixtures: Arc::new(Mutex::new(fixtures)),
+            fixtures: Arc::new(crate::core::cassette::fixture_store::FixtureStore(
+                Mutex::new(fixtures),
+            )),
         })
     }
 
@@ -257,6 +257,26 @@ impl reqwest_middleware::Middleware for CassetteLayer {
     }
 }
 
+impl crate::api::HttpCassette for CassetteLayer {
+    fn mode(
+        &self,
+        _request: crate::api::CassetteModeRequest,
+    ) -> Result<crate::api::CassetteModeResponse, CassetteError> {
+        Ok(crate::api::CassetteModeResponse {
+            value: self.config.mode.clone(),
+        })
+    }
+}
+
+impl std::fmt::Debug for CassetteLayer {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CassetteLayer")
+            .field("mode", &self.config.mode)
+            .field("cassette_path", &self.cassette_path)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
@@ -292,10 +312,20 @@ mod tests {
     /// @covers: sha256_hex
     #[test]
     fn test_body_hash_differs_for_different_bodies() {
-        assert_ne!(
-            CassetteLayer::sha256_hex(b"a"),
-            CassetteLayer::sha256_hex(b"b")
+        let hash_a = CassetteLayer::sha256_hex(b"a");
+        let hash_b = CassetteLayer::sha256_hex(b"b");
+        // Assert against fixed, independently-known SHA-256 vectors so the
+        // test proves the hash is content-dependent (a stub returning a
+        // constant would fail), not merely "a value differs from itself".
+        assert_eq!(
+            hash_a,
+            "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
         );
+        assert_eq!(
+            hash_b,
+            "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d"
+        );
+        assert_ne!(hash_a, hash_b, "different bodies must hash differently");
     }
 
     /// @covers: match_key
@@ -492,10 +522,26 @@ mod tests {
     }
 
     /// @covers: handle
-    #[test]
-    fn test_handle_layer_is_send_sync() {
-        fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<CassetteLayer>();
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_handle_layer_is_send_sync() {
+        // `handle` is an async trait method the middleware stack drives across
+        // await points and worker threads, so the layer must be Send + Sync in
+        // practice — not just by a compile-time bound. Move a real layer into a
+        // spawned task on another worker thread and assert on the Debug output
+        // it produces there, proving it genuinely crossed the thread boundary.
+        let dir = tempfile::tempdir().unwrap();
+        let layer = CassetteLayer::new(
+            test_config(dir.path().to_str().unwrap()),
+            "handle_send_sync",
+        )
+        .unwrap();
+        let debug = tokio::spawn(async move { format!("{layer:?}") })
+            .await
+            .expect("spawned task moving the layer must not panic");
+        assert!(
+            debug.contains("handle_send_sync"),
+            "layer moved across the thread boundary must retain its cassette name: {debug}"
+        );
     }
 
     /// @covers: load_fixtures_from_disk
@@ -520,5 +566,26 @@ mod tests {
             h,
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
         );
+    }
+
+    /// @covers: mode
+    #[test]
+    fn test_mode_reflects_configured_value() {
+        use crate::api::HttpCassette;
+        let mut cfg = crate::api::CassetteConfig::swe_default().expect("baseline parses");
+        cfg.mode = "record".to_string();
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("mode_test.yaml");
+        let layer = CassetteLayer {
+            config: Arc::new(cfg),
+            cassette_path: path,
+            fixtures: Arc::new(crate::core::cassette::fixture_store::FixtureStore(
+                Mutex::new(HashMap::new()),
+            )),
+        };
+        let resp = layer
+            .mode(crate::api::CassetteModeRequest)
+            .expect("infallible");
+        assert_eq!(resp.value, "record");
     }
 }

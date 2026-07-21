@@ -16,7 +16,18 @@ fn make_cfg(dir: &str) -> CassetteConfig {
 /// @covers: create_config_builder returns a working loader
 #[test]
 fn test_e2e_create_config_builder_returns_loader() {
-    let _loader = HttpCassetteSvc::create_config_builder().build_loader();
+    // Exercise the loader end-to-end: it must read the crate's shipped
+    // [cassette] policy, proving create_config_builder wired a real name/version.
+    let cfg: CassetteConfig = HttpCassetteSvc::create_config_builder()
+        .with_config_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/config"))
+        .build_loader()
+        .expect("seeded builder must produce a loader")
+        .load_section("cassette")
+        .expect("shipped [cassette] section must load");
+    assert_eq!(
+        cfg.mode, "replay",
+        "loader from create_config_builder must read the shipped replay policy"
+    );
 }
 
 /// @covers: default CassetteConfig mode is "replay"

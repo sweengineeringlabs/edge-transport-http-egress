@@ -1,12 +1,9 @@
-//! `HttpCassette` — primary trait for the cassette crate.
+//! `HttpCassette` — record/replay contract for the cassette middleware layer.
 
-use crate::api::types::cassette::cassette_config::CassetteConfig;
+use crate::api::{CassetteError, CassetteModeRequest, CassetteModeResponse};
 
-/// The cassette crate's primary trait.
+/// Record/replay contract implemented by the cassette middleware layer.
 pub trait HttpCassette: Send + Sync {
-    /// Identify this processor in log / trace output.
-    fn describe(&self) -> &'static str;
-
-    /// Return the cassette configuration.
-    fn config(&self) -> &CassetteConfig;
+    /// Return the operating mode the layer was built with.
+    fn mode(&self, request: CassetteModeRequest) -> Result<CassetteModeResponse, CassetteError>;
 }

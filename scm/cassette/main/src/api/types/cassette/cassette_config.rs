@@ -1,8 +1,9 @@
 //! Cassette policy schema. Values live in `config/application.toml`.
+//!
+//! The impl blocks (`Default`, config-builder wiring, TOML parsing) live in
+//! `core/cassette/cassette_config.rs` — api/ is a pure declaration layer.
 
-use serde::Deserialize;
-
-use crate::api::error::CassetteError;
+use serde::{Deserialize, Serialize};
 
 /// Cassette record/replay policy schema.
 ///
@@ -41,7 +42,7 @@ use crate::api::error::CassetteError;
 /// ).unwrap();
 /// assert_eq!(cfg.mode, "record");
 /// ```
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CassetteConfig {
     /// Operating mode: `"replay"` | `"record"` | `"auto"` | `"disabled"`.
@@ -59,76 +60,4 @@ pub struct CassetteConfig {
     /// JSON paths inside the request body to zero out before
     /// hashing (e.g. `"request_id"`, `"metadata.trace_id"`).
     pub scrub_body_paths: Vec<String>,
-}
-
-impl Default for CassetteConfig {
-    fn default() -> Self {
-        Self {
-            mode: "replay".into(),
-            cassette_dir: "tests/cassettes".into(),
-            match_on: vec!["method".into(), "url".into(), "body_hash".into()],
-            scrub_headers: vec![
-                "authorization".into(),
-                "x-api-key".into(),
-                "cookie".into(),
-                "set-cookie".into(),
-                "proxy-authorization".into(),
-            ],
-            scrub_body_paths: vec![],
-        }
-    }
-}
-
-impl swe_edge_configbuilder::ConfigSection for CassetteConfig {
-    fn section_name() -> &'static str {
-        // @allow: no_stub_fn_bodies
-        "cassette"
-    }
-}
-
-/// Backend-owned opt-in contract (ADR-006): presence of the `[cassette]` section
-/// activates HTTP record/replay; absence leaves it off. Additive alongside
-/// [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for CassetteConfig {
-    fn section_name() -> &'static str {
-        // @allow: no_stub_fn_bodies
-        "cassette"
-    }
-
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
-            description: "HTTP record/replay test fixtures",
-            owner: "platform-team",
-            deprecated_since: None,
-        }
-    }
-}
-
-impl CassetteConfig {
-    /// Parse from TOML text.
-    pub fn from_config(toml_text: &str) -> Result<Self, CassetteError> {
-        toml::from_str(toml_text).map_err(|e| CassetteError::ParseFailed(e.to_string()))
-    }
-
-    /// A config that passes every request straight through — no recording,
-    /// no replay, no cassette file I/O. Use in production stacks where
-    /// record/replay infrastructure is not wanted.
-    pub fn disabled() -> Self {
-        Self {
-            mode: "disabled".into(),
-            cassette_dir: String::new(),
-            match_on: vec![],
-            scrub_headers: vec![],
-            scrub_body_paths: vec![],
-        }
-    }
-
-    /// Return the SWE default config (mode = "replay").
-    ///
-    /// Alias for `CassetteConfig::default()` — preferred in test code where
-    /// the intent is to load the SWE baseline rather than construct
-    /// an ad-hoc struct.
-    pub fn swe_default() -> Result<Self, CassetteError> {
-        Ok(Self::default())
-    }
 }

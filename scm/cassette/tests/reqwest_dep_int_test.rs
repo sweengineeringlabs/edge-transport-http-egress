@@ -3,15 +3,23 @@
 //!
 //! Rule 95: `reqwest` is used in `src/` and must have integration coverage
 //! with an explicit `use reqwest::...` import.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use reqwest::Client;
 
 /// @covers: reqwest
-/// Verifies `reqwest::Client` is accessible and constructible, which is the
-/// foundation the cassette middleware wraps.
+/// Verifies `reqwest::Client` is accessible and can build a real request whose
+/// method and URL round-trip — the foundation the cassette middleware wraps and
+/// derives its match key from.
 #[test]
 fn cassette_struct_dep_reqwest_client_builds_int_test() {
-    let _client = Client::new();
+    let client = Client::new();
+    let req = client
+        .get("https://api.example.test/foo")
+        .build()
+        .expect("building a GET request must succeed");
+    assert_eq!(req.method().as_str(), "GET");
+    assert_eq!(req.url().as_str(), "https://api.example.test/foo");
 }
 
 /// @covers: reqwest

@@ -4,16 +4,18 @@
 
 use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
-/// @covers: Request
-/// Confirms `CassetteLayer` can be built with a disabled config — this exercises
-/// the `Request` trait boundary through the public cassette construction path.
+/// @covers: build_cassette_layer
+/// Confirms `CassetteLayer` can be built with a disabled config — the recorded
+/// request path is reachable through the public cassette construction path, and
+/// the built layer reflects the disabled mode.
 #[test]
 fn cassette_trait_recorded_request_layer_builds_with_disabled_mode_int_test() {
     let config = CassetteConfig::disabled();
-    let layer = HttpCassetteSvc::build_cassette_layer(config, "recorded_request_test");
+    let layer = HttpCassetteSvc::build_cassette_layer(config, "recorded_request_test")
+        .expect("build_cassette_layer with disabled config must succeed");
     assert!(
-        layer.is_ok(),
-        "build_cassette_layer with disabled config must succeed"
+        format!("{layer:?}").contains("disabled"),
+        "the built layer must carry the disabled mode"
     );
 }
 
