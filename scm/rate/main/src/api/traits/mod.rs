@@ -6,8 +6,5 @@ pub use processor::Processor;
 pub mod validator;
 pub use validator::Validator;
 
-pub mod rate_bucket_ops;
-pub use rate_bucket_ops::RateBucketOps;
-
-pub mod default;
-pub mod token;
+pub mod rate_metrics;
+pub use rate_metrics::RateMetrics;

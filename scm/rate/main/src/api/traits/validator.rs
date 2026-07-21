@@ -1,8 +1,10 @@
 //! `Validator` — configuration validation contract.
 
-/// Validates a value, returning a human-readable error on failure.
+use crate::api::{ConfigValidationRequest, RateError};
+
+/// Validation contract for rate-limiter configuration.
 pub trait Validator: Send + Sync {
-    /// Return `Err` with a description of the first validation failure,
-    /// or `Ok(())` when the value is valid.
-    fn validate(&self) -> Result<(), String>;
+    /// Validate the rate configuration, returning `Ok(())` on success or
+    /// an error describing which field is invalid.
+    fn validate(&self, request: ConfigValidationRequest) -> Result<(), RateError>;
 }

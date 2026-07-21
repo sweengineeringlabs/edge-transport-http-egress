@@ -1,4 +1,4 @@
-//! `HttpRateSvc` — factory type declaration.
+//! `HttpRateSvcProcessor` — factory type declaration.
 
 /// features/rate building-block factory.
-pub struct HttpRateSvc;
+pub struct HttpRateSvcProcessor;

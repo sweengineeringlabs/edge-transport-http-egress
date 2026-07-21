@@ -4,11 +4,22 @@
 //! Each request tries to consume one token; if none available,
 //! the caller waits until a token is ready (calculated from the
 //! refill rate).
+//!
+//! Known, accepted `core_structs_have_trait` gap: `TokenBucket` is a pure
+//! internal helper — constructed and consumed only by
+//! `core::rate::layer::RateLayerRateMetrics`'s middleware dispatch, never
+//! returned from `saf/` or exposed as a trait object. This matches the
+//! rule's own documented edge case ("Pure internal helper structs used only
+//! within core/ (never returned from saf/) are exempt"), but the static
+//! checker still flags it. Backing this with a new `pub trait` in api/
+//! would misrepresent an implementation detail as a public contract, so
+//! this is left unresolved and documented rather than hacked around —
+//! mirrors the `saf_no_inherent_impl` gap accepted elsewhere in this
+//! codebase.
 
 use std::time::{Duration, Instant};
 
-use crate::api::traits::RateBucketOps;
-use crate::api::types::RateConfig;
+use crate::api::RateConfig;
 
 /// Token bucket state. Not thread-safe on its own — wrap in a
 /// mutex for concurrent use (the middleware does this via moka
@@ -23,26 +34,6 @@ pub(crate) struct TokenBucket {
     last_refill: Instant,
 }
 
-impl RateBucketOps for TokenBucket {
-    fn try_consume(
-        &mut self,
-        config: &crate::api::types::RateConfig,
-    ) -> Result<(), std::time::Duration> {
-        self.try_acquire_internal(config)
-    }
-
-    fn refill(&mut self, config: &crate::api::types::RateConfig) {
-        self.do_refill(config);
-    }
-
-    fn try_acquire(
-        &mut self,
-        config: &crate::api::types::RateConfig,
-    ) -> Result<(), std::time::Duration> {
-        self.try_acquire_internal(config)
-    }
-}
-
 impl TokenBucket {
     /// Construct a full bucket (consumers shouldn't be
     /// artificially throttled on startup).
@@ -53,23 +44,13 @@ impl TokenBucket {
         }
     }
 
-    /// Refill tokens based on elapsed time since last refill.
-    /// Caps at `burst_capacity`.
-    fn do_refill(&mut self, config: &RateConfig) {
-        let now = Instant::now();
-        let elapsed = now.duration_since(self.last_refill);
-        let added = elapsed.as_secs_f64() * config.tokens_per_second as f64;
-        self.tokens = (self.tokens + added).min(config.burst_capacity as f64);
-        self.last_refill = now;
-    }
-
-    /// Try to acquire one token without waiting.
+    /// Refill (based on elapsed time) then try to consume one token.
     ///
-    /// Returns `Ok(())` if a token was available + consumed.
-    /// Returns `Err(wait)` if the bucket is empty; `wait` is
-    /// the time until one token will be available.
-    fn try_acquire_internal(&mut self, config: &RateConfig) -> Result<(), Duration> {
-        self.do_refill(config);
+    /// Returns `Ok(())` if a token was available and consumed.
+    /// Returns `Err(wait)` if the bucket is empty; `wait` is the
+    /// time until one token will be available.
+    pub(crate) fn try_consume(&mut self, config: &RateConfig) -> Result<(), Duration> {
+        self.refill(config);
         if self.tokens >= 1.0 {
             self.tokens -= 1.0;
             Ok(())
@@ -78,6 +59,16 @@ impl TokenBucket {
             let secs_until_one = deficit / config.tokens_per_second as f64;
             Err(Duration::from_secs_f64(secs_until_one))
         }
+    }
+
+    /// Refill tokens based on elapsed time since last refill.
+    /// Caps at `burst_capacity`.
+    fn refill(&mut self, config: &RateConfig) {
+        let now = Instant::now();
+        let elapsed = now.duration_since(self.last_refill);
+        let added = elapsed.as_secs_f64() * config.tokens_per_second as f64;
+        self.tokens = (self.tokens + added).min(config.burst_capacity as f64);
+        self.last_refill = now;
     }
 
     #[cfg(test)]
@@ -109,20 +100,9 @@ mod tests {
         assert_eq!(b.tokens(), cfg.burst_capacity as f64);
     }
 
-    /// @covers: try_acquire
-    #[test]
-    fn test_try_acquire_consumes_one_token_on_success() {
-        let cfg = test_config();
-        let mut b = TokenBucket::new(&cfg);
-        let before = b.tokens();
-        b.try_acquire(&cfg)
-            .expect("fresh bucket must yield a token");
-        assert!(b.tokens() < before, "one token must be consumed");
-    }
-
     /// @covers: new
     #[test]
-    fn test_full_starts_at_burst_capacity() {
+    fn test_new_full_starts_at_burst_capacity() {
         let cfg = test_config();
         let b = TokenBucket::new(&cfg);
         assert_eq!(b.tokens(), 20.0);
@@ -130,12 +110,13 @@ mod tests {
 
     /// @covers: try_consume
     #[test]
-    fn test_try_consume_succeeds_on_fresh_bucket() {
+    fn test_try_consume_consumes_one_token_on_success() {
         let cfg = test_config();
         let mut b = TokenBucket::new(&cfg);
-        let result = b.try_consume(&cfg);
-        assert!(result.is_ok(), "try_consume must succeed on a fresh bucket");
-        assert!(b.tokens() < 20.0, "token count must decrease after consume");
+        let before = b.tokens();
+        b.try_consume(&cfg)
+            .expect("fresh bucket must yield a token");
+        assert!(b.tokens() < before, "one token must be consumed");
     }
 
     /// @covers: try_consume
@@ -148,57 +129,42 @@ mod tests {
         }
         match b.try_consume(&cfg) {
             Err(wait) => assert!(
-                wait > Duration::from_millis(0),
-                "wait must be positive when bucket exhausted"
+                wait >= Duration::from_millis(90),
+                "wait must be ~100ms (1 token / 10 per sec) when bucket exhausted, got {wait:?}"
             ),
             Ok(_) => panic!("expected Err(wait) on exhausted bucket"),
         }
     }
 
-    /// @covers: try_acquire
+    /// @covers: try_consume
     #[test]
-    fn test_acquire_succeeds_when_tokens_available() {
+    fn test_try_consume_refill_caps_at_burst_capacity() {
         let cfg = test_config();
         let mut b = TokenBucket::new(&cfg);
-        assert!(b.try_acquire(&cfg).is_ok());
-        assert!(b.tokens() < 20.0);
-    }
-
-    /// @covers: try_acquire
-    #[test]
-    fn test_acquire_exhausts_bucket_and_returns_wait() {
-        let cfg = test_config();
-        let mut b = TokenBucket::new(&cfg);
-        for _ in 0..20 {
-            assert!(b.try_acquire(&cfg).is_ok());
-        }
-        match b.try_acquire(&cfg) {
-            Err(d) => assert!(d >= Duration::from_millis(90)),
-            Ok(_) => panic!("expected wait when bucket exhausted"),
-        }
-    }
-
-    /// @covers: refill
-    #[test]
-    fn test_refill_caps_at_burst_capacity() {
-        let cfg = test_config();
-        let mut b = TokenBucket::new(&cfg);
+        // Simulate a long idle period: the refill inside try_consume must not
+        // push the bucket above burst_capacity (20). After consuming one, it
+        // should sit at 19, not higher.
         b.last_refill = Instant::now() - Duration::from_secs(100);
-        b.try_acquire(&cfg)
+        b.try_consume(&cfg)
             .expect("refilled bucket must yield a token");
-        assert!((b.tokens() - 19.0).abs() < 0.001);
+        assert!(
+            (b.tokens() - 19.0).abs() < 0.001,
+            "refill must cap at burst_capacity; got {}",
+            b.tokens()
+        );
     }
 
-    /// @covers: try_acquire
+    /// @covers: try_consume
     #[test]
-    fn test_refill_restores_tokens_proportional_to_elapsed_time() {
+    fn test_try_consume_refill_restores_tokens_proportional_to_elapsed_time() {
         let cfg = test_config();
         let mut b = TokenBucket::new(&cfg);
         for _ in 0..20 {
-            b.try_acquire(&cfg).expect("drain must succeed");
+            b.try_consume(&cfg).expect("drain must succeed");
         }
+        // 500ms at 10 tokens/sec = 5 tokens refilled; consuming one leaves ~4.
         b.last_refill = Instant::now() - Duration::from_millis(500);
-        b.try_acquire(&cfg)
+        b.try_consume(&cfg)
             .expect("partial refill must yield a token");
         assert!(
             (b.tokens() - 4.0).abs() < 0.1,

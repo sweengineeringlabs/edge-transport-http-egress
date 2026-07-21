@@ -10,7 +10,11 @@ use edge_transport_http_egress_rate::RateError;
 /// `ParseFailed` must be publicly constructable.
 #[test]
 fn test_error_parse_failed_is_publicly_constructable() {
-    let _err = RateError::ParseFailed("any reason".to_string());
+    let err = RateError::ParseFailed("any reason".to_string());
+    assert!(
+        err.to_string().contains("any reason"),
+        "constructed ParseFailed must carry its reason payload; got: {err}"
+    );
 }
 
 /// `Display` must name the crate.
@@ -53,5 +57,9 @@ fn test_error_parse_failed_with_empty_reason_display_is_non_empty() {
 /// `ParseFailed` must implement `Debug`.
 #[test]
 fn test_error_variants_implement_debug() {
-    let _ = format!("{:?}", RateError::ParseFailed("p".to_string()));
+    let dbg = format!("{:?}", RateError::ParseFailed("p".to_string()));
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains('p'),
+        "Debug must name the variant and include its payload; got: {dbg}"
+    );
 }

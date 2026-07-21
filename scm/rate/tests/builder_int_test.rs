@@ -3,17 +3,19 @@
 //! Covers the full public builder surface: `build_rate_layer` and `create_config_builder`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_rate::{HttpRateSvc, RateConfig, RateError, RateLayer};
+use edge_transport_http_egress_rate::{
+    HttpRateSvcProcessor, RateConfig, RateError, RateLayerRateMetrics,
+};
 
 // ---------------------------------------------------------------------------
 // build_rate_layer with default config
 // ---------------------------------------------------------------------------
 
-/// `HttpRateSvc::build_rate_layer(RateConfig::default())` must return Ok — the crate-shipped
+/// `HttpRateSvcProcessor::build_rate_layer(RateConfig::default())` must return Ok — the crate-shipped
 /// TOML baseline must always be parseable.
 #[test]
 fn test_builder_fn_succeeds_with_swe_default() {
-    HttpRateSvc::build_rate_layer(RateConfig::default())
+    HttpRateSvcProcessor::build_rate_layer(RateConfig::default())
         .expect("builder() must succeed with the crate-shipped baseline");
 }
 
@@ -82,17 +84,17 @@ fn test_config_accessor_returns_reference_not_divergent_copy() {
 }
 
 // ---------------------------------------------------------------------------
-// build_rate_layer — produces a usable RateLayer
+// build_rate_layer — produces a usable RateLayerRateMetrics
 // ---------------------------------------------------------------------------
 
 /// The nominal build path must succeed.
 #[test]
 fn test_build_from_swe_default_returns_rate_layer() {
-    let layer: RateLayer =
-        HttpRateSvc::build_rate_layer(RateConfig::default()).expect("build() must succeed");
+    let layer: RateLayerRateMetrics = HttpRateSvcProcessor::build_rate_layer(RateConfig::default())
+        .expect("build() must succeed");
     let dbg = format!("{layer:?}");
     assert!(
-        dbg.contains("RateLayer"),
+        dbg.contains("RateLayerRateMetrics"),
         "Debug must identify the type; got: {dbg}"
     );
 }
@@ -105,7 +107,7 @@ fn test_build_with_custom_config_succeeds() {
         burst_capacity: 40,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("custom config must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("custom config must build");
 }
 
 /// `per_host = true` must build successfully.
@@ -116,7 +118,7 @@ fn test_build_with_per_host_true_succeeds() {
         burst_capacity: 10,
         per_host: true,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=true must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=true must build");
 }
 
 /// `per_host = false` must build successfully.
@@ -127,7 +129,7 @@ fn test_build_with_per_host_false_succeeds() {
         burst_capacity: 10,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=false must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=false must build");
 }
 
 /// High token rate and burst capacity are valid operator choices.
@@ -138,7 +140,7 @@ fn test_build_with_high_rate_and_burst_succeeds() {
         burst_capacity: 50_000,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("high rate + burst must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("high rate + burst must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +150,13 @@ fn test_build_with_high_rate_and_burst_succeeds() {
 /// `create_config_builder().build_loader()` must return a working loader.
 #[test]
 fn test_create_config_builder_returns_working_loader() {
-    let _loader = HttpRateSvc::create_config_builder().build_loader();
+    let builder = HttpRateSvcProcessor::create_config_builder();
+    assert_eq!(
+        builder.name(),
+        "edge-transport-http-egress-rate",
+        "builder must carry the crate name so the loader resolves the right config"
+    );
+    let _loader = builder.build_loader();
 }
 
 // ---------------------------------------------------------------------------

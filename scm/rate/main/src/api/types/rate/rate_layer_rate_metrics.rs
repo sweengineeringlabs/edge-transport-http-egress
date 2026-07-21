@@ -8,20 +8,13 @@ use crate::api::types::rate::rate_config::RateConfig;
 
 /// Rate-limiter middleware. Attach to a
 /// `reqwest_middleware::ClientBuilder` via `.with(layer)`.
-pub struct RateLayer {
+///
+/// Named for the [`RateMetrics`](crate::api::RateMetrics) contract it
+/// implements: the layer exposes its configured rate limit through that trait.
+pub struct RateLayerRateMetrics {
     pub(crate) config: Arc<RateConfig>,
     /// Per-host token buckets, keyed by authority
     /// (host:port). When `config.per_host = false`, a single
-    /// bucket keyed by the empty string serves all requests.
+    /// bucket keyed by the sentinel key serves all requests.
     pub(crate) buckets: Cache<String, Arc<tokio::sync::Mutex<crate::core::token::TokenBucket>>>,
-}
-
-impl std::fmt::Debug for RateLayer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("RateLayer")
-            .field("tokens_per_second", &self.config.tokens_per_second)
-            .field("burst_capacity", &self.config.burst_capacity)
-            .field("per_host", &self.config.per_host)
-            .finish()
-    }
 }
