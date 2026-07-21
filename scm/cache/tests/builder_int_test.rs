@@ -1,9 +1,11 @@
 //! Integration tests for the `build_cache_layer` SAF entry point.
 //!
-//! Covers: `build_cache_layer`, `CacheConfig` fields, `CacheLayer` construction.
+//! Covers: `build_cache_layer`, `CacheConfig` fields, `MiddlewareHttpCache` construction.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_cache::{CacheConfig, CacheError, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{
+    CacheConfig, CacheError, HttpCacheSvcProcessor, MiddlewareHttpCache,
+};
 
 // ---------------------------------------------------------------------------
 // build_cache_layer — SAF entry point
@@ -14,7 +16,7 @@ use edge_transport_http_egress_cache::{CacheConfig, CacheError, CacheLayer, Http
 /// broken before a consumer has touched a single line of config.
 #[test]
 fn test_builder_fn_succeeds_with_swe_default() {
-    HttpCacheSvc::build_cache_layer(CacheConfig::default()).expect("build must succeed");
+    HttpCacheSvcProcessor::build_cache_layer(CacheConfig::default()).expect("build must succeed");
 }
 
 /// A `default_ttl_seconds` of zero means every response expires the instant it
@@ -85,23 +87,24 @@ fn test_config_accessor_returns_reference_not_divergent_copy() {
 }
 
 // ---------------------------------------------------------------------------
-// build_cache_layer — produces a usable CacheLayer
+// build_cache_layer — produces a usable MiddlewareHttpCache
 // ---------------------------------------------------------------------------
 
-/// The nominal build path must succeed and return a `CacheLayer`.
+/// The nominal build path must succeed and return a `MiddlewareHttpCache`.
 #[test]
 fn test_build_from_swe_default_returns_cache_layer() {
-    let layer: CacheLayer =
-        HttpCacheSvc::build_cache_layer(CacheConfig::default()).expect("build() must succeed");
+    let layer: MiddlewareHttpCache =
+        HttpCacheSvcProcessor::build_cache_layer(CacheConfig::default())
+            .expect("build() must succeed");
     let dbg = format!("{layer:?}");
     assert!(
-        dbg.contains("CacheLayer"),
+        dbg.contains("MiddlewareHttpCache"),
         "Debug output must identify the type; got: {dbg}"
     );
 }
 
 /// Build with a custom config must succeed and reflect the supplied TTL in the
-/// `Debug` output (which the `CacheLayer::fmt` impl includes).
+/// `Debug` output (which the `MiddlewareHttpCache::fmt` impl includes).
 #[test]
 fn test_build_with_custom_ttl_reflects_in_debug_output() {
     let cfg = CacheConfig {
@@ -110,7 +113,7 @@ fn test_build_with_custom_ttl_reflects_in_debug_output() {
         respect_cache_control: true,
         cache_private: false,
     };
-    let layer = HttpCacheSvc::build_cache_layer(cfg).expect("build must succeed");
+    let layer = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build must succeed");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("7"),
@@ -128,7 +131,7 @@ fn test_build_with_cache_private_true_succeeds() {
         respect_cache_control: true,
         cache_private: true,
     };
-    HttpCacheSvc::build_cache_layer(cfg)
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
         .expect("cache_private=true must not be rejected by build()");
 }
 
@@ -142,7 +145,7 @@ fn test_build_with_respect_cache_control_false_succeeds() {
         respect_cache_control: false,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg)
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
         .expect("respect_cache_control=false must not be rejected by build()");
 }
 
@@ -156,7 +159,7 @@ fn test_build_with_large_max_entries_succeeds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg)
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
         .expect("max_entries=1_000_000 must not be rejected by build()");
 }
 
@@ -171,7 +174,7 @@ fn test_build_with_zero_ttl_succeeds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg)
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
         .expect("default_ttl_seconds=0 must not be rejected by build()");
 }
 

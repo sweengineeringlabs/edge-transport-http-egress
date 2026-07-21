@@ -2,7 +2,7 @@
 //! and their observable semantics from outside the crate.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor};
 
 // ---------------------------------------------------------------------------
 // Struct literal construction — all four fields are public
@@ -40,7 +40,7 @@ fn test_cache_config_zero_ttl_is_legal_and_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("zero TTL must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("zero TTL must not be rejected");
 }
 
 /// Large TTL values (e.g. one year in seconds) must be accepted without overflow
@@ -55,7 +55,7 @@ fn test_cache_config_large_ttl_is_accepted() {
         cache_private: false,
     };
     assert_eq!(cfg.default_ttl_seconds, ONE_YEAR_SECS);
-    HttpCacheSvc::build_cache_layer(cfg).expect("large TTL must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("large TTL must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ fn test_cache_config_single_entry_capacity_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("max_entries=1 must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("max_entries=1 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -88,7 +88,7 @@ fn test_cache_config_respect_cache_control_true_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("respect_cache_control=true must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("respect_cache_control=true must build");
 }
 
 /// `respect_cache_control = false` (ignore upstream headers, always apply the
@@ -101,7 +101,7 @@ fn test_cache_config_respect_cache_control_false_builds() {
         respect_cache_control: false,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("respect_cache_control=false must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("respect_cache_control=false must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -117,7 +117,7 @@ fn test_cache_config_cache_private_false_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("cache_private=false must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("cache_private=false must build");
 }
 
 /// `cache_private = true` is an explicit operator opt-in; must not be rejected.
@@ -129,7 +129,7 @@ fn test_cache_config_cache_private_true_builds() {
         respect_cache_control: true,
         cache_private: true,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("cache_private=true must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("cache_private=true must build");
 }
 
 // ---------------------------------------------------------------------------

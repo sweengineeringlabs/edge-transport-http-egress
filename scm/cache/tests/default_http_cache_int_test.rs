@@ -1,16 +1,11 @@
-//! Integration tests for `core/default_http_cache.rs`.
-//!
-//! `DefaultHttpCache` is `pub(crate)`, so we cannot name or construct it
-//! directly from an integration test. Its observable effect is through the
-//! SAF `build_cache_layer` function, which takes a `CacheConfig` and returns
-//! a `CacheLayer` that carries that policy.
+//! Integration tests for the SWE-default `CacheConfig` baseline used by
+//! `HttpCacheSvcProcessor::build_cache_layer()`.
 //!
 //! These tests verify that the default values produced by the SWE baseline are
-//! sane — if `DefaultHttpCache::new` or the underlying config ever regresses,
-//! these assertions catch it.
+//! sane — if the underlying config ever regresses, these assertions catch it.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor};
 
 // ---------------------------------------------------------------------------
 // SWE baseline — verify default config has production-safe values
@@ -21,7 +16,7 @@ use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvc};
 /// changed without updating the default.
 #[test]
 fn test_default_http_cache_swe_default_builder_succeeds() {
-    HttpCacheSvc::build_cache_layer(CacheConfig::default())
+    HttpCacheSvcProcessor::build_cache_layer(CacheConfig::default())
         .expect("swe_default baseline must parse without error");
 }
 
@@ -49,10 +44,10 @@ fn test_default_http_cache_swe_default_max_entries_is_positive() {
     );
 }
 
-/// Building from the SWE default must produce a valid `CacheLayer`.
+/// Building from the SWE default must produce a valid `MiddlewareHttpCache`.
 #[test]
 fn test_default_http_cache_swe_default_builds_cache_layer() {
-    HttpCacheSvc::build_cache_layer(CacheConfig::default())
+    HttpCacheSvcProcessor::build_cache_layer(CacheConfig::default())
         .expect("build from swe_default must succeed");
 }
 

@@ -1,23 +1,12 @@
-//! Primary trait for the cache crate.
-//!
-//! Crate-level processor contract. Rule 153 requires the
-//! primary trait to match the declared service_type (=
-//! \"processor\"); we use the domain-prefixed form `HttpCache`
-//! for clarity at use sites. The impl lives in
-//! `core/default_http_cache.rs`.
-//!
-//! Scaffold phase: a single `describe()` method — placeholder
-//! that lets the trait satisfy rule 153 without committing to
-//! a final signature. Real method set grows when the middleware
-//! impl lands.
+//! `HttpCache` — the cache middleware's state-inspection contract.
 
-/// The cache crate's primary trait. Every middleware layer
-/// produced by this crate implements it.
-#[allow(dead_code)]
+use crate::api::{CacheError, FallbackTtlRequest, FallbackTtlResponse};
+
+/// The cache crate's domain trait. The middleware layer produced by this crate
+/// implements it, exposing the resolved policy for inspection.
 pub trait HttpCache: Send + Sync {
-    /// Identify this processor in log / trace output.
-    ///
-    /// Returns the crate's canonical name (e.g. `\"edge_transport_http_egress_cache\"`).
-    /// Future impls will add scheme / policy-shape methods.
-    fn describe(&self) -> &'static str;
+    /// Return the fallback TTL (in seconds) configured for this cache layer —
+    /// the value applied when an upstream response carries no
+    /// `Cache-Control: max-age`.
+    fn default_ttl(&self, request: FallbackTtlRequest) -> Result<FallbackTtlResponse, CacheError>;
 }

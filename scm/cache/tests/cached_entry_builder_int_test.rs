@@ -1,49 +1,40 @@
-//! Integration tests for `CachedEntryBuilder`.
+//! Integration tests for `api/cached/entry/cached_entry_builder.rs` — the
+//! api/ structural counterpart of
+//! `core::cached::entry::cached_entry_builder::CachedEntryBuilder`.
+//!
+//! `CachedEntryBuilder` itself is `pub(crate)` and has its own inline unit
+//! tests. From outside the crate we verify the externally-observable effect:
+//! a `MiddlewareHttpCache` built with `cache_private = true` must be constructible and
+//! carry that policy through to its Debug output, since entries built via
+//! `CachedEntryBuilder` are only ever stored when the layer's policy allows
+//! it.
 
-use edge_transport_http_egress_cache::CachedEntryBuilder;
-use std::time::{Duration, Instant};
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
-/// @covers: CachedEntryBuilder::build
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor};
+
+/// @covers: build_cache_layer
 #[test]
-fn cache_struct_cached_entry_builder_build_with_required_fields_succeeds_int_test() {
-    let result = CachedEntryBuilder::new()
-        .with_status(200)
-        .with_body(b"hello".to_vec())
-        .with_expires_at(Instant::now() + Duration::from_secs(60))
-        .build();
-    assert!(result.is_ok(), "all required fields must produce Ok");
+fn test_cache_layer_with_cache_private_true_is_usable() {
+    let cfg = CacheConfig {
+        default_ttl_seconds: 60,
+        max_entries: 10,
+        respect_cache_control: true,
+        cache_private: true,
+    };
+    let layer = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build must succeed");
+    assert!(format!("{layer:?}").contains("cache_private: true"));
 }
 
-/// @covers: CachedEntryBuilder::build
+/// @covers: build_cache_layer
 #[test]
-fn cache_struct_cached_entry_builder_build_missing_status_fails_int_test() {
-    let result = CachedEntryBuilder::new()
-        .with_body(b"hello".to_vec())
-        .with_expires_at(Instant::now() + Duration::from_secs(60))
-        .build();
-    assert!(result.is_err(), "missing status must produce Err");
-}
-
-/// @covers: CachedEntryBuilder::with_etag
-#[test]
-fn cache_struct_cached_entry_builder_with_etag_sets_field_int_test() {
-    let result = CachedEntryBuilder::new()
-        .with_status(200)
-        .with_body(vec![])
-        .with_expires_at(Instant::now() + Duration::from_secs(1))
-        .with_etag("\"abc123\"")
-        .build();
-    assert!(result.is_ok());
-}
-
-/// @covers: CachedEntryBuilder::with_stale_while_revalidate
-#[test]
-fn cache_struct_cached_entry_builder_with_swr_sets_field_int_test() {
-    let result = CachedEntryBuilder::new()
-        .with_status(200)
-        .with_body(vec![])
-        .with_expires_at(Instant::now() + Duration::from_secs(1))
-        .with_stale_while_revalidate(Duration::from_secs(30))
-        .build();
-    assert!(result.is_ok());
+fn test_cache_layer_with_cache_private_false_is_usable() {
+    let cfg = CacheConfig {
+        default_ttl_seconds: 60,
+        max_entries: 10,
+        respect_cache_control: true,
+        cache_private: false,
+    };
+    let layer = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build must succeed");
+    assert!(format!("{layer:?}").contains("cache_private: false"));
 }

@@ -1,13 +1,13 @@
 //! Integration tests for `core/cache_layer.rs`.
 //!
-//! `core::cache_layer` contains `CacheLayer::new`, `ttl_for`, and the
+//! `core::cache_layer` contains `MiddlewareHttpCache::new`, `ttl_for`, and the
 //! `reqwest_middleware::Middleware` impl.  All of those are `pub(crate)`.
 //! From an integration test we exercise the observable surface: the layer
-//! produced by `HttpCacheSvc::build_cache_layer(config)` must correctly reflect the policy supplied at
+//! produced by `HttpCacheSvcProcessor::build_cache_layer(config)` must correctly reflect the policy supplied at
 //! construction, and edge-case configs must be accepted without error.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor, MiddlewareHttpCache};
 
 // ---------------------------------------------------------------------------
 // Zero TTL — "cache only when upstream provides Cache-Control max-age"
@@ -24,7 +24,7 @@ fn test_core_cache_layer_zero_ttl_builds_without_error() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("zero TTL must not cause build to fail");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("zero TTL must not cause build to fail");
 }
 
 /// Zero TTL must appear in the `Debug` output so an operator can confirm that
@@ -37,7 +37,7 @@ fn test_core_cache_layer_zero_ttl_visible_in_debug() {
         respect_cache_control: true,
         cache_private: false,
     };
-    let layer = HttpCacheSvc::build_cache_layer(cfg).expect("build");
+    let layer = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("0"),
@@ -50,7 +50,7 @@ fn test_core_cache_layer_zero_ttl_visible_in_debug() {
 // ---------------------------------------------------------------------------
 
 /// A very large `max_entries` exercises the moka cache construction path
-/// inside `CacheLayer::new`.  This is the code path in `core::cache_layer`
+/// inside `MiddlewareHttpCache::new`.  This is the code path in `core::cache_layer`
 /// that calls `Cache::builder().max_capacity(...)`.
 #[test]
 fn test_core_cache_layer_large_max_entries_builds() {
@@ -60,8 +60,8 @@ fn test_core_cache_layer_large_max_entries_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg)
-        .expect("max_entries=1_000_000 must not be rejected by CacheLayer::new");
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
+        .expect("max_entries=1_000_000 must not be rejected by MiddlewareHttpCache::new");
 }
 
 /// Large `max_entries` must be reflected in Debug output.
@@ -73,7 +73,7 @@ fn test_core_cache_layer_large_max_entries_visible_in_debug() {
         respect_cache_control: false,
         cache_private: false,
     };
-    let layer = HttpCacheSvc::build_cache_layer(cfg).expect("build");
+    let layer = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("99999"),
@@ -95,7 +95,7 @@ fn test_core_cache_layer_respect_cc_true_long_ttl_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("respect_cc=true + 3600s must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("respect_cc=true + 3600s must build");
 }
 
 /// `respect_cache_control = false` — all Cache-Control headers are ignored;
@@ -108,17 +108,32 @@ fn test_core_cache_layer_respect_cc_false_builds() {
         respect_cache_control: false,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("respect_cc=false must build");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("respect_cc=false must build");
 }
 
 // ---------------------------------------------------------------------------
 // Send + Sync — confirmed for the core-layer path
 // ---------------------------------------------------------------------------
 
-/// `CacheLayer` built via `core::cache_layer::CacheLayer::new` (the path
+/// `MiddlewareHttpCache` built via `core::cache_layer::MiddlewareHttpCache::new` (the path
 /// `build_cache_layer` uses) must satisfy `Send + Sync`.
 #[test]
 fn test_core_cache_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<CacheLayer>();
+    let cfg = CacheConfig {
+        default_ttl_seconds: 77,
+        max_entries: 10,
+        respect_cache_control: true,
+        cache_private: false,
+    };
+    let layer: MiddlewareHttpCache = HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build");
+    // Move the layer onto a real worker thread (requires `Send`) and format
+    // it there; the assertion proves the moved value is still the same,
+    // usable layer that carries its configured TTL.
+    let dbg = std::thread::spawn(move || format!("{layer:?}"))
+        .join()
+        .expect("worker thread must not panic");
+    assert!(
+        dbg.contains("77"),
+        "layer moved across a thread must retain its ttl=77; got: {dbg}"
+    );
 }

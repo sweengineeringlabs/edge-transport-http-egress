@@ -6,8 +6,8 @@
 
 use std::time::{Duration, Instant};
 
+use super::cached_entry::CachedEntry;
 use super::vary_directive::VaryDirective;
-use crate::api::types::CachedEntry;
 
 /// Static helper methods for cache entry parsing and matching.
 pub(crate) struct CacheEntryHelper;

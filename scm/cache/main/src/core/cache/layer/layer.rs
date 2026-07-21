@@ -40,14 +40,26 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use reqwest::header::{HeaderMap, HeaderValue, CACHE_CONTROL, ETAG, IF_NONE_MATCH, VARY};
 
-use crate::api::types::cache_config::CacheConfig;
-use crate::api::types::cache_layer::CacheLayer;
-use crate::core::cached::entry::{CacheEntryHelper, CachedEntry, VaryDirective};
+use crate::api::{
+    CacheConfig, CacheError, FallbackTtlRequest, FallbackTtlResponse, HttpCache,
+    MiddlewareHttpCache,
+};
+use crate::core::cached::entry::{
+    CacheEntryHelper, CachedEntry, CachedEntryBuilder, VaryDirective,
+};
 
 use super::request_snapshot::RequestSnapshot;
 use super::ttl_decision::TtlDecision;
 
-impl CacheLayer {
+impl HttpCache for MiddlewareHttpCache {
+    fn default_ttl(&self, _request: FallbackTtlRequest) -> Result<FallbackTtlResponse, CacheError> {
+        Ok(FallbackTtlResponse {
+            seconds: self.config.default_ttl_seconds,
+        })
+    }
+}
+
+impl MiddlewareHttpCache {
     /// Construct from a resolved config.
     pub(crate) fn new(config: CacheConfig) -> Self {
         let store: Cache<String, Arc<Vec<CachedEntry>>> =
@@ -85,7 +97,7 @@ impl CacheLayer {
     pub(crate) fn ttl_for(&self, response: &reqwest::Response) -> Option<TtlDecision> {
         // Vary: * — never cache.
         if matches!(
-            CacheLayer::vary_from_headers(response.headers()),
+            MiddlewareHttpCache::vary_from_headers(response.headers()),
             VaryDirective::Star
         ) {
             return None;
@@ -134,7 +146,7 @@ impl CacheLayer {
     }
 }
 
-impl CacheLayer {
+impl MiddlewareHttpCache {
     pub(crate) fn vary_from_headers(headers: &HeaderMap) -> VaryDirective {
         let mut it = headers.get_all(VARY).iter();
         let first = match it.next() {
@@ -234,8 +246,12 @@ impl CacheLayer {
     }
 }
 
-impl CacheLayer {
-    pub(crate) fn spawn_swr_refresh(layer: Arc<CacheLayer>, key: String, snap: RequestSnapshot) {
+impl MiddlewareHttpCache {
+    pub(crate) fn spawn_swr_refresh(
+        layer: Arc<MiddlewareHttpCache>,
+        key: String,
+        snap: RequestSnapshot,
+    ) {
         tokio::spawn(async move {
             let mut builder = layer
                 .swr_client
@@ -293,8 +309,8 @@ impl CacheLayer {
             Some(d) => d,
             None => return Ok((response, None)),
         };
-        let vary_dir = CacheLayer::vary_from_headers(response.headers());
-        let etag = CacheLayer::extract_etag(response.headers());
+        let vary_dir = MiddlewareHttpCache::vary_from_headers(response.headers());
+        let etag = MiddlewareHttpCache::extract_etag(response.headers());
 
         // Vary: * was already screened by ttl_for → None; re-assert
         // here as an invariant (defensive).
@@ -306,7 +322,7 @@ impl CacheLayer {
             VaryDirective::Star => return Ok((response, None)),
         };
         let vary_headers =
-            CacheLayer::snapshot_vary_values_from_snapshot(req_snapshot, &vary_names);
+            MiddlewareHttpCache::snapshot_vary_values_from_snapshot(req_snapshot, &vary_names);
 
         // Capture response shape.
         let status_code = response.status().as_u16();
@@ -326,18 +342,19 @@ impl CacheLayer {
         })?;
         let body_vec = body.to_vec();
 
-        let entry = CachedEntry {
-            status: status_code,
-            headers,
-            body: Arc::new(body_vec),
-            expires_at: Instant::now() + ttl_decision.ttl,
-            etag,
-            vary_headers,
-            stale_while_revalidate: ttl_decision.swr,
-        };
-        CacheLayer::upsert_variant(&self.store, key, entry.clone()).await;
+        let entry = CachedEntryBuilder::new(
+            status_code,
+            Arc::new(body_vec),
+            Instant::now() + ttl_decision.ttl,
+        )
+        .headers(headers)
+        .etag(etag)
+        .vary_headers(vary_headers)
+        .stale_while_revalidate(ttl_decision.swr)
+        .build();
+        MiddlewareHttpCache::upsert_variant(&self.store, key, entry.clone()).await;
 
-        let rebuilt = CacheLayer::reconstruct(&entry).map_err(|e| {
+        let rebuilt = MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
                 "edge_transport_http_egress_cache post-store reconstruct: {e}"
             ))
@@ -383,13 +400,13 @@ impl CacheLayer {
             stale_while_revalidate: swr,
             ..stale
         };
-        CacheLayer::upsert_variant(&self.store, key, refreshed.clone()).await;
+        MiddlewareHttpCache::upsert_variant(&self.store, key, refreshed.clone()).await;
         refreshed
     }
 }
 
 #[async_trait]
-impl reqwest_middleware::Middleware for CacheLayer {
+impl reqwest_middleware::Middleware for MiddlewareHttpCache {
     async fn handle(
         &self,
         mut req: reqwest::Request,
@@ -406,12 +423,12 @@ impl reqwest_middleware::Middleware for CacheLayer {
         let now = Instant::now();
 
         // Primary-key lookup; filter by Vary.
-        let cached = CacheLayer::find_matching_variant(&self.store, &key, &req).await;
+        let cached = MiddlewareHttpCache::find_matching_variant(&self.store, &key, &req).await;
 
         if let Some(entry) = cached {
             if now < entry.expires_at {
                 // Fresh hit.
-                return CacheLayer::reconstruct(&entry).map_err(|e| {
+                return MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
                     reqwest_middleware::Error::Middleware(anyhow::anyhow!(
                         "edge_transport_http_egress_cache reconstruct: {e}"
                     ))
@@ -420,17 +437,17 @@ impl reqwest_middleware::Middleware for CacheLayer {
             if CacheEntryHelper::in_swr_window(&entry, now) {
                 // Stale-but-serveable. Serve immediately; fire
                 // background refresh.
-                let rebuilt = CacheLayer::reconstruct(&entry).map_err(|e| {
+                let rebuilt = MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
                     reqwest_middleware::Error::Middleware(anyhow::anyhow!(
                         "edge_transport_http_egress_cache swr reconstruct: {e}"
                     ))
                 })?;
-                let layer_arc: Arc<CacheLayer> = Arc::new(CacheLayer {
+                let layer_arc: Arc<MiddlewareHttpCache> = Arc::new(MiddlewareHttpCache {
                     config: self.config.clone(),
                     store: self.store.clone(),
                     swr_client: self.swr_client.clone(),
                 });
-                CacheLayer::spawn_swr_refresh(layer_arc, key, snapshot);
+                MiddlewareHttpCache::spawn_swr_refresh(layer_arc, key, snapshot);
                 return Ok(rebuilt);
             }
             // Stale beyond SWR (or no SWR). `should_revalidate`
@@ -445,7 +462,7 @@ impl reqwest_middleware::Middleware for CacheLayer {
                 let response = next.run(req, ext).await?;
                 if response.status().as_u16() == 304 {
                     let refreshed = self.refresh_on_304(entry, &response, key).await;
-                    return CacheLayer::reconstruct(&refreshed).map_err(|e| {
+                    return MiddlewareHttpCache::reconstruct(&refreshed).map_err(|e| {
                         reqwest_middleware::Error::Middleware(anyhow::anyhow!(
                             "edge_transport_http_egress_cache 304 reconstruct: {e}"
                         ))
@@ -471,6 +488,17 @@ impl reqwest_middleware::Middleware for CacheLayer {
     }
 }
 
+impl std::fmt::Debug for MiddlewareHttpCache {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MiddlewareHttpCache")
+            .field("default_ttl_seconds", &self.config.default_ttl_seconds)
+            .field("max_entries", &self.config.max_entries)
+            .field("respect_cache_control", &self.config.respect_cache_control)
+            .field("cache_private", &self.config.cache_private)
+            .finish()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -493,18 +521,20 @@ mod tests {
     #[test]
     fn test_new_constructs_with_store() {
         let cfg = test_config();
-        let l = CacheLayer::new(cfg);
+        let l = MiddlewareHttpCache::new(cfg);
         // If config weren't stored, max_entries would be default (0),
         // so the ttl_for path would behave differently. Verify the layer
         // is functional by calling a pure method.
-        assert!(CacheLayer::is_cacheable_method(&reqwest::Method::GET));
+        assert!(MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::GET
+        ));
         let _ = l; // constructed without panic
     }
 
     /// @covers: key_for
     #[test]
     fn test_key_for_contains_method_and_url() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let req = reqwest::Request::new(
             reqwest::Method::GET,
             reqwest::Url::parse("https://example.test/resource").expect("url"),
@@ -517,7 +547,7 @@ mod tests {
     /// @covers: key_for
     #[test]
     fn test_key_includes_method_and_full_url() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let req = reqwest::Request::new(
             reqwest::Method::GET,
             reqwest::Url::parse("https://example.test/foo?q=1").expect("url"),
@@ -531,25 +561,43 @@ mod tests {
     /// @covers: is_cacheable_method
     #[test]
     fn test_is_cacheable_method_get_and_head_are_allowed() {
-        assert!(CacheLayer::is_cacheable_method(&reqwest::Method::GET));
-        assert!(CacheLayer::is_cacheable_method(&reqwest::Method::HEAD));
-        assert!(!CacheLayer::is_cacheable_method(&reqwest::Method::POST));
+        assert!(MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::GET
+        ));
+        assert!(MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::HEAD
+        ));
+        assert!(!MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::POST
+        ));
     }
 
     /// @covers: is_cacheable_method
     #[test]
     fn test_get_and_head_are_cacheable() {
-        assert!(CacheLayer::is_cacheable_method(&reqwest::Method::GET));
-        assert!(CacheLayer::is_cacheable_method(&reqwest::Method::HEAD));
+        assert!(MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::GET
+        ));
+        assert!(MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::HEAD
+        ));
     }
 
     /// @covers: is_cacheable_method
     #[test]
     fn test_mutating_methods_are_not_cacheable() {
-        assert!(!CacheLayer::is_cacheable_method(&reqwest::Method::POST));
-        assert!(!CacheLayer::is_cacheable_method(&reqwest::Method::PUT));
-        assert!(!CacheLayer::is_cacheable_method(&reqwest::Method::DELETE));
-        assert!(!CacheLayer::is_cacheable_method(&reqwest::Method::PATCH));
+        assert!(!MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::POST
+        ));
+        assert!(!MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::PUT
+        ));
+        assert!(!MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::DELETE
+        ));
+        assert!(!MiddlewareHttpCache::is_cacheable_method(
+            &reqwest::Method::PATCH
+        ));
     }
 
     /// Build a stub `reqwest::Response` with the given headers
@@ -568,7 +616,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_ttl_for_no_store_returns_none() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "no-store")]);
         assert!(l.ttl_for(&resp).is_none());
     }
@@ -576,7 +624,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_ttl_honors_upstream_max_age_when_respect_true() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "max-age=60")]);
         assert_eq!(
             l.ttl_for(&resp).map(|d| d.ttl),
@@ -587,7 +635,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_ttl_falls_back_to_default_when_no_cache_control() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[]);
         assert_eq!(
             l.ttl_for(&resp).map(|d| d.ttl),
@@ -598,7 +646,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_ttl_honors_no_store_even_with_default_ttl_set() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "no-store")]);
         assert!(l.ttl_for(&resp).is_none());
     }
@@ -606,7 +654,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_ttl_private_blocked_when_cache_private_false() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "private, max-age=60")]);
         assert!(l.ttl_for(&resp).is_none());
     }
@@ -623,7 +671,7 @@ mod tests {
             "#,
         )
         .expect("config parses");
-        let l = CacheLayer::new(cfg);
+        let l = MiddlewareHttpCache::new(cfg);
         let resp = stub_response(&[("cache-control", "private, max-age=60")]);
         assert_eq!(
             l.ttl_for(&resp).map(|d| d.ttl),
@@ -643,7 +691,7 @@ mod tests {
             "#,
         )
         .expect("config parses");
-        let l = CacheLayer::new(cfg);
+        let l = MiddlewareHttpCache::new(cfg);
         let resp = stub_response(&[]);
         assert!(l.ttl_for(&resp).is_none());
     }
@@ -660,7 +708,7 @@ mod tests {
             "#,
         )
         .expect("config parses");
-        let l = CacheLayer::new(cfg);
+        let l = MiddlewareHttpCache::new(cfg);
         let resp = stub_response(&[("cache-control", "max-age=9999")]);
         assert_eq!(
             l.ttl_for(&resp).map(|d| d.ttl),
@@ -671,7 +719,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_vary_star_is_not_cacheable() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "max-age=60"), ("vary", "*")]);
         assert!(l.ttl_for(&resp).is_none());
     }
@@ -679,7 +727,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_vary_star_with_other_names_still_not_cacheable() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[
             ("cache-control", "max-age=60"),
             ("vary", "Accept-Encoding, *"),
@@ -690,7 +738,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_stale_while_revalidate_parsed_from_cache_control() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp = stub_response(&[("cache-control", "max-age=60, stale-while-revalidate=300")]);
         let decision = l.ttl_for(&resp).expect("cacheable");
         assert_eq!(decision.ttl, Duration::from_secs(60));
@@ -700,7 +748,7 @@ mod tests {
     /// @covers: ttl_for
     #[test]
     fn test_stale_while_revalidate_duration_zero_means_none() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let resp_zero = stub_response(&[("cache-control", "max-age=60, stale-while-revalidate=0")]);
         assert_eq!(l.ttl_for(&resp_zero).expect("cacheable").swr, None);
 
@@ -713,7 +761,10 @@ mod tests {
     fn test_extract_etag_returns_quoted_etag() {
         let mut h = HeaderMap::new();
         h.insert(ETAG, HeaderValue::from_static("\"abc123\""));
-        assert_eq!(CacheLayer::extract_etag(&h), Some("\"abc123\"".to_string()));
+        assert_eq!(
+            MiddlewareHttpCache::extract_etag(&h),
+            Some("\"abc123\"".to_string())
+        );
     }
 
     /// @covers: extract_etag
@@ -721,14 +772,17 @@ mod tests {
     fn test_etag_captured_on_store() {
         let mut h = HeaderMap::new();
         h.insert(ETAG, HeaderValue::from_static("\"abc\""));
-        assert_eq!(CacheLayer::extract_etag(&h), Some("\"abc\"".to_string()));
+        assert_eq!(
+            MiddlewareHttpCache::extract_etag(&h),
+            Some("\"abc\"".to_string())
+        );
     }
 
     /// @covers: extract_etag
     #[test]
     fn test_etag_absent_on_store() {
         let headers = HeaderMap::new();
-        assert_eq!(CacheLayer::extract_etag(&headers), None);
+        assert_eq!(MiddlewareHttpCache::extract_etag(&headers), None);
     }
 
     /// @covers: reconstruct
@@ -745,7 +799,7 @@ mod tests {
             vary_headers: Vec::new(),
             stale_while_revalidate: None,
         };
-        let resp = CacheLayer::reconstruct(&entry).expect("reconstruct");
+        let resp = MiddlewareHttpCache::reconstruct(&entry).expect("reconstruct");
         assert_eq!(resp.status().as_u16(), 418);
         assert_eq!(resp.headers().get("x-custom").expect("header"), "value");
     }
@@ -756,7 +810,7 @@ mod tests {
         let mut h = HeaderMap::new();
         h.append(VARY, HeaderValue::from_static("Accept-Encoding"));
         h.append(VARY, HeaderValue::from_static("Accept-Language"));
-        match CacheLayer::vary_from_headers(&h) {
+        match MiddlewareHttpCache::vary_from_headers(&h) {
             VaryDirective::Names(names) => {
                 assert_eq!(names, vec!["accept-encoding", "accept-language"]);
             }
@@ -776,8 +830,10 @@ mod tests {
             HeaderValue::from_static("en-US"),
         );
         let snap = RequestSnapshot::new(&req);
-        let result =
-            CacheLayer::snapshot_vary_values_from_snapshot(&snap, &["accept-language".to_string()]);
+        let result = MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+            &snap,
+            &["accept-language".to_string()],
+        );
         assert_eq!(
             result,
             vec![("accept-language".to_string(), "en-US".to_string())]
@@ -796,8 +852,10 @@ mod tests {
             HeaderValue::from_static("gzip"),
         );
         let snap = RequestSnapshot::new(&req);
-        let result =
-            CacheLayer::snapshot_vary_values_from_snapshot(&snap, &["accept-encoding".to_string()]);
+        let result = MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+            &snap,
+            &["accept-encoding".to_string()],
+        );
         assert_eq!(
             result,
             vec![("accept-encoding".to_string(), "gzip".to_string())]
@@ -812,8 +870,10 @@ mod tests {
             reqwest::Url::parse("https://example.test/").expect("url"),
         );
         let snap = RequestSnapshot::new(&req);
-        let result =
-            CacheLayer::snapshot_vary_values_from_snapshot(&snap, &["accept-encoding".to_string()]);
+        let result = MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+            &snap,
+            &["accept-encoding".to_string()],
+        );
         assert_eq!(
             result,
             vec![("accept-encoding".to_string(), "".to_string())]
@@ -836,7 +896,7 @@ mod tests {
             HeaderValue::from_static("gzip"),
         );
         let snap = RequestSnapshot::new(&req);
-        let result = CacheLayer::snapshot_vary_values_from_snapshot(
+        let result = MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
             &snap,
             &["accept-language".to_string(), "accept-encoding".to_string()],
         );
@@ -860,7 +920,7 @@ mod tests {
     /// @covers: upsert_variant
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_vary_different_values_use_different_entries() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let key = "GET https://example.test/x".to_string();
 
         let vary_names = vec!["accept-encoding".to_string()];
@@ -877,17 +937,23 @@ mod tests {
             body: Arc::new(b"gzip-body".to_vec()),
             expires_at: Instant::now() + Duration::from_secs(60),
             etag: None,
-            vary_headers: CacheLayer::snapshot_vary_values_from_snapshot(&snap_gzip, &vary_names),
+            vary_headers: MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+                &snap_gzip,
+                &vary_names,
+            ),
             stale_while_revalidate: None,
         };
         let entry_br = CachedEntry {
             body: Arc::new(b"br-body".to_vec()),
-            vary_headers: CacheLayer::snapshot_vary_values_from_snapshot(&snap_br, &vary_names),
+            vary_headers: MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+                &snap_br,
+                &vary_names,
+            ),
             ..entry_gzip.clone()
         };
 
-        CacheLayer::upsert_variant(&l.store, key.clone(), entry_gzip).await;
-        CacheLayer::upsert_variant(&l.store, key.clone(), entry_br).await;
+        MiddlewareHttpCache::upsert_variant(&l.store, key.clone(), entry_gzip).await;
+        MiddlewareHttpCache::upsert_variant(&l.store, key.clone(), entry_br).await;
 
         let stored = l.store.get(&key).await.expect("key present");
         assert_eq!(
@@ -896,12 +962,12 @@ mod tests {
             "two Vary variants must live under one primary key"
         );
 
-        let found_gzip = CacheLayer::find_matching_variant(&l.store, &key, &req_gzip)
+        let found_gzip = MiddlewareHttpCache::find_matching_variant(&l.store, &key, &req_gzip)
             .await
             .expect("gzip variant");
         assert_eq!(&*found_gzip.body, b"gzip-body");
 
-        let found_br = CacheLayer::find_matching_variant(&l.store, &key, &req_br)
+        let found_br = MiddlewareHttpCache::find_matching_variant(&l.store, &key, &req_br)
             .await
             .expect("br variant");
         assert_eq!(&*found_br.body, b"br-body");
@@ -910,7 +976,7 @@ mod tests {
     /// @covers: find_matching_variant
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_vary_matching_values_hit_same_entry() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         let key = "GET https://example.test/x".to_string();
         let vary_names = vec!["accept-encoding".to_string()];
 
@@ -922,13 +988,16 @@ mod tests {
             body: Arc::new(b"gzip-body".to_vec()),
             expires_at: Instant::now() + Duration::from_secs(60),
             etag: None,
-            vary_headers: CacheLayer::snapshot_vary_values_from_snapshot(&snap, &vary_names),
+            vary_headers: MiddlewareHttpCache::snapshot_vary_values_from_snapshot(
+                &snap,
+                &vary_names,
+            ),
             stale_while_revalidate: None,
         };
-        CacheLayer::upsert_variant(&l.store, key.clone(), entry).await;
+        MiddlewareHttpCache::upsert_variant(&l.store, key.clone(), entry).await;
 
         let req2 = stub_request("https://example.test/x", &[("accept-encoding", "gzip")]);
-        let hit = CacheLayer::find_matching_variant(&l.store, &key, &req2).await;
+        let hit = MiddlewareHttpCache::find_matching_variant(&l.store, &key, &req2).await;
         assert!(
             hit.is_some(),
             "same Vary values must hit the stored variant"
@@ -979,21 +1048,30 @@ mod tests {
     /// @covers: handle
     #[test]
     fn test_handle_layer_is_send_sync() {
-        fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<CacheLayer>();
+        // Move the layer across a real thread boundary — this only compiles
+        // and runs if `MiddlewareHttpCache: Send`, and the assertion proves the moved
+        // value is still a usable layer on the other side.
+        let layer = MiddlewareHttpCache::new(test_config());
+        let dbg = std::thread::spawn(move || format!("{layer:?}"))
+            .join()
+            .expect("worker thread must not panic");
+        assert!(
+            dbg.contains("MiddlewareHttpCache"),
+            "layer moved across a thread must still Debug-format as a MiddlewareHttpCache; got: {dbg}"
+        );
     }
 
     /// @covers: buffer_and_store
     #[test]
     fn test_buffer_and_store_swr_client_is_set() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         assert!(std::sync::Arc::strong_count(&l.swr_client) > 0);
     }
 
     /// @covers: find_matching_variant
     #[test]
     fn test_find_matching_variant_store_is_accessible_after_construction() {
-        let l = CacheLayer::new(test_config());
+        let l = MiddlewareHttpCache::new(test_config());
         assert_eq!(l.store.entry_count(), 0);
     }
 
@@ -1001,15 +1079,28 @@ mod tests {
     #[test]
     fn test_upsert_variant_entry_type_is_clone() {
         let entry = CachedEntry {
-            status: 200,
+            status: 418,
             headers: std::collections::BTreeMap::new(),
-            body: std::sync::Arc::new(vec![]),
+            body: std::sync::Arc::new(b"teapot".to_vec()),
             expires_at: std::time::Instant::now(),
-            etag: None,
+            etag: Some("\"v9\"".into()),
             vary_headers: vec![],
             stale_while_revalidate: None,
         };
-        let _cloned = entry.clone();
+        let cloned = entry.clone();
+        // A clone stored as a Vary variant must preserve every field, otherwise
+        // upsert_variant would corrupt cached bodies or metadata.
+        assert_eq!(cloned.status, 418, "clone must preserve the status code");
+        assert_eq!(
+            cloned.body.as_ref(),
+            b"teapot",
+            "clone must preserve the body bytes"
+        );
+        assert_eq!(
+            cloned.etag.as_deref(),
+            Some("\"v9\""),
+            "clone must preserve the etag"
+        );
     }
 
     /// @covers: refresh_on_304
@@ -1036,7 +1127,7 @@ mod tests {
     /// @covers: spawn_swr_refresh
     #[test]
     fn test_spawn_swr_refresh_layer_is_arc_compatible() {
-        let l = std::sync::Arc::new(CacheLayer::new(test_config()));
+        let l = std::sync::Arc::new(MiddlewareHttpCache::new(test_config()));
         assert!(std::sync::Arc::strong_count(&l) > 0);
     }
 }
