@@ -20,14 +20,13 @@ fn test_invalid_backend_url_displays_reason() {
     assert!(msg.contains("invalid backend URL"), "{msg}");
 }
 
-/// @covers: LoadbalancerMiddlewareError::PoolError — conversion from LoadbalancerError
+/// @covers: LoadbalancerMiddlewareError::PoolBuildFailed — display message
 #[test]
-fn test_pool_error_converts_from_loadbalancer_error() {
-    use edge_transport_http_egress_loadbalancer::PoolError;
-    let lb_err = PoolError::NoHealthyBackends;
-    let mw_err = LoadbalancerMiddlewareError::PoolError(lb_err);
-    let msg = mw_err.to_string();
+fn test_pool_build_failed_displays_reason() {
+    let err = LoadbalancerMiddlewareError::PoolBuildFailed("no healthy backends".to_string());
+    let msg = err.to_string();
     assert!(msg.contains("pool error"), "{msg}");
+    assert!(msg.contains("no healthy backends"), "{msg}");
 }
 
 /// @covers: LoadbalancerMiddlewareError — Debug impl

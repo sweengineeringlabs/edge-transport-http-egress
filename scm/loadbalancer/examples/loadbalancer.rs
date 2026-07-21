@@ -2,7 +2,7 @@
 
 fn main() {
     use edge_transport_http_egress_loadbalancer::{
-        BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy,
+        BackendConfig, LoadbalancerConfig, LoadbalancerSvcProcessor, Strategy,
     };
 
     let config = LoadbalancerConfig {
@@ -19,7 +19,7 @@ fn main() {
         ],
     };
 
-    match LoadbalancerSvc::build_layer(config) {
+    match LoadbalancerSvcProcessor::build_layer(config) {
         Ok(_) => println!("edge_transport_http_egress_loadbalancer layer built"),
         Err(e) => println!("edge_transport_http_egress_loadbalancer: {e}"),
     }

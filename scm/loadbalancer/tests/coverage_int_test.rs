@@ -1,13 +1,12 @@
-//! Coverage tests (rules 221 + 222) — _happy / _error / _edge variants.
-//! Rule 221: create_config_builder, build_layer, validate_config,
-//!            build_loadbalancer_layer, validate_loadbalancer_config.
-//! Rule 222: describe (Processor trait), validate (Validator trait).
+//! End-to-end coverage of the public loadbalancer surface — happy / error /
+//! edge variants for each entry point.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use edge_transport_http_egress_loadbalancer::{
-    build_loadbalancer_layer, validate_loadbalancer_config, BackendConfig, LoadbalancerConfig,
-    LoadbalancerSvc, Strategy,
+    BackendConfig, ConfigValidationRequest, DescribeRequest, LoadbalancerConfig,
+    LoadbalancerMiddlewareError, LoadbalancerSvcProcessor, ProcessorFactory, Strategy,
+    ValidatorFactory,
 };
 
 fn valid_config() -> LoadbalancerConfig {
@@ -27,168 +26,70 @@ fn empty_config() -> LoadbalancerConfig {
     }
 }
 
-// ── create_config_builder (rule 221) ─────────────────────────────────────────
+// ── LoadbalancerSvcProcessor::create_config_builder ───────────────────────────────────
 
 #[test]
-fn test_create_config_builder_returns_valid_loader_happy() {
-    let loader = LoadbalancerSvc::create_config_builder().build_loader();
-    let _ = loader;
+fn test_create_config_builder_seeds_crate_name_happy() {
+    let builder = LoadbalancerSvcProcessor::create_config_builder();
+    assert_eq!(builder.name(), "edge-transport-http-egress-loadbalancer");
+    assert!(!builder.version().is_empty());
 }
 
 #[test]
-fn test_create_config_builder_does_not_panic_without_config_error() {
-    let loader = LoadbalancerSvc::create_config_builder().build_loader();
-    let _ = loader;
-}
-
-#[test]
-fn test_create_config_builder_independent_instances_edge() {
-    let l1 = LoadbalancerSvc::create_config_builder().build_loader();
-    let l2 = LoadbalancerSvc::create_config_builder().build_loader();
-    let _ = (l1, l2);
-}
-
-// ── build_layer (rule 221) ───────────────────────────────────────────────────
-
-#[test]
-fn test_build_layer_valid_config_returns_ok_happy() {
-    let result = LoadbalancerSvc::build_layer(valid_config());
-    assert!(result.is_ok(), "valid config must build layer");
-}
-
-#[test]
-fn test_build_layer_empty_backends_returns_err_error() {
-    let result = LoadbalancerSvc::build_layer(empty_config());
-    assert!(result.is_err(), "empty backends must fail");
-}
-
-#[test]
-fn test_build_layer_single_backend_succeeds_edge() {
-    let cfg = LoadbalancerConfig {
-        strategy: Strategy::RoundRobin,
-        backends: vec![BackendConfig {
-            url: "https://only-one.internal".to_string(),
-            weight: 1,
-        }],
-    };
-    let result = LoadbalancerSvc::build_layer(cfg);
-    assert!(result.is_ok());
-}
-
-// ── validate_config (rule 221) ───────────────────────────────────────────────
-
-#[test]
-fn test_validate_config_valid_config_passes_happy() {
-    let result = LoadbalancerSvc::validate_config(&valid_config());
-    assert!(result.is_ok());
-}
-
-#[test]
-fn test_validate_config_empty_backends_fails_error() {
-    let result = LoadbalancerSvc::validate_config(&empty_config());
-    assert!(result.is_err());
-    let msg = result.unwrap_err();
+fn test_create_config_builder_loader_reports_missing_section_error() {
+    // With no config dir set, loading a section must be a real error — not a
+    // silently-succeeding stub.
+    let loader = LoadbalancerSvcProcessor::create_config_builder()
+        .build_loader()
+        .expect("build_loader succeeds with no config dir");
+    let result: Result<LoadbalancerConfig, _> = loader.load_section("loadbalancer");
     assert!(
-        msg.contains("empty"),
-        "error message must mention 'empty': {msg}"
+        result.is_err(),
+        "no config file present must be a real error"
     );
 }
 
+// ── LoadbalancerSvcProcessor::build_layer ─────────────────────────────────────────────
+
 #[test]
-fn test_validate_config_zero_weight_backend_fails_edge() {
+fn test_build_layer_valid_config_returns_layer_happy() {
+    let layer = LoadbalancerSvcProcessor::build_layer(valid_config()).expect("valid builds");
+    assert!(format!("{layer:?}").contains("LoadbalancerLayerPoolMetrics"));
+}
+
+#[test]
+fn test_build_layer_empty_backends_returns_invalid_config_error() {
+    assert!(matches!(
+        LoadbalancerSvcProcessor::build_layer(empty_config()),
+        Err(LoadbalancerMiddlewareError::InvalidConfig(_))
+    ));
+}
+
+#[test]
+fn test_build_layer_zero_weight_backend_rejected_edge() {
     let cfg = LoadbalancerConfig {
         strategy: Strategy::RoundRobin,
         backends: vec![BackendConfig {
-            url: "https://zero-weight.internal".to_string(),
+            url: "https://zero.internal".to_string(),
             weight: 0,
         }],
     };
-    let result = LoadbalancerSvc::validate_config(&cfg);
-    assert!(result.is_err(), "zero-weight backend must fail validation");
+    assert!(matches!(
+        LoadbalancerSvcProcessor::build_layer(cfg),
+        Err(LoadbalancerMiddlewareError::InvalidConfig(_))
+    ));
 }
 
-// ── build_loadbalancer_layer (rule 221) ──────────────────────────────────────
+// ── LoadbalancerSvcProcessor::validate_config ─────────────────────────────────────────
 
 #[test]
-fn test_build_loadbalancer_layer_valid_config_returns_ok_happy() {
-    let result = build_loadbalancer_layer(valid_config());
-    assert!(result.is_ok());
-}
-
-#[test]
-fn test_build_loadbalancer_layer_empty_backends_returns_err_error() {
-    let result = build_loadbalancer_layer(empty_config());
-    assert!(result.is_err());
+fn test_validate_config_valid_passes_invalid_fails_happy() {
+    assert!(LoadbalancerSvcProcessor::validate_config(&valid_config()).is_ok());
+    assert!(LoadbalancerSvcProcessor::validate_config(&empty_config()).is_err());
 }
 
 #[test]
-fn test_build_loadbalancer_layer_delegates_to_build_layer_edge() {
-    // standalone fn and impl method must agree on outcome
-    let direct = LoadbalancerSvc::build_layer(valid_config());
-    let via_fn = build_loadbalancer_layer(valid_config());
-    assert_eq!(direct.is_ok(), via_fn.is_ok());
-}
-
-// ── validate_loadbalancer_config (rule 221) ───────────────────────────────────
-
-#[test]
-fn test_validate_loadbalancer_config_valid_config_passes_happy() {
-    let result = validate_loadbalancer_config(&valid_config());
-    assert!(result.is_ok());
-}
-
-#[test]
-fn test_validate_loadbalancer_config_empty_backends_fails_error() {
-    let result = validate_loadbalancer_config(&empty_config());
-    assert!(result.is_err());
-}
-
-#[test]
-fn test_validate_loadbalancer_config_matches_validate_config_edge() {
-    // standalone fn and impl method must agree
-    let a = LoadbalancerSvc::validate_config(&valid_config());
-    let b = validate_loadbalancer_config(&valid_config());
-    assert_eq!(a.is_ok(), b.is_ok());
-}
-
-// ── describe (rule 222: Processor trait) ─────────────────────────────────────
-
-#[test]
-fn test_describe_layer_has_non_empty_debug_repr_happy() {
-    let layer = LoadbalancerSvc::build_layer(valid_config()).expect("ok");
-    let dbg = format!("{layer:?}");
-    assert!(!dbg.is_empty());
-}
-
-#[test]
-fn test_describe_svc_type_constructible_error() {
-    let svc = edge_transport_http_egress_loadbalancer::LoadbalancerSvc;
-    let _ = svc;
-}
-
-#[test]
-fn test_describe_layer_debug_deterministic_edge() {
-    let layer = LoadbalancerSvc::build_layer(valid_config()).expect("ok");
-    let a = format!("{layer:?}");
-    let b = format!("{layer:?}");
-    assert_eq!(a, b);
-}
-
-// ── validate (rule 222: Validator trait) ─────────────────────────────────────
-
-#[test]
-fn test_validate_valid_config_passes_happy() {
-    assert!(LoadbalancerSvc::validate_config(&valid_config()).is_ok());
-}
-
-#[test]
-fn test_validate_empty_config_returns_non_empty_error_message_error() {
-    let err = LoadbalancerSvc::validate_config(&empty_config()).unwrap_err();
-    assert!(!err.is_empty(), "error message must not be empty");
-}
-
-#[test]
-fn test_validate_url_empty_backend_fails_edge() {
+fn test_validate_config_empty_url_returns_error_edge() {
     let cfg = LoadbalancerConfig {
         strategy: Strategy::RoundRobin,
         backends: vec![BackendConfig {
@@ -196,5 +97,36 @@ fn test_validate_url_empty_backend_fails_edge() {
             weight: 1,
         }],
     };
-    assert!(LoadbalancerSvc::validate_config(&cfg).is_err());
+    let err = LoadbalancerSvcProcessor::validate_config(&cfg).unwrap_err();
+    assert!(
+        matches!(err, LoadbalancerMiddlewareError::InvalidConfig(ref m) if m.contains("non-empty url")),
+        "{err}"
+    );
+}
+
+// ── Processor::describe (via SAF factory) ────────────────────────────────────
+
+#[test]
+fn test_processor_describe_returns_crate_name_happy() {
+    let resp = ProcessorFactory::create()
+        .describe(DescribeRequest)
+        .expect("describe infallible");
+    assert_eq!(resp.value, "edge-transport-http-egress-loadbalancer");
+}
+
+// ── Validator::validate (via SAF factory) ────────────────────────────────────
+
+#[test]
+fn test_validator_validate_valid_passes_invalid_fails_happy() {
+    let validator = ValidatorFactory::create();
+    assert!(validator
+        .validate(ConfigValidationRequest {
+            config: valid_config()
+        })
+        .is_ok());
+    assert!(validator
+        .validate(ConfigValidationRequest {
+            config: empty_config()
+        })
+        .is_err());
 }
