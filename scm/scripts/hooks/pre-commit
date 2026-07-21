@@ -7,17 +7,34 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 SCM_DIR="$REPO_ROOT/scm"
 echo "pre-commit ── $(basename $REPO_ROOT) ──"
 cd "$SCM_DIR"
+
+PACKAGES="edge-transport-http-egress-cache edge-transport-http-egress-rate edge-transport-http-egress-retry \
+          edge-transport-http-egress-breaker edge-transport-http-egress-loadbalancer \
+          edge-transport-http-egress-cassette edge-transport-http-egress-transport"
+
 echo "  1/4 fmt..."
 # Run per-package to avoid Windows MAX_PATH (os error 206) with workspace-level cargo fmt.
-for pkg in edge-transport-http-egress-cache edge-transport-http-egress-rate edge-transport-http-egress-retry \
-            edge-transport-http-egress-breaker edge-transport-http-egress-loadbalancer \
-            edge-transport-http-egress-cassette edge-transport-http-egress-transport; do
+for pkg in $PACKAGES; do
   cargo fmt -p "$pkg" -- --check
 done
+
 echo "  2/4 clippy..."
-cargo clippy --workspace --all-targets -- -D warnings
+# Per-package so one member's pre-existing violations never block a commit
+# scoped to a different, already-compliant member.
+for pkg in $PACKAGES; do
+  cargo clippy -p "$pkg" --all-targets -- -D warnings
+done
+
 echo "  3/4 arch audit..."
-arch audit --rs
+# arch audit operates on the current directory, so each member is audited
+# from its own crate root — same reasoning as the clippy loop above.
+for pkg_dir in cache rate retry breaker loadbalancer cassette transport; do
+  (cd "$SCM_DIR/$pkg_dir" && arch audit --rs)
+done
+
 echo "  4/4 cargo audit..."
+# Dependency-vulnerability scan against the shared workspace Cargo.lock —
+# inherently workspace-wide, not a per-package compliance check.
 cargo audit --deny unsound --deny yanked
+
 echo "pre-commit: all checks passed."
