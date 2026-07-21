@@ -1,9 +1,9 @@
 //! Value objects for the retry API.
 
-pub mod http_retry_svc;
-pub mod retry;
+mod application_config_builder;
+mod http_retry_svc;
+mod retry;
 
+pub use application_config_builder::ApplicationConfigBuilder;
 pub use http_retry_svc::HttpRetrySvc;
-pub use retry::RetryConfig;
-
-pub mod application_config_builder;
+pub use retry::{RetryConfig, RetryConfigBuilder, RetryLayer};

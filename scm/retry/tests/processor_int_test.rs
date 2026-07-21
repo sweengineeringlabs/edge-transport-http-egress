@@ -1,13 +1,19 @@
 //! Integration tests for the `Processor` trait in `edge-transport-http-egress-retry`.
 
-use edge_transport_http_egress_retry::HttpRetrySvc;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_retry::{HttpRetrySvc, Processor, ProcessorRequest};
 
 /// @covers: Processor
 #[test]
 fn test_processor_trait_is_implementable() {
-    // The Svc type must implement Processor to satisfy service_type requirements.
-    // If this compiles, the trait contract is satisfied.
+    // HttpRetrySvc implements Processor to satisfy the service_type contract.
     let svc = HttpRetrySvc;
-    // just creating the type verifies the impl exists
-    let _ = svc;
+    let resp = svc
+        .describe(ProcessorRequest { verbose: false })
+        .expect("describe is infallible");
+    assert_eq!(
+        resp.label, "http-retry",
+        "Processor::describe must identify the retry processor unit"
+    );
 }

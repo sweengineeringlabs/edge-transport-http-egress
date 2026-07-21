@@ -43,7 +43,12 @@ fn test_parse_failed_display_is_non_empty() {
 /// `ParseFailed` must be `Debug`-printable without panicking.
 #[test]
 fn test_parse_failed_is_debug_printable() {
-    let _ = format!("{:?}", RetryError::ParseFailed("bad config".to_string()));
+    let dbg = format!("{:?}", RetryError::ParseFailed("bad config".to_string()));
+    // Debug must name the variant and embed the payload.
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains("bad config"),
+        "Debug must name the variant and echo the payload; got: {dbg}"
+    );
 }
 
 /// `ParseFailed` must be usable as a `std::error::Error` trait object.

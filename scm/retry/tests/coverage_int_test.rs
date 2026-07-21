@@ -5,13 +5,13 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_retry::{HttpRetrySvc, RetryConfig};
+use edge_transport_http_egress_retry::{DecorateRequest, HttpRetrySvc, Processor, RetryConfig};
 
 // ── create_config_builder (rule 221) ─────────────────────────────────────────
 
 #[test]
 fn test_create_config_builder_seeds_package_name_happy() {
-    let builder = HttpRetrySvc::create_config_builder();
+    let builder = HttpRetrySvc::new_app_config_builder();
     assert!(
         !builder.name().is_empty(),
         "config builder must carry the package name"
@@ -20,7 +20,7 @@ fn test_create_config_builder_seeds_package_name_happy() {
 
 #[test]
 fn test_create_config_builder_seeds_package_version_error() {
-    let builder = HttpRetrySvc::create_config_builder();
+    let builder = HttpRetrySvc::new_app_config_builder();
     assert!(
         !builder.version().is_empty(),
         "config builder must carry the package version"
@@ -29,8 +29,8 @@ fn test_create_config_builder_seeds_package_version_error() {
 
 #[test]
 fn test_create_config_builder_two_independent_instances_edge() {
-    let b1 = HttpRetrySvc::create_config_builder();
-    let b2 = HttpRetrySvc::create_config_builder();
+    let b1 = HttpRetrySvc::new_app_config_builder();
+    let b2 = HttpRetrySvc::new_app_config_builder();
     assert_eq!(b1.name(), b2.name());
 }
 
@@ -38,8 +38,27 @@ fn test_create_config_builder_two_independent_instances_edge() {
 
 #[test]
 fn test_build_retry_layer_default_config_returns_layer_happy() {
-    let result = HttpRetrySvc::build_retry_layer(RetryConfig::default());
-    assert!(result.is_ok(), "default config must build a retry layer");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("default config must build a retry layer")
+        .layer;
+    // Payload assertion: the built layer embeds the default max_retries=3,
+    // so a stub returning an unconfigured layer would fail here.
+    assert!(
+        format!("{layer:?}").contains("max_retries: 3"),
+        "default layer must carry max_retries=3"
+    );
+    // Sibling negative: a config that fails validation is rejected up-front.
+    let invalid = RetryConfig {
+        multiplier: -1.0,
+        ..RetryConfig::default()
+    };
+    assert!(
+        invalid.validate().is_err(),
+        "negative multiplier must fail validate()"
+    );
 }
 
 #[test]
@@ -60,8 +79,12 @@ fn test_build_retry_layer_invalid_multiplier_returns_err_error() {
 
 #[test]
 fn test_build_retry_layer_idempotent_on_repeated_calls_edge() {
-    let r1 = HttpRetrySvc::build_retry_layer(RetryConfig::default());
-    let r2 = HttpRetrySvc::build_retry_layer(RetryConfig::default());
+    let r1 = HttpRetrySvc.decorate(DecorateRequest {
+        config: RetryConfig::default(),
+    });
+    let r2 = HttpRetrySvc.decorate(DecorateRequest {
+        config: RetryConfig::default(),
+    });
     assert!(r1.is_ok() && r2.is_ok());
 }
 
@@ -70,7 +93,12 @@ fn test_build_retry_layer_idempotent_on_repeated_calls_edge() {
 #[test]
 fn test_describe_layer_debug_repr_non_empty_happy() {
     // describe() is exercised via Debug which delegates to the label stored in the layer.
-    let layer = HttpRetrySvc::build_retry_layer(RetryConfig::default()).expect("ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("ok")
+        .layer;
     let dbg = format!("{layer:?}");
     assert!(!dbg.is_empty(), "RetryLayer Debug must be non-empty: {dbg}");
 }
@@ -81,15 +109,27 @@ fn test_describe_debug_contains_max_retries_error() {
         max_retries: 7,
         ..RetryConfig::default()
     };
-    let layer = HttpRetrySvc::build_retry_layer(cfg).expect("ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("ok");
     let dbg = format!("{layer:?}");
     assert!(dbg.contains("7"), "Debug must surface max_retries: {dbg}");
 }
 
 #[test]
 fn test_describe_deterministic_for_same_config_edge() {
-    let layer = HttpRetrySvc::build_retry_layer(RetryConfig::default()).expect("ok");
-    assert_eq!(format!("{layer:?}"), format!("{layer:?}"));
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("ok")
+        .layer;
+    // Known input (default config) => known, stable Debug rendering.
+    assert_eq!(
+        format!("{layer:?}"),
+        "RetryLayer { max_retries: 3, initial_interval_ms: 200, max_interval_ms: 10000 }",
+        "default-config layer must render a deterministic, known Debug string"
+    );
 }
 
 // ── config (rule 222: HttpRetry::config) ──────────────────────────────────────
@@ -97,7 +137,12 @@ fn test_describe_deterministic_for_same_config_edge() {
 #[test]
 fn test_config_default_max_retries_is_three_happy() {
     // The RetryLayer stores the config; Debug exposes max_retries, proving config() round-trips.
-    let layer = HttpRetrySvc::build_retry_layer(RetryConfig::default()).expect("ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("ok")
+        .layer;
     assert!(
         format!("{layer:?}").contains("3"),
         "default max_retries=3 must appear in debug"
@@ -110,7 +155,9 @@ fn test_config_custom_initial_interval_reflected_in_debug_error() {
         initial_interval_ms: 999,
         ..RetryConfig::default()
     };
-    let layer = HttpRetrySvc::build_retry_layer(cfg).expect("ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("ok");
     assert!(
         format!("{layer:?}").contains("999"),
         "initial_interval_ms=999 must appear in debug"
@@ -120,7 +167,12 @@ fn test_config_custom_initial_interval_reflected_in_debug_error() {
 #[test]
 fn test_config_layer_type_is_send_sync_edge() {
     fn assert_send_sync<T: Send + Sync>(_: T) {}
-    let layer = HttpRetrySvc::build_retry_layer(RetryConfig::default()).expect("ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("ok")
+        .layer;
     assert_send_sync(layer);
 }
 
@@ -132,6 +184,12 @@ fn test_validate_default_config_passes_happy() {
         RetryConfig::default().validate().is_ok(),
         "default RetryConfig must pass validate()"
     );
+    // Sibling negative: an out-of-range multiplier must be rejected.
+    let bad = RetryConfig {
+        multiplier: 0.0,
+        ..RetryConfig::default()
+    };
+    assert!(bad.validate().is_err(), "multiplier=0 must fail validate()");
 }
 
 #[test]
