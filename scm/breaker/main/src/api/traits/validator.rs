@@ -1,11 +1,10 @@
 //! `Validator` — configuration validation contract.
 
+use crate::api::{BreakerError, ConfigValidationRequest};
+
 /// Validation contract for circuit-breaker configuration.
-pub trait Validator {
-    /// The type being validated.
-    type Subject;
-    /// The error type returned when validation fails.
-    type Error;
-    /// Validate `subject`, returning `Ok(())` on success or an error otherwise.
-    fn validate(subject: &Self::Subject) -> Result<(), Self::Error>;
+pub trait Validator: Send + Sync {
+    /// Validate the breaker configuration, returning `Ok(())` on success or
+    /// an error describing which field is invalid.
+    fn validate(&self, request: ConfigValidationRequest) -> Result<(), BreakerError>;
 }

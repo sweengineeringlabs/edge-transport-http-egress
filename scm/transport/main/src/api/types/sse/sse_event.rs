@@ -10,14 +10,3 @@ pub struct SseEvent {
     /// Optional `id:` field — the last-event-ID for reconnect resumption.
     pub id: Option<String>,
 }
-
-impl SseEvent {
-    /// Construct a data-only event with no type or ID.
-    pub fn data(data: impl Into<String>) -> Self {
-        Self {
-            event: None,
-            data: data.into(),
-            id: None,
-        }
-    }
-}

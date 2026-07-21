@@ -1,6 +1,6 @@
 //! Integration tests for `core/breaker_layer/mod.rs`.
 //!
-//! `core::breaker_layer` contains `BreakerLayer::new`, the per-host state
+//! `core::breaker_layer` contains `BreakerLayerBreakerMetrics::new`, the per-host state
 //! cache construction, and the `reqwest_middleware::Middleware` impl.  All
 //! internals are `pub(crate)`, so we verify observable behaviour:
 //! - Various policy combinations must produce a valid layer.
@@ -9,7 +9,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
 
 // ---------------------------------------------------------------------------
 // Low threshold — breaker trips quickly
@@ -24,7 +24,7 @@ fn test_core_breaker_layer_threshold_one_builds() {
         reset_after_successes: 1,
         failure_statuses: vec![500],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("failure_threshold=1 must build");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("failure_threshold=1 must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -40,7 +40,8 @@ fn test_core_breaker_layer_zero_wait_builds() {
         reset_after_successes: 2,
         failure_statuses: vec![503],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("half_open_after_seconds=0 must build");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("half_open_after_seconds=0 must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -57,14 +58,14 @@ fn test_core_breaker_layer_many_failure_statuses_builds() {
         reset_after_successes: 3,
         failure_statuses: statuses,
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("many failure_statuses must build");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("many failure_statuses must build");
 }
 
 // ---------------------------------------------------------------------------
 // Debug output reflects policy
 // ---------------------------------------------------------------------------
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_core_breaker_layer_debug_includes_failure_threshold() {
     let cfg = BreakerConfig {
@@ -73,7 +74,7 @@ fn test_core_breaker_layer_debug_includes_failure_threshold() {
         reset_after_successes: 3,
         failure_statuses: vec![500],
     };
-    let layer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("8"),
@@ -81,7 +82,7 @@ fn test_core_breaker_layer_debug_includes_failure_threshold() {
     );
 }
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_core_breaker_layer_debug_includes_reset_after_successes() {
     let cfg = BreakerConfig {
@@ -90,23 +91,12 @@ fn test_core_breaker_layer_debug_includes_reset_after_successes() {
         reset_after_successes: 6,
         failure_statuses: vec![503],
     };
-    let layer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("6"),
         "Debug must include reset_after_successes; got: {dbg}"
     );
-}
-
-// ---------------------------------------------------------------------------
-// Send + Sync
-// ---------------------------------------------------------------------------
-
-/// @covers: BreakerLayer
-#[test]
-fn test_core_breaker_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<BreakerLayer>();
 }
 
 // ---------------------------------------------------------------------------
@@ -122,5 +112,5 @@ fn test_core_breaker_layer_builds_for_high_host_count_workload() {
         reset_after_successes: 2,
         failure_statuses: vec![500, 502, 503, 504],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("build for high-host-count workload");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build for high-host-count workload");
 }

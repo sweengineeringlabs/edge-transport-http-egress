@@ -18,6 +18,15 @@ fn test_validate_http_config_returns_ok_for_default_config() {
         HttpTransportSvc::validate_http_config(&cfg).is_ok(),
         "default HttpConfig must pass validation"
     );
+    // Sibling negative pins the Ok as real: a zero-timeout config must fail.
+    let bad = HttpConfig {
+        timeout_secs: 0,
+        ..HttpConfig::default()
+    };
+    assert!(
+        HttpTransportSvc::validate_http_config(&bad).is_err(),
+        "a zero-timeout HttpConfig must fail validation"
+    );
 }
 
 /// @covers: validate_http_config
@@ -63,5 +72,15 @@ fn test_validate_http_config_with_base_url_returns_ok() {
     assert!(
         HttpTransportSvc::validate_http_config(&cfg).is_ok(),
         "HttpConfig with base_url and defaults must pass validation"
+    );
+    // Sibling negative: the same base_url with a zero connect-timeout must fail,
+    // so validation is genuinely inspecting the config, not the base_url alone.
+    let bad = HttpConfig {
+        connect_timeout_secs: 0,
+        ..HttpConfig::with_base_url("https://api.example.com")
+    };
+    assert!(
+        HttpTransportSvc::validate_http_config(&bad).is_err(),
+        "a zero connect_timeout config must fail even with a base_url set"
     );
 }

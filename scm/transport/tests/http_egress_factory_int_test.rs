@@ -12,23 +12,30 @@ use edge_transport_http_egress_transport::{HttpConfig, HttpRequest, HttpStream, 
 /// @covers: plain_http_egress
 #[test]
 fn test_plain_http_egress_builds_with_default_config() {
-    let result = HttpTransportSvc::plain_http_egress(HttpConfig::default());
+    // Opaque `Box<dyn HttpEgress>` return; assert the factory is repeatably
+    // callable. End-to-end send behaviour is covered in reqwest_middleware_int_test.rs.
+    let a = HttpTransportSvc::plain_http_egress(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_egress(HttpConfig::default());
     assert!(
-        result.is_ok(),
-        "plain_http_egress must build with default config: {:?}",
-        result.err()
+        a.is_ok() && b.is_ok(),
+        "plain_http_egress must build repeatably with default config: {:?} / {:?}",
+        a.err(),
+        b.err(),
     );
 }
 
 /// @covers: plain_http_egress
 #[test]
 fn test_plain_http_egress_builds_with_custom_base_url() {
-    let cfg = HttpConfig::with_base_url("https://custom.api.com");
-    let result = HttpTransportSvc::plain_http_egress(cfg);
+    let with_url =
+        HttpTransportSvc::plain_http_egress(HttpConfig::with_base_url("https://custom.api.com"));
+    let with_header =
+        HttpTransportSvc::plain_http_egress(HttpConfig::default().with_header("x-env", "test"));
     assert!(
-        result.is_ok(),
-        "plain_http_egress must build with custom base URL: {:?}",
-        result.err()
+        with_url.is_ok() && with_header.is_ok(),
+        "plain_http_egress must build with custom base URL and with custom headers: {:?} / {:?}",
+        with_url.err(),
+        with_header.err(),
     );
 }
 
@@ -37,11 +44,13 @@ fn test_plain_http_egress_builds_with_custom_base_url() {
 /// @covers: default_http_stream_outbound
 #[test]
 fn test_default_http_stream_outbound_builds_with_swe_defaults() {
-    let result = HttpTransportSvc::default_http_stream_outbound();
+    let a = HttpTransportSvc::default_http_stream_outbound();
+    let b = HttpTransportSvc::default_http_stream_outbound();
     assert!(
-        result.is_ok(),
-        "default_http_stream_outbound must build: {:?}",
-        result.err()
+        a.is_ok() && b.is_ok(),
+        "default_http_stream_outbound must build repeatably: {:?} / {:?}",
+        a.err(),
+        b.err(),
     );
 }
 
@@ -63,7 +72,21 @@ fn test_validate_http_config_returns_ok_for_valid_timeout() {
         connect_timeout_secs: 10,
         ..HttpConfig::default()
     };
-    assert!(HttpTransportSvc::validate_http_config(&cfg).is_ok());
+    assert!(
+        HttpTransportSvc::validate_http_config(&cfg).is_ok(),
+        "a config with positive timeouts must validate"
+    );
+    // Sibling negative: dropping the request timeout to zero must fail, so the
+    // Ok above genuinely inspects the timeout fields.
+    let bad = HttpConfig {
+        timeout_secs: 0,
+        connect_timeout_secs: 10,
+        ..HttpConfig::default()
+    };
+    assert!(
+        HttpTransportSvc::validate_http_config(&bad).is_err(),
+        "a zero request timeout must fail validation"
+    );
 }
 
 /// @covers: validate_http_config
@@ -165,12 +188,22 @@ mod oauth_factory {
     /// @covers: plain_http_egress_with_oauth
     #[test]
     fn test_plain_http_egress_with_oauth_builds_with_default_config() {
-        let source = Arc::new(StaticTokenSource("test-token".into()));
-        let result = HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), source);
+        // Build with two independent token sources; both must succeed. The
+        // bearer-injection and 401-mapping behaviour is covered by the tokio
+        // tests below.
+        let a = HttpTransportSvc::plain_http_egress_with_oauth(
+            HttpConfig::default(),
+            Arc::new(StaticTokenSource("token-a".into())),
+        );
+        let b = HttpTransportSvc::plain_http_egress_with_oauth(
+            HttpConfig::default(),
+            Arc::new(StaticTokenSource("token-b".into())),
+        );
         assert!(
-            result.is_ok(),
-            "plain_http_egress_with_oauth must build with default config: {:?}",
-            result.err()
+            a.is_ok() && b.is_ok(),
+            "plain_http_egress_with_oauth must build with independent token sources: {:?} / {:?}",
+            a.err(),
+            b.err(),
         );
     }
 

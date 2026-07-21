@@ -15,4 +15,8 @@ pub enum BreakerError {
         /// The host key for which the circuit tripped.
         host: String,
     },
+
+    /// A `BreakerConfig` field failed structural validation.
+    #[error("edge_transport_http_egress_breaker: invalid config — {0}")]
+    InvalidConfig(String),
 }

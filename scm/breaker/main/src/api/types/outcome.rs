@@ -1,5 +1,7 @@
 //! `Outcome` — result of a dispatched request as seen by the breaker.
 
+use serde::{Deserialize, Serialize};
+
 /// Outcome of a dispatched request.
 ///
 /// The breaker records this after each request that was admitted. `Failure`
@@ -20,7 +22,7 @@
 ///     Outcome::Failure => {} // increment failure counter; may trip open
 /// }
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Outcome {
     /// The request completed successfully.
     Success,

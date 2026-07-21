@@ -3,9 +3,9 @@
 use std::collections::HashMap;
 use std::time::Duration;
 
-use super::http_body::HttpBody;
+use super::http_auth::HttpAuth;
 use super::http_method::HttpMethod;
-use super::http_request::HttpRequest;
+use crate::api::HttpBody;
 
 /// Fluent builder for [`HttpRequest`].
 ///
@@ -32,54 +32,11 @@ use super::http_request::HttpRequest;
 /// ```
 #[derive(Debug)]
 pub struct HttpRequestBuilder {
-    method: HttpMethod,
-    url: String,
-    headers: HashMap<String, String>,
-    query: HashMap<String, String>,
-    body: Option<HttpBody>,
-    timeout: Option<Duration>,
-}
-
-impl HttpRequestBuilder {
-    /// Create a new builder for the given HTTP method and URL.
-    pub fn new(method: HttpMethod, url: impl Into<String>) -> Self {
-        Self {
-            method,
-            url: url.into(),
-            headers: HashMap::new(),
-            query: HashMap::new(),
-            body: None,
-            timeout: None,
-        }
-    }
-
-    /// Add a request header.
-    pub fn with_header(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.headers.insert(name.into(), value.into());
-        self
-    }
-
-    /// Add a query parameter.
-    pub fn with_query(mut self, name: impl Into<String>, value: impl Into<String>) -> Self {
-        self.query.insert(name.into(), value.into());
-        self
-    }
-
-    /// Set the request timeout.
-    pub fn with_timeout(mut self, timeout: Duration) -> Self {
-        self.timeout = Some(timeout);
-        self
-    }
-
-    /// Consume the builder and return the configured [`HttpRequest`].
-    pub fn build(self) -> HttpRequest {
-        HttpRequest {
-            method: self.method,
-            url: self.url,
-            headers: self.headers,
-            query: self.query,
-            body: self.body,
-            timeout: self.timeout,
-        }
-    }
+    pub(crate) method: HttpMethod,
+    pub(crate) url: String,
+    pub(crate) headers: HashMap<String, String>,
+    pub(crate) query: HashMap<String, String>,
+    pub(crate) body: Option<HttpBody>,
+    pub(crate) timeout: Option<Duration>,
+    pub(crate) auth: Option<HttpAuth>,
 }

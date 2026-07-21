@@ -9,6 +9,8 @@
 //! This test file is compiled unconditionally so we test the import in a way
 //! that is always valid.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use tokio_tungstenite::tungstenite::protocol::Role;
 
 /// @covers: tokio-tungstenite
@@ -19,13 +21,18 @@ use tokio_tungstenite::tungstenite::protocol::Role;
 fn transport_struct_dep_tokio_tungstenite_role_variants_int_test() {
     // Role::Client and Role::Server are the two variants used when creating
     // a WebSocket handshake from an already-established TCP stream.
-    let client_role = Role::Client;
-    let server_role = Role::Server;
-    // Each role must not be equal to the other.
-    assert_ne!(
-        format!("{client_role:?}"),
-        format!("{server_role:?}"),
-        "Role::Client and Role::Server must be distinct variants"
+    let client_dbg = format!("{:?}", Role::Client);
+    let server_dbg = format!("{:?}", Role::Server);
+    // Pin each variant's Debug rendering to its known value — this catches an
+    // accidental swap or collapse of the two variants, which a self-comparison
+    // could not.
+    assert_eq!(
+        client_dbg, "Client",
+        "Role::Client must render as \"Client\""
+    );
+    assert_eq!(
+        server_dbg, "Server",
+        "Role::Server must render as \"Server\""
     );
 }
 

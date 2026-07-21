@@ -1,17 +1,13 @@
 //! Value objects for the breaker API.
 
-pub(crate) mod application_config_builder;
-
 pub(crate) mod admission;
+pub(crate) mod application_config_builder;
 pub mod breaker;
-pub(crate) mod http_breaker_svc;
+pub(crate) mod http_breaker_svc_processor;
 pub(crate) mod outcome;
-pub(crate) mod state;
 
-// Compatibility re-exports: keep existing `crate::api::types::breaker_config::…`
-// and `crate::api::types::breaker_layer::…` paths working after the R112 move.
-pub(crate) use breaker::breaker_config;
+pub use admission::Admission;
 pub use breaker::breaker_config::BreakerConfig;
-pub(crate) use breaker::breaker_layer;
-
-pub use http_breaker_svc::HttpBreakerSvc;
+pub use breaker::breaker_layer_breaker_metrics::BreakerLayerBreakerMetrics;
+pub use http_breaker_svc_processor::HttpBreakerSvcProcessor;
+pub use outcome::Outcome;

@@ -37,6 +37,14 @@ fn test_retry_section_present_builds() {
         result.is_ok(),
         "valid [retry] must build with the retry layer wired"
     );
+    // Prove the section was actually recognized (not silently ignored):
+    // preflight must report exactly one enabled feature.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        1,
+        "a present [retry] section must be counted as enabled"
+    );
 }
 
 /// @covers: http_egress_from_config — no `[retry]` section ⇒ retry omitted; builds.
@@ -48,20 +56,32 @@ fn test_no_retry_section_builds() {
         result.is_ok(),
         "absent [retry] must build with retry omitted"
     );
+    // Prove retry was genuinely omitted (not that config is always ignored):
+    // preflight must report zero enabled features.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "with no config sections, no feature must be enabled"
+    );
 }
 
-/// @covers: http_egress_from_config — an invalid `[retry]` (multiplier = 0)
-/// surfaces a Config validation error.
+/// @covers: http_egress_from_config — a semantically invalid `[retry]`
+/// (multiplier = 0) parses fine as TOML but fails the retry crate's own
+/// field validation at decorate-time, surfacing as `HttpEgressBuildError::Retry`
+/// (not `Config`, which is reserved for load/parse-level failures — see the
+/// `bogus` field tests above for that case).
 #[test]
-fn test_retry_invalid_section_returns_config_error() {
+fn test_retry_invalid_section_returns_retry_error() {
     let toml = "[retry]\nmax_retries = 3\ninitial_interval_ms = 200\n\
         max_interval_ms = 10000\nmultiplier = 0.0\nretryable_statuses = [503]\n\
         retryable_methods = [\"GET\"]\n";
     let (_d, l) = loader(toml);
     let result = HttpTransportSvc::http_egress_from_config(&l);
+    let is_retry_err = matches!(result, Err(HttpEgressBuildError::Retry(_)));
     assert!(
-        matches!(result, Err(HttpEgressBuildError::Config(_))),
-        "invalid [retry] (multiplier=0) must surface a Config error"
+        is_retry_err,
+        "invalid [retry] (multiplier=0) must surface a Retry validation error"
     );
 }
 
@@ -76,6 +96,14 @@ fn test_retry_enabled_false_omits_retry() {
     assert!(
         result.is_ok(),
         "enabled=false [retry] must build with retry omitted"
+    );
+    // `enabled = false` must be honoured: the section is present but must not
+    // count as an enabled feature.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "a [retry] section with enabled=false must not be counted as enabled"
     );
 }
 
@@ -124,6 +152,14 @@ fn test_all_sections_present_builds() {
     assert!(
         result.is_ok(),
         "all valid sections must assemble into one egress"
+    );
+    // All five config-driven sections are present and enabled — preflight must
+    // count every one of them.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        5,
+        "all five config-driven features must be enabled: {summary}"
     );
 }
 
@@ -215,6 +251,14 @@ fn test_auth_with_config_driven_middleware_builds() {
         result.is_ok(),
         "auth strategy + [retry] must assemble into one egress"
     );
+    // The config-driven part must be genuinely wired alongside auth: preflight
+    // over the same loader reports the [retry] feature enabled.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        1,
+        "the [retry] section must be wired alongside the auth strategy"
+    );
 }
 
 /// @covers: http_egress_from_config_with_auth — an auth-only egress (no
@@ -226,6 +270,13 @@ fn test_auth_only_builds() {
         std::sync::Arc::new(NoopAuthStrategy);
     let result = HttpTransportSvc::http_egress_from_config_with_auth(&l, strategy);
     assert!(result.is_ok(), "auth-only egress must build");
+    // No config-driven sections present ⇒ preflight reports nothing enabled.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "an auth-only egress must have no config-driven features enabled"
+    );
 }
 
 // ── preflight summary ───────────────────────────────────────────────────────
@@ -305,6 +356,13 @@ fn test_oauth_with_config_driven_middleware_builds() {
         result.is_ok(),
         "OAuth + [retry] must assemble into one egress"
     );
+    // The config-driven part must be genuinely wired alongside OAuth.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        1,
+        "the [retry] section must be wired alongside the OAuth token source"
+    );
 }
 
 /// @covers: http_egress_from_config_with_oauth — an OAuth-only egress (no
@@ -315,4 +373,11 @@ fn test_oauth_only_builds() {
     let source: std::sync::Arc<dyn OAuthTokenSource> = std::sync::Arc::new(StaticTokenSource);
     let result = HttpTransportSvc::http_egress_from_config_with_oauth(&l, source);
     assert!(result.is_ok(), "OAuth-only egress must build");
+    // No config-driven sections present ⇒ preflight reports nothing enabled.
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "an OAuth-only egress must have no config-driven features enabled"
+    );
 }

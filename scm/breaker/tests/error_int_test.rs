@@ -8,12 +8,6 @@ use edge_transport_http_egress_breaker::BreakerError;
 // BreakerError::ParseFailed
 // ---------------------------------------------------------------------------
 
-/// `ParseFailed` must be publicly constructable.
-#[test]
-fn test_error_parse_failed_is_publicly_constructable() {
-    let _err = BreakerError::ParseFailed("any reason".to_string());
-}
-
 /// `Display` must name the crate.
 #[test]
 fn test_error_parse_failed_display_names_crate() {
@@ -51,8 +45,12 @@ fn test_error_parse_failed_with_empty_reason_display_is_non_empty() {
 // Debug
 // ---------------------------------------------------------------------------
 
-/// `ParseFailed` must implement `Debug`.
+/// `Debug` output must name the variant, not just wrap the message opaquely.
 #[test]
 fn test_error_variants_implement_debug() {
-    let _ = format!("{:?}", BreakerError::ParseFailed("p".to_string()));
+    let dbg = format!("{:?}", BreakerError::ParseFailed("p".to_string()));
+    assert!(
+        dbg.contains("ParseFailed"),
+        "Debug output must name the ParseFailed variant: {dbg}"
+    );
 }

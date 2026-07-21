@@ -1,5 +1,7 @@
 //! Integration tests for `WsMessage`.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use edge_transport_http_egress_transport::WsMessage;
 
 /// @covers: text
@@ -7,7 +9,7 @@ use edge_transport_http_egress_transport::WsMessage;
 fn test_ws_message_struct_text_sets_binary_false() {
     let m = WsMessage::text("hi");
     assert!(!m.binary);
-    assert_eq!(m.data.as_ref(), b"hi");
+    assert_eq!(m.data.as_slice(), b"hi");
 }
 
 /// @covers: binary

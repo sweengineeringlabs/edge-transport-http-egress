@@ -1,11 +1,13 @@
 //! Integration tests verifying `moka` cache behaviour through
-//! the `BreakerLayer` public API.
+//! the `BreakerLayerBreakerMetrics` public API.
 //!
 //! Rule 95: `moka` is used in `src/` and must have integration/e2e coverage.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerLayerBreakerMetrics, HttpBreakerSvcProcessor,
+};
 use moka::future::Cache;
 
 fn cfg() -> BreakerConfig {
@@ -18,15 +20,16 @@ fn cfg() -> BreakerConfig {
 }
 
 /// @covers: new
-/// The moka cache is embedded in BreakerLayer; constructing and using Debug proves
+/// The moka cache is embedded in BreakerLayerBreakerMetrics; constructing and using Debug proves
 /// it was allocated without panic.
 #[test]
 fn test_moka_cache_layer_constructs_successfully() {
-    let layer: BreakerLayer = HttpBreakerSvc::build_breaker_layer(cfg()).expect("build");
+    let layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg()).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         !dbg.is_empty(),
-        "BreakerLayer Debug (backed by moka cache) must produce non-empty output"
+        "BreakerLayerBreakerMetrics Debug (backed by moka cache) must produce non-empty output"
     );
 }
 
@@ -35,8 +38,10 @@ fn test_moka_cache_layer_constructs_successfully() {
 /// independent objects.
 #[test]
 fn test_moka_cache_two_layers_are_independent() {
-    let a: BreakerLayer = HttpBreakerSvc::build_breaker_layer(cfg()).expect("build a");
-    let b: BreakerLayer = HttpBreakerSvc::build_breaker_layer(cfg()).expect("build b");
+    let a: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg()).expect("build a");
+    let b: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg()).expect("build b");
     // Both must be valid; Debug output must be structurally equal (same config).
     let dbg_a = format!("{a:?}");
     let dbg_b = format!("{b:?}");
@@ -47,12 +52,19 @@ fn test_moka_cache_two_layers_are_independent() {
 }
 
 /// @covers: new
-/// Verifies the layer can be sent across threads, a property that depends on
-/// moka's `Cache` being `Send + Sync`.
-#[test]
-fn test_moka_cache_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<BreakerLayer>();
+/// Verifies the layer can actually be sent across a real thread boundary
+/// (not just a compile-time bound check) — moves it into a `tokio::spawn`ed
+/// task on the multi-thread runtime and confirms it's still usable there.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn test_moka_cache_layer_is_send_and_sync() {
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg()).expect("build ok");
+    let debug_on_other_thread = tokio::spawn(async move { format!("{layer:?}") })
+        .await
+        .expect("spawned task must not panic");
+    assert!(
+        debug_on_other_thread.contains("BreakerLayerBreakerMetrics"),
+        "layer moved across threads must still produce real Debug output: {debug_on_other_thread}"
+    );
 }
 
 /// @covers: moka

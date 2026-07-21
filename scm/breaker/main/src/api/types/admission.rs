@@ -1,5 +1,7 @@
 //! `Admission` — decision returned when a request arrives at the circuit breaker.
 
+use serde::{Deserialize, Serialize};
+
 /// Decision returned when a new request arrives at the circuit breaker.
 ///
 /// The breaker evaluates `Admission` before dispatching the request. If `RejectOpen`,
@@ -20,7 +22,7 @@
 ///     Admission::RejectOpen => {} // return ServiceUnavailable immediately
 /// }
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Admission {
     /// Pass through — record the outcome afterward.
     Proceed,

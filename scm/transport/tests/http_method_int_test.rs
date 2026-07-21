@@ -1,5 +1,7 @@
 //! Integration tests for `HttpMethod`.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use edge_transport_http_egress_transport::HttpMethod;
 
 #[test]

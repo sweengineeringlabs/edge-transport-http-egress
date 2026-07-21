@@ -1,7 +1,6 @@
 //! HTTP method enum.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// An HTTP request method.
 ///
@@ -36,18 +35,4 @@ pub enum HttpMethod {
     Head,
     /// HTTP OPTIONS.
     Options,
-}
-
-impl fmt::Display for HttpMethod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            HttpMethod::Get => write!(f, "GET"),
-            HttpMethod::Post => write!(f, "POST"),
-            HttpMethod::Put => write!(f, "PUT"),
-            HttpMethod::Patch => write!(f, "PATCH"),
-            HttpMethod::Delete => write!(f, "DELETE"),
-            HttpMethod::Head => write!(f, "HEAD"),
-            HttpMethod::Options => write!(f, "OPTIONS"),
-        }
-    }
 }

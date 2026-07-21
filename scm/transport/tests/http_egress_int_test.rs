@@ -8,8 +8,8 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use edge_transport_http_egress_transport::{
-    FormPart, HttpAuth, HttpBody, HttpConfig, HttpEgressError, HttpMethod, HttpRequest,
-    HttpResponse, HttpTransportSvc,
+    FormPart, HealthCheckRequest, HttpAuth, HttpBody, HttpConfig, HttpEgressError, HttpMethod,
+    HttpRequest, HttpResponse, HttpTransportSvc,
 };
 use http_body_util::Full;
 use hyper::body::Incoming;
@@ -120,7 +120,7 @@ async fn test_health_check_succeeds_when_server_is_listening() {
     let cfg = HttpConfig::with_base_url(format!("http://127.0.0.1:{port}"));
     let client = HttpTransportSvc::plain_http_egress(cfg).unwrap();
     client
-        .health_check()
+        .health_check(HealthCheckRequest)
         .await
         .expect("health check must succeed when port is open");
 }
@@ -135,7 +135,7 @@ async fn test_health_check_fails_when_no_server_is_listening() {
 
     let cfg = HttpConfig::with_base_url(format!("http://127.0.0.1:{port}"));
     let client = HttpTransportSvc::plain_http_egress(cfg).unwrap();
-    let result = client.health_check().await;
+    let result = client.health_check(HealthCheckRequest).await;
     assert!(
         matches!(result, Err(HttpEgressError::ConnectionFailed(_))),
         "expected ConnectionFailed, got {result:?}"
@@ -154,7 +154,7 @@ async fn test_health_check_fails_when_server_returns_non_2xx() {
 
     let cfg = HttpConfig::with_base_url(format!("http://127.0.0.1:{port}"));
     let client = HttpTransportSvc::plain_http_egress(cfg).unwrap();
-    let result = client.health_check().await;
+    let result = client.health_check(HealthCheckRequest).await;
     assert!(
         matches!(result, Err(HttpEgressError::Internal(ref msg)) if msg.contains("503")),
         "expected Internal with status 503, got {result:?}"

@@ -1,5 +1,7 @@
 //! Integration tests for `HttpRequestBuilder`.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use std::time::Duration;
 
 use edge_transport_http_egress_transport::{HttpMethod, HttpRequestBuilder};

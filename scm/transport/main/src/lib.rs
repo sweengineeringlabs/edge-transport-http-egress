@@ -8,28 +8,16 @@
 mod api;
 mod core;
 mod saf;
-mod spi;
 
-pub use crate::api::types::default::TransportConfig;
-pub use crate::api::types::metrics::{MetricsHttpEgress, ObservationConfig};
-pub use crate::api::types::validator::{
-    AlwaysValidConfig, HttpConfigValidator, HttpEgressObject, ValidatableHttpConfig,
-    ValidatorObject,
+pub use crate::api::{
+    AlwaysValidConfig, ApplicationConfigBuilder, AssemblyFailure, ConfigRequest, ConfigResponse,
+    ConnectWebsocketRequest, ConnectWebsocketResponse, FormPart, GetRequest, HealthCheckRequest,
+    HttpAuth, HttpBody, HttpByteStream, HttpConfig, HttpConfigBuilder, HttpConfigValidator,
+    HttpEgress, HttpEgressBuildError, HttpEgressError, HttpEgressObject, HttpEgressResult,
+    HttpMethod, HttpRequest, HttpRequestBuilder, HttpResponse, HttpSecurityContext, HttpStream,
+    HttpStreamResponse, HttpTransportSvc, JsonValue, MetricsHttpEgress, SseEvent, SseStream,
+    SubscribeSseRequest, SubscribeSseResponse, ValidatableHttpConfig, ValidateRequest,
+    ValidationError, Validator, ValidatorObject, WsChannel, WsMessage, WsReceiver, WsSender,
 };
-pub use crate::api::types::HttpTransportSvc;
-pub use crate::api::types::{
-    FormPart, HttpAuth, HttpBody, HttpConfig, HttpConfigBuilder, HttpEgressResult, HttpMethod,
-    HttpRequest, HttpRequestBuilder, HttpResponse, HttpStreamResponse, SseEvent, SseStream,
-    WsChannel, WsMessage, WsReceiver, WsSender,
-};
-pub use crate::api::{HttpEgress, HttpEgressBuildError, HttpEgressError, HttpStream, Validator};
+pub use crate::saf::{HttpEgressSvcFactory, HttpStreamSvcFactory, ValidatorSvcFactory};
 pub use edge_application::SecurityContext;
-
-/// SAF alias for the default (reqwest-backed) HTTP outbound interface.
-pub type DefaultEgress = dyn HttpEgress;
-/// SAF alias for the metrics-observation HTTP outbound interface.
-pub type MetricsEgress = dyn HttpEgress;
-/// SAF alias for the default HTTP config validator interface.
-pub type DefaultValidatorAlias = dyn Validator;
-/// SAF alias for the HTTP config validator interface.
-pub type HttpConfigValidatorAlias = dyn Validator;

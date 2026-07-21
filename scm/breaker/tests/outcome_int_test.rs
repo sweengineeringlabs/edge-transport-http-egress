@@ -17,17 +17,17 @@ fn breaker_enum_outcome_success_ne_failure_int_test() {
 
 /// @covers: Outcome
 /// Confirms `Outcome` supports `Copy` semantics — it is passed by value
-/// into `CircuitBreakerNode::record`.
+/// into `CircuitBreakerNode::record`: using the original after copying it
+/// into another binding must not be a move error, and both must still
+/// compare equal to the same variant.
 #[test]
 fn breaker_enum_outcome_is_copy_int_test() {
-    fn require_copy<T: Copy>(_: T) {}
-    require_copy(Outcome::Success);
-    require_copy(Outcome::Failure);
-}
-
-/// @covers: Outcome
-/// Confirms `Outcome::Success` equals itself.
-#[test]
-fn breaker_enum_outcome_success_equals_itself_int_test() {
-    assert_eq!(Outcome::Success, Outcome::Success);
+    let original = Outcome::Success;
+    let copy = original;
+    assert_eq!(
+        original,
+        Outcome::Success,
+        "original must remain usable after the copy (would be a move error otherwise)"
+    );
+    assert_eq!(copy, original, "the copy must equal the original");
 }

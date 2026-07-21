@@ -7,20 +7,25 @@ pub(crate) mod ws;
 
 pub use form_part::FormPart;
 pub use http::HttpAuth;
-pub use http::HttpBody;
+pub use http::HttpByteStream;
 pub use http::HttpConfig;
 pub use http::HttpConfigBuilder;
 pub use http::HttpEgressResult;
 pub use http::HttpMethod;
-pub use http::HttpRequest;
 pub use http::HttpRequestBuilder;
-pub use http::HttpResponse;
-pub use http::HttpStreamResponse;
+pub use http::HttpSecurityContext;
 pub use http::HttpTransportSvc;
-pub use sse::{SseEvent, SseStream};
-pub use ws::{WsChannel, WsMessage, WsReceiver, WsSender};
+pub use http::JsonValue;
+pub use sse::SseEvent;
+pub use ws::WsMessage;
 
 pub mod application_config_builder;
-pub mod default;
 pub mod metrics;
 pub mod validator;
+
+pub use application_config_builder::ApplicationConfigBuilder;
+pub use metrics::MetricsHttpEgress;
+pub use validator::{
+    AlwaysValidConfig, HttpConfigValidator, HttpEgressObject, ValidatableHttpConfig,
+    ValidatorObject,
+};

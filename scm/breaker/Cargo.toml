@@ -30,7 +30,7 @@ thiserror = "2"
 # schema; `toml` parses it. Policy values live in
 # `config/default.toml` + consumer overrides — never as hardcoded
 # literals in source.
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", features = ["derive", "rc"] }
 toml = "0.8"
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
 async-trait = "0.1"

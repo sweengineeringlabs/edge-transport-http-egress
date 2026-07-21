@@ -17,8 +17,7 @@ done
 echo "  2/4 clippy..."
 cargo clippy --workspace --all-targets -- -D warnings
 echo "  3/4 arch audit..."
-# Rules 49,95,155,209,221 are real violations pending SEA compliance fixes.
-arch audit --rs -c 1-2,4,6-38,40-41,44-48,50-70,72-92,97-120,122-125,127-130,134-154,156-169,171-199,202-207,210-215,218,220,222
+arch audit --rs
 echo "  4/4 cargo audit..."
 cargo audit --deny unsound --deny yanked
 echo "pre-commit: all checks passed."

@@ -2,12 +2,41 @@
 //!
 //! `HostBreaker` and its state machine are `pub(crate)`.  From an integration
 //! test we verify the externally observable outcomes of the state transitions:
-//! the `BreakerLayer` produced by the builder must correctly reject requests
+//! the `BreakerLayerBreakerMetrics` produced by the builder must correctly reject requests
 //! when the circuit is open, based on configured thresholds.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerLayerBreakerMetrics, CircuitBreakerNodeFactory, ClosedStateRequest,
+    HostBreakerFactory, HttpBreakerSvcProcessor,
+};
+
+// ---------------------------------------------------------------------------
+// CircuitBreakerNodeFactory::create / HostBreakerFactory::create
+// ---------------------------------------------------------------------------
+
+/// @covers: create
+#[test]
+fn test_circuit_breaker_node_factory_create_produces_a_working_node() {
+    use edge_transport_http_egress_breaker::{Admission, AdmitRequest};
+    use std::sync::Arc;
+    let mut node = CircuitBreakerNodeFactory::create();
+    let resp = node
+        .admit(AdmitRequest {
+            config: Arc::new(BreakerConfig::default()),
+        })
+        .expect("infallible");
+    assert_eq!(resp.admission, Admission::Proceed);
+}
+
+/// @covers: create
+#[test]
+fn test_host_breaker_factory_create_produces_a_working_node() {
+    let node = HostBreakerFactory::create();
+    let resp = node.is_closed(ClosedStateRequest).expect("infallible");
+    assert!(resp.value);
+}
 
 // ---------------------------------------------------------------------------
 // Threshold = 1 — opens on first failure
@@ -22,7 +51,8 @@ fn test_host_breaker_threshold_one_layer_builds() {
         reset_after_successes: 1,
         failure_statuses: vec![500],
     };
-    let layer: BreakerLayer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("1"),
@@ -43,7 +73,8 @@ fn test_host_breaker_single_success_reset_layer_builds() {
         reset_after_successes: 1,
         failure_statuses: vec![503],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("reset_after_successes=1 must not be rejected");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("reset_after_successes=1 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +90,7 @@ fn test_host_breaker_zero_wait_before_half_open_builds() {
         reset_after_successes: 2,
         failure_statuses: vec![500, 503],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg)
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
         .expect("half_open_after_seconds=0 must not be rejected");
 }
 
@@ -76,14 +107,15 @@ fn test_host_breaker_4xx_failure_statuses_layer_builds() {
         reset_after_successes: 3,
         failure_statuses: vec![400, 404, 429],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("4xx failure_statuses must not be rejected");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("4xx failure_statuses must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
 // Multiple layers share no mutable state
 // ---------------------------------------------------------------------------
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_host_breaker_two_layers_have_independent_state() {
     let cfg_a = BreakerConfig {
@@ -98,8 +130,8 @@ fn test_host_breaker_two_layers_have_independent_state() {
         reset_after_successes: 5,
         failure_statuses: vec![503],
     };
-    let a = HttpBreakerSvc::build_breaker_layer(cfg_a).expect("build a");
-    let b = HttpBreakerSvc::build_breaker_layer(cfg_b).expect("build b");
+    let a = HttpBreakerSvcProcessor::build_breaker_layer(cfg_a).expect("build a");
+    let b = HttpBreakerSvcProcessor::build_breaker_layer(cfg_b).expect("build b");
 
     let dbg_a = format!("{a:?}");
     let dbg_b = format!("{b:?}");

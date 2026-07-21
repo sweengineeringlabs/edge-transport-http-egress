@@ -70,7 +70,7 @@ async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
 
     // Act: call send_with_context — default impl must delegate to send.
     let resp = client
-        .send_with_context(HttpRequest::get("/"), ctx)
+        .send_with_context(HttpRequest::get("/"), ctx.into())
         .await
         .expect("send_with_context must succeed when server is reachable");
 
@@ -123,7 +123,7 @@ async fn test_send_with_context_propagates_request_unchanged_to_server() {
 
     // Act
     let resp = client
-        .send_with_context(request, ctx)
+        .send_with_context(request, ctx.into())
         .await
         .expect("send_with_context must succeed");
 

@@ -6,21 +6,21 @@ use std::time::Duration;
 use reqwest_middleware::ClientBuilder;
 use swe_observ_metrics::MetricsProvider;
 
-use crate::api::error::HttpEgressBuildError;
-use crate::api::traits::Validator as _;
-use crate::api::traits::{HttpEgress, HttpStream};
-use crate::api::types::{HttpConfig, HttpTransportSvc};
+use crate::api::Validator as _;
+use crate::api::{
+    ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError, HttpStream,
+    HttpTransportSvc,
+};
 #[cfg(feature = "auth")]
 use crate::core::SecurityAuthMiddleware;
 use crate::core::{DefaultHttpEgress, MetricsHttpEgress};
 
 impl HttpTransportSvc {
     /// Return a config builder pre-seeded with this crate's package name and version.
-    pub fn create_config_builder() -> swe_edge_configbuilder::ConfigBuilderImpl {
-        let mut b = swe_edge_configbuilder::ConfigBuilderImpl::new();
-        b = b.with_name(env!("CARGO_PKG_NAME"));
-        b = b.with_version(env!("CARGO_PKG_VERSION"));
-        b
+    pub fn create_config_builder() -> ApplicationConfigBuilder {
+        ApplicationConfigBuilder::new()
+            .with_name(env!("CARGO_PKG_NAME"))
+            .with_version(env!("CARGO_PKG_VERSION"))
     }
 
     /// Build an [`HttpEgress`](crate::HttpEgress) whose optional middleware are activated by the
@@ -58,11 +58,7 @@ impl HttpTransportSvc {
         let builder = ClientBuilder::new(client);
 
         let builder = Self::with_optional_layers(loader, builder)?;
-        Ok(Box::new(DefaultHttpEgress::new(
-            builder.build(),
-            http_cfg.base_url,
-            http_cfg.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
     /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is a caller-supplied
@@ -86,11 +82,7 @@ impl HttpTransportSvc {
         builder = builder.with(SecurityAuthMiddleware::new(strategy));
 
         builder = Self::with_optional_layers(loader, builder)?;
-        Ok(Box::new(DefaultHttpEgress::new(
-            builder.build(),
-            http_cfg.base_url,
-            http_cfg.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
     /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the TLS layer is a caller-supplied,
@@ -118,11 +110,7 @@ impl HttpTransportSvc {
         let builder = ClientBuilder::new(client);
 
         let builder = Self::with_optional_layers(loader, builder)?;
-        Ok(Box::new(DefaultHttpEgress::new(
-            builder.build(),
-            http_cfg.base_url,
-            http_cfg.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
     /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is an **OAuth
@@ -151,11 +139,7 @@ impl HttpTransportSvc {
         builder = builder.with(oauth);
 
         builder = Self::with_optional_layers(loader, builder)?;
-        Ok(Box::new(DefaultHttpEgress::new(
-            builder.build(),
-            http_cfg.base_url,
-            http_cfg.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
     /// Dry-run the config-driven egress: load every optional `[section]` into a
@@ -310,11 +294,7 @@ impl HttpTransportSvc {
             cb = cb.default_headers(map);
         }
         let client = reqwest_middleware::ClientBuilder::new(cb.build()?).build();
-        Ok(Box::new(DefaultHttpEgress::new(
-            client,
-            config.base_url,
-            config.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(client, config)))
     }
 
     /// Build a minimal [`HttpEgress`](crate::HttpEgress) from an [`HttpConfig`] and a runtime OAuth
@@ -346,11 +326,7 @@ impl HttpTransportSvc {
         let client = Self::configure_http_builder(reqwest::Client::builder(), &config).build()?;
         let oauth = Self::build_oauth_middleware(token_source)?;
         let mw_client = ClientBuilder::new(client).with(oauth).build();
-        Ok(Box::new(DefaultHttpEgress::new(
-            mw_client,
-            config.base_url,
-            config.max_response_bytes,
-        )))
+        Ok(Box::new(DefaultHttpEgress::new(mw_client, config)))
     }
 
     /// Assemble an `edge-security` OAuth middleware from a runtime token
@@ -383,8 +359,11 @@ impl HttpTransportSvc {
     /// Returns `Ok(())` when the config is valid, or a human-readable error
     /// message explaining what field is invalid and what the expected constraint is.
     pub fn validate_http_config(config: &HttpConfig) -> Result<(), String> {
+        use crate::api::ValidateRequest;
         use crate::core::validator::{DefaultValidator, HttpConfigValidator};
-        DefaultValidator::new(HttpConfigValidator::new(config)).validate()
+        DefaultValidator::new(HttpConfigValidator::new(config))
+            .validate(ValidateRequest)
+            .map_err(|e| e.to_string())
     }
 
     /// Validate any value that implements the `Validator` trait.
@@ -392,8 +371,9 @@ impl HttpTransportSvc {
     /// This is the generic gateway to the `Validator` contract — consumers who
     /// implement `Validator` on their own types can call this to run validation
     /// through the SAF boundary without holding a direct reference to the trait.
-    pub fn validate<V: crate::api::traits::Validator>(v: &V) -> Result<(), String> {
-        v.validate()
+    pub fn validate<V: crate::api::Validator>(v: &V) -> Result<(), String> {
+        use crate::api::ValidateRequest;
+        v.validate(ValidateRequest).map_err(|e| e.to_string())
     }
 
     /// Append the non-auth optional middleware — `[retry]`, `[rate]`,
@@ -429,22 +409,29 @@ impl HttpTransportSvc {
             edge_transport_http_egress_retry::RetryConfig::load_optional(loader)?
         {
             builder = builder.with(
-                edge_transport_http_egress_retry::HttpRetrySvc::build_retry_layer(retry_cfg)?,
+                {
+                    use edge_transport_http_egress_retry::Processor as _;
+                    edge_transport_http_egress_retry::HttpRetrySvc.decorate(
+                        edge_transport_http_egress_retry::DecorateRequest { config: retry_cfg },
+                    )?
+                }
+                .layer,
             );
         }
         #[cfg(feature = "rate")]
         if let FeatureState::Enabled(rate_cfg) =
             edge_transport_http_egress_rate::RateConfig::load_optional(loader)?
         {
-            builder = builder
-                .with(edge_transport_http_egress_rate::HttpRateSvc::build_rate_layer(rate_cfg)?);
+            builder = builder.with(
+                edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(rate_cfg)?,
+            );
         }
         #[cfg(feature = "breaker")]
         if let FeatureState::Enabled(breaker_cfg) =
             edge_transport_http_egress_breaker::BreakerConfig::load_optional(loader)?
         {
             builder = builder.with(
-                edge_transport_http_egress_breaker::HttpBreakerSvc::build_breaker_layer(
+                edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
                     breaker_cfg,
                 )?,
             );
@@ -454,7 +441,9 @@ impl HttpTransportSvc {
             edge_transport_http_egress_cache::CacheConfig::load_optional(loader)?
         {
             builder = builder.with(
-                edge_transport_http_egress_cache::HttpCacheSvc::build_cache_layer(cache_cfg)?,
+                edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
+                    cache_cfg,
+                )?,
             );
         }
         #[cfg(feature = "cassette")]
@@ -506,21 +495,29 @@ impl HttpTransportSvc {
         #[cfg(feature = "retry")]
         {
             builder = builder.with(
-                edge_transport_http_egress_retry::HttpRetrySvc::build_retry_layer(
-                    Default::default(),
-                )?,
+                {
+                    use edge_transport_http_egress_retry::Processor as _;
+                    edge_transport_http_egress_retry::HttpRetrySvc.decorate(
+                        edge_transport_http_egress_retry::DecorateRequest {
+                            config: Default::default(),
+                        },
+                    )?
+                }
+                .layer,
             );
         }
         #[cfg(feature = "rate")]
         {
             builder = builder.with(
-                edge_transport_http_egress_rate::HttpRateSvc::build_rate_layer(Default::default())?,
+                edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(
+                    Default::default(),
+                )?,
             );
         }
         #[cfg(feature = "breaker")]
         {
             builder = builder.with(
-                edge_transport_http_egress_breaker::HttpBreakerSvc::build_breaker_layer(
+                edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
                     Default::default(),
                 )?,
             );
@@ -528,7 +525,7 @@ impl HttpTransportSvc {
         #[cfg(feature = "cache")]
         {
             builder = builder.with(
-                edge_transport_http_egress_cache::HttpCacheSvc::build_cache_layer(
+                edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
                     Default::default(),
                 )?,
             );
@@ -543,11 +540,7 @@ impl HttpTransportSvc {
             );
         }
 
-        Ok(DefaultHttpEgress::new(
-            builder.build(),
-            http_cfg.base_url,
-            http_cfg.max_response_bytes,
-        ))
+        Ok(DefaultHttpEgress::new(builder.build(), http_cfg))
     }
 
     /// Apply [`HttpConfig`] transport settings — timeouts, user-agent, redirect

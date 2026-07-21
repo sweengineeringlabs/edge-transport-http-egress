@@ -12,11 +12,15 @@ mod api;
 mod core;
 mod saf;
 
-pub use crate::api::types::admission::Admission;
-pub use crate::api::types::breaker::breaker_layer::BreakerLayer;
-pub use crate::api::types::outcome::Outcome;
 pub use crate::api::{
-    BreakerConfig, BreakerError, BreakerMetrics, CircuitBreakerNode, HttpBreakerSvc, Processor,
-    Validator,
+    Admission, AdmitRequest, AdmitResponse, BreakerConfig, BreakerError,
+    BreakerLayerBreakerMetrics, BreakerMetrics, CircuitBreakerNode, ClosedStateRequest,
+    ClosedStateResponse, ConfigValidationRequest, DescribeRequest, DescribeResponse,
+    FailureThresholdRequest, FailureThresholdResponse, HalfOpenStateRequest, HalfOpenStateResponse,
+    HostBreaker, HttpBreakerSvcProcessor, OpenStateRequest, OpenStateResponse, Outcome, Processor,
+    RecordRequest, RecordResponse, Validator,
 };
-pub use saf::get_failure_threshold;
+pub use crate::saf::{
+    BreakerMetricsFactory, CircuitBreakerNodeFactory, HostBreakerFactory, ProcessorFactory,
+    ValidatorFactory,
+};
