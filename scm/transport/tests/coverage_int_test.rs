@@ -125,12 +125,13 @@ fn test_preflight_invalid_section_returns_err_error() {
 fn test_preflight_total_count_matches_feature_set_edge() {
     let (_d, l) = empty_loader();
     let summary = HttpTransportSvc::preflight(&l).expect("ok");
-    // retry + rate + breaker + cache + cassette = 5 (auth and tls have no
-    // config-section form since BYOSec was reversed 2026-07-16/17 — bearer
-    // has no swe-edge-configbuilder integration at all, and tls's
-    // OptionalSection impl resolves against edge-security's own vendored
-    // swe-edge-configbuilder, a different compiled crate than this repo's)
-    assert_eq!(summary.total_count(), 5);
+    // retry + rate + breaker + cache + cassette + loadbalancer = 6 (auth and
+    // tls have no config-section form since BYOSec was reversed
+    // 2026-07-16/17 — bearer has no swe-edge-configbuilder integration at
+    // all, and tls's OptionalSection impl resolves against edge-security's
+    // own vendored swe-edge-configbuilder, a different compiled crate than
+    // this repo's)
+    assert_eq!(summary.total_count(), 6);
 }
 
 // ── default_http_egress (rule 221) ────────────────────────────────────────────

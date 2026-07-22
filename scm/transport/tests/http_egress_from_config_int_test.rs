@@ -1,11 +1,11 @@
 //! End-to-end test for ADR-006 config-driven activation in `transport`.
 //!
 //! Proves the consumer experience: adding a `[retry]`/`[rate]`/`[breaker]`/
-//! `[cache]`/`[cassette]` section to `application.toml` wires that layer into
-//! the assembled egress; omitting it (or `enabled = false`) leaves it off.
-//! `auth` and `tls` have no config-section form (BYOSec reversed 2026-07-16/
-//! 2026-07-17) — see the auth tests below and `tls_int_test.rs` for their
-//! construct-and-pass-in equivalents.
+//! `[cache]`/`[cassette]`/`[loadbalancer]` section to `application.toml`
+//! wires that layer into the assembled egress; omitting it (or
+//! `enabled = false`) leaves it off. `auth` and `tls` have no config-section
+//! form (BYOSec reversed 2026-07-16/2026-07-17) — see the auth tests below
+//! and `tls_int_test.rs` for their construct-and-pass-in equivalents.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -141,6 +141,13 @@ cassette_dir = "tests/cassettes"
 match_on = ["method", "url"]
 scrub_headers = ["authorization"]
 scrub_body_paths = []
+
+[loadbalancer]
+strategy = "round-robin"
+
+[[loadbalancer.backends]]
+url = "http://example.com"
+weight = 1
 "#;
 
 /// @covers: http_egress_from_config — every config-driven section present and
@@ -153,13 +160,13 @@ fn test_all_sections_present_builds() {
         result.is_ok(),
         "all valid sections must assemble into one egress"
     );
-    // All five config-driven sections are present and enabled — preflight must
+    // All six config-driven sections are present and enabled — preflight must
     // count every one of them.
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
-        5,
-        "all five config-driven features must be enabled: {summary}"
+        6,
+        "all six config-driven features must be enabled: {summary}"
     );
 }
 
@@ -213,6 +220,83 @@ fn test_cassette_invalid_section_returns_config_error() {
             Err(HttpEgressBuildError::Config(_))
         ),
         "[cassette] must be config-driven and reject a malformed section"
+    );
+}
+
+// ── [loadbalancer] section ──────────────────────────────────────────────────
+
+const LOADBALANCER_TOML: &str = "[loadbalancer]\nstrategy = \"round-robin\"\n\
+    [[loadbalancer.backends]]\nurl = \"http://example.com\"\nweight = 1\n";
+
+/// @covers: http_egress_from_config — a valid `[loadbalancer]` section is
+/// loaded and the loadbalancer layer is wired (the egress builds
+/// successfully).
+#[test]
+fn test_loadbalancer_section_present_builds() {
+    let (_d, l) = loader(LOADBALANCER_TOML);
+    let result = HttpTransportSvc::http_egress_from_config(&l);
+    assert!(
+        result.is_ok(),
+        "valid [loadbalancer] must build with the loadbalancer layer wired"
+    );
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        1,
+        "a present [loadbalancer] section must be counted as enabled"
+    );
+}
+
+/// @covers: http_egress_from_config — no `[loadbalancer]` section ⇒
+/// loadbalancer omitted; builds.
+#[test]
+fn test_no_loadbalancer_section_builds() {
+    let (_d, l) = loader("[unrelated]\nkey = \"value\"");
+    let result = HttpTransportSvc::http_egress_from_config(&l);
+    assert!(
+        result.is_ok(),
+        "absent [loadbalancer] must build with loadbalancer omitted"
+    );
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "with no config sections, no feature must be enabled"
+    );
+}
+
+/// @covers: http_egress_from_config — a semantically invalid `[loadbalancer]`
+/// (empty `backends`) parses fine as TOML but fails the loadbalancer crate's
+/// own validation at build-time, surfacing as
+/// `HttpEgressBuildError::Loadbalancer`.
+#[test]
+fn test_loadbalancer_empty_backends_returns_loadbalancer_error() {
+    let (_d, l) = loader("[loadbalancer]\nstrategy = \"round-robin\"\nbackends = []\n");
+    let result = HttpTransportSvc::http_egress_from_config(&l);
+    let is_loadbalancer_err = matches!(result, Err(HttpEgressBuildError::Loadbalancer(_)));
+    assert!(
+        is_loadbalancer_err,
+        "invalid [loadbalancer] (empty backends) must surface a Loadbalancer validation error"
+    );
+}
+
+/// @covers: http_egress_from_config — `[loadbalancer]` with `enabled = false`
+/// is omitted.
+#[test]
+fn test_loadbalancer_enabled_false_omits_loadbalancer() {
+    let toml = "[loadbalancer]\nenabled = false\nstrategy = \"round-robin\"\n\
+        [[loadbalancer.backends]]\nurl = \"http://example.com\"\nweight = 1\n";
+    let (_d, l) = loader(toml);
+    let result = HttpTransportSvc::http_egress_from_config(&l);
+    assert!(
+        result.is_ok(),
+        "enabled=false [loadbalancer] must build with loadbalancer omitted"
+    );
+    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    assert_eq!(
+        summary.enabled_count(),
+        0,
+        "a [loadbalancer] section with enabled=false must not be counted as enabled"
     );
 }
 
@@ -292,8 +376,8 @@ fn test_preflight_reports_enabled_and_disabled() {
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
     assert_eq!(
         summary.total_count(),
-        5,
-        "all 5 config-driven egress features are reported (auth and tls have no config-section form)"
+        6,
+        "all 6 config-driven egress features are reported (auth and tls have no config-section form)"
     );
     assert_eq!(summary.enabled_count(), 1, "only [cache] is enabled");
     let text = summary.to_string();
@@ -305,7 +389,7 @@ fn test_preflight_reports_enabled_and_disabled() {
 fn test_preflight_all_disabled_when_no_sections() {
     let (_d, l) = loader("[unrelated]\nx = 1");
     let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
-    assert_eq!(summary.total_count(), 5);
+    assert_eq!(summary.total_count(), 6);
     assert_eq!(summary.enabled_count(), 0, "no sections ⇒ nothing enabled");
 }
 
