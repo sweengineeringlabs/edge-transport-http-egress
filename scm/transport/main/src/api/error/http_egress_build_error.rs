@@ -35,6 +35,10 @@ pub enum HttpEgressBuildError {
     #[cfg(feature = "cassette")]
     #[error("cassette: {0}")]
     Cassette(AssemblyFailure),
+    /// Loadbalancer middleware assembly failed.
+    #[cfg(feature = "loadbalancer")]
+    #[error("loadbalancer: {0}")]
+    Loadbalancer(AssemblyFailure),
     /// TLS middleware assembly failed.
     #[cfg(feature = "tls")]
     #[error("tls: {0}")]
