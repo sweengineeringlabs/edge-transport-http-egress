@@ -1,8 +1,8 @@
 //! Minimal usage: build the loadbalancer layer with a two-backend config.
 
 fn main() {
-    use swe_edge_egress_loadbalancer::{
-        BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy,
+    use edge_transport_http_egress_loadbalancer::{
+        BackendConfig, LoadbalancerConfig, LoadbalancerSvcProcessor, Strategy,
     };
 
     let config = LoadbalancerConfig {
@@ -19,8 +19,8 @@ fn main() {
         ],
     };
 
-    match LoadbalancerSvc::build_layer(config) {
-        Ok(_) => println!("swe_edge_egress_loadbalancer layer built"),
-        Err(e) => println!("swe_edge_egress_loadbalancer: {e}"),
+    match LoadbalancerSvcProcessor::build_layer(config) {
+        Ok(_) => println!("edge_transport_http_egress_loadbalancer layer built"),
+        Err(e) => println!("edge_transport_http_egress_loadbalancer: {e}"),
     }
 }

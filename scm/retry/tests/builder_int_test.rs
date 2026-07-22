@@ -3,7 +3,9 @@
 //!
 //! Covers: `build_retry_layer`, `create_config_builder`, and config defaults.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{
+    DecorateRequest, HttpRetrySvc, Processor, RetryConfig, RetryLayer,
+};
 
 fn make_cfg(max_retries: u32) -> RetryConfig {
     RetryConfig {
@@ -25,7 +27,12 @@ fn make_cfg(max_retries: u32) -> RetryConfig {
 /// correctly wired.
 #[test]
 fn test_create_config_builder_returns_working_loader() {
-    let _loader = HttpRetrySvc::create_config_builder().build_loader();
+    let builder = HttpRetrySvc::new_app_config_builder();
+    assert!(
+        !builder.version().is_empty(),
+        "builder must carry the crate version before producing a loader"
+    );
+    let _loader = builder.build_loader();
 }
 
 /// The SWE default config must have at least one retry so the middleware
@@ -72,7 +79,9 @@ fn test_default_config_initial_interval_is_positive() {
 #[test]
 fn test_build_retry_layer_stores_all_fields_in_layer() {
     let cfg = make_cfg(5);
-    let layer = HttpRetrySvc::build_retry_layer(cfg).expect("build must succeed");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("build must succeed");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("5"),
@@ -84,8 +93,12 @@ fn test_build_retry_layer_stores_all_fields_in_layer() {
 /// the type and exposes `max_retries` for operator visibility.
 #[test]
 fn test_build_retry_layer_returns_retry_layer_with_correct_debug() {
-    let layer: RetryLayer =
-        HttpRetrySvc::build_retry_layer(make_cfg(3)).expect("build must succeed");
+    let layer: RetryLayer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: make_cfg(3),
+        })
+        .expect("build must succeed")
+        .layer;
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("RetryLayer"),
@@ -101,7 +114,12 @@ fn test_build_retry_layer_returns_retry_layer_with_correct_debug() {
 /// visible in Debug.
 #[test]
 fn test_build_retry_layer_from_default_debug_contains_max_retries() {
-    let layer = HttpRetrySvc::build_retry_layer(RetryConfig::default()).expect("build ok");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: RetryConfig::default(),
+        })
+        .expect("build ok")
+        .layer;
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("max_retries"),
@@ -121,7 +139,9 @@ fn test_build_retry_layer_with_zero_max_retries_succeeds() {
         retryable_statuses: vec![],
         retryable_methods: vec![],
     };
-    HttpRetrySvc::build_retry_layer(cfg).expect("max_retries=0 must build");
+    HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("max_retries=0 must build");
 }
 
 /// Empty `retryable_statuses` and `retryable_methods` are valid — the
@@ -136,7 +156,9 @@ fn test_build_retry_layer_with_empty_retryable_lists_succeeds() {
         retryable_statuses: vec![],
         retryable_methods: vec![],
     };
-    HttpRetrySvc::build_retry_layer(cfg).expect("empty retryable lists must build");
+    HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("empty retryable lists must build");
 }
 
 /// A very large multiplier (e.g. 100x) is a valid operator choice for
@@ -151,7 +173,9 @@ fn test_build_retry_layer_with_large_multiplier_succeeds() {
         retryable_statuses: vec![503],
         retryable_methods: vec!["POST".to_string()],
     };
-    HttpRetrySvc::build_retry_layer(cfg).expect("multiplier=100.0 must build");
+    HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("multiplier=100.0 must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +186,18 @@ fn test_build_retry_layer_with_large_multiplier_succeeds() {
 /// boundaries inside a `reqwest_middleware` chain.
 #[test]
 fn test_retry_layer_is_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<RetryLayer>();
+    // Genuine runtime proof of Send: move the layer into another thread.
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest {
+            config: make_cfg(3),
+        })
+        .expect("build")
+        .layer;
+    let dbg = std::thread::spawn(move || format!("{layer:?}"))
+        .join()
+        .expect("thread must not panic");
+    assert!(
+        dbg.contains("max_retries: 3"),
+        "layer moved across a thread must retain its config; got: {dbg}"
+    );
 }

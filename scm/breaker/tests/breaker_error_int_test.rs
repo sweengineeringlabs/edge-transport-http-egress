@@ -1,13 +1,16 @@
-//! Integration tests for `breaker_error` in `swe-edge-egress-breaker`.
+//! Integration tests for `breaker_error` in `edge-transport-http-egress-breaker`.
 
-use core::marker::PhantomData;
-use swe_edge_egress_breaker::BreakerError;
+use edge_transport_http_egress_breaker::BreakerError;
 
 /// @covers: BreakerError
-/// Confirms `BreakerError` is part of the public API by naming the type and
-/// constructing a variant — both fail to compile if the type is removed.
+/// Confirms `BreakerError::ParseFailed` carries its message through to the
+/// `Display` output — not just that the variant is constructable.
 #[test]
 fn test_breaker_error_is_accessible() {
-    let _: PhantomData<BreakerError> = PhantomData;
-    let _err = BreakerError::ParseFailed("probe".to_string());
+    let err = BreakerError::ParseFailed("probe".to_string());
+    let msg = err.to_string();
+    assert!(
+        msg.contains("probe"),
+        "Display output must carry the underlying parse-failure message: {msg}"
+    );
 }

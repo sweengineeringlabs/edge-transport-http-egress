@@ -4,7 +4,7 @@
 
 use std::sync::Arc;
 
-use swe_edge_egress_http_transport::{HttpConfig, HttpTransportSvc};
+use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc};
 use swe_observ_metrics::{create_local_metrics_backend, MetricsProvider};
 
 /// @covers: observe_http_egress

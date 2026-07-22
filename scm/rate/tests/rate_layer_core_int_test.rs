@@ -1,6 +1,6 @@
 //! Integration tests for `core/rate_layer.rs`.
 //!
-//! `core::rate_layer` contains `RateLayer::new`, `key_for`, `bucket`, and the
+//! `core::rate_layer` contains `RateLayerRateMetrics::new`, `key_for`, `bucket`, and the
 //! `reqwest_middleware::Middleware` impl.  All internals are `pub(crate)`.
 //! We verify observable behaviour:
 //! - Edge-case configs must produce a valid layer without error.
@@ -8,7 +8,7 @@
 //! - `Send + Sync` must hold after construction.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
+use edge_transport_http_egress_rate::{HttpRateSvcProcessor, RateConfig};
 
 // ---------------------------------------------------------------------------
 // Global bucket (per_host = false)
@@ -23,7 +23,7 @@ fn test_core_rate_layer_global_bucket_builds() {
         burst_capacity: 20,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=false (global bucket) must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=false (global bucket) must build");
 }
 
 /// The `Debug` output for a global-bucket layer must include `per_host: false`.
@@ -34,7 +34,7 @@ fn test_core_rate_layer_global_bucket_visible_in_debug() {
         burst_capacity: 20,
         per_host: false,
     };
-    let layer = HttpRateSvc::build_rate_layer(cfg).expect("build");
+    let layer = HttpRateSvcProcessor::build_rate_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("false"),
@@ -54,7 +54,7 @@ fn test_core_rate_layer_per_host_bucket_builds() {
         burst_capacity: 15,
         per_host: true,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=true must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=true must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ fn test_core_rate_layer_high_rate_builds() {
         burst_capacity: 500_000,
         per_host: true,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("very high rate must not be rejected");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("very high rate must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ fn test_core_rate_layer_debug_includes_tokens_per_second() {
         burst_capacity: 84,
         per_host: false,
     };
-    let layer = HttpRateSvc::build_rate_layer(cfg).expect("build");
+    let layer = HttpRateSvcProcessor::build_rate_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("42"),
@@ -101,7 +101,7 @@ fn test_core_rate_layer_debug_includes_burst_capacity() {
         burst_capacity: 777,
         per_host: true,
     };
-    let layer = HttpRateSvc::build_rate_layer(cfg).expect("build");
+    let layer = HttpRateSvcProcessor::build_rate_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("777"),
@@ -110,12 +110,29 @@ fn test_core_rate_layer_debug_includes_burst_capacity() {
 }
 
 // ---------------------------------------------------------------------------
-// Send + Sync
+// Send + Sync — runtime proof via a real thread boundary
 // ---------------------------------------------------------------------------
 
-/// `RateLayer` built via `RateLayer::new` must satisfy `Send + Sync`.
+/// A `RateLayerRateMetrics` must satisfy `Send + Sync`. Prove it at runtime by moving an
+/// `Arc<RateLayerRateMetrics>` onto a spawned OS thread and asserting the Debug output
+/// observed there reflects the configured (non-default) policy.
 #[test]
 fn test_core_rate_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<RateLayer>();
+    use std::sync::Arc;
+    let layer = Arc::new(
+        HttpRateSvcProcessor::build_rate_layer(RateConfig {
+            tokens_per_second: 123,
+            burst_capacity: 456,
+            per_host: true,
+        })
+        .expect("build"),
+    );
+    let moved = Arc::clone(&layer);
+    let dbg = std::thread::spawn(move || format!("{moved:?}"))
+        .join()
+        .expect("worker thread must join");
+    assert!(
+        dbg.contains("123") && dbg.contains("456"),
+        "Debug read on the worker thread must reflect the config; got: {dbg}"
+    );
 }

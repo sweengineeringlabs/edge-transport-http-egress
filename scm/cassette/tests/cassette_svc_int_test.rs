@@ -7,17 +7,29 @@
 //! The SWE default mode is "replay" (prevents accidental real-network recording).
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteError, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{
+    CassetteConfig, CassetteError, CassetteLayer, HttpCassetteSvc,
+};
 
 // ---------------------------------------------------------------------------
 // create_config_builder() — SAF entry point: always returns a loader
 // ---------------------------------------------------------------------------
 
-/// `create_config_builder()` must succeed unconditionally. If the crate-shipped
-/// `config/application.toml` ever breaks, this is the first test to fail.
+/// `create_config_builder()` must produce a loader that can read the crate's
+/// shipped `config/application.toml`. If that file ever breaks, this is the
+/// first test to fail.
 #[test]
 fn test_saf_builder_fn_returns_ok() {
-    let _loader = HttpCassetteSvc::create_config_builder().build_loader();
+    let cfg: CassetteConfig = HttpCassetteSvc::create_config_builder()
+        .with_config_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/config"))
+        .build_loader()
+        .expect("seeded builder must produce a loader")
+        .load_section("cassette")
+        .expect("shipped [cassette] section must load");
+    assert_eq!(
+        cfg.mode, "replay",
+        "shipped config policy must default to replay"
+    );
 }
 
 /// The SWE default mode must be "replay". Any change to the default TOML
@@ -115,7 +127,8 @@ fn test_saf_build_uses_cassette_name_in_path() {
 fn test_saf_error_parse_failed_display_names_crate() {
     let err = CassetteError::ParseFailed("bad field".to_string());
     assert!(
-        err.to_string().contains("swe_edge_egress_cassette"),
+        err.to_string()
+            .contains("edge_transport_http_egress_cassette"),
         "CassetteError::ParseFailed from SAF layer must name the crate"
     );
 }

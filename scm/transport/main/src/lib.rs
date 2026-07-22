@@ -1,4 +1,4 @@
-//! `swe_edge_egress_http` — HTTP outbound domain.
+//! `edge_transport_http_egress` — HTTP outbound domain.
 
 // `unwrap`/`expect` are denied in production code (Cargo.toml `[lints.clippy]`)
 // but are the idiomatic assertion mechanism inside the crate's inline
@@ -8,6 +8,16 @@
 mod api;
 mod core;
 mod saf;
-mod spi;
 
-pub use crate::api::{HttpEgress, HttpEgressBuildError, HttpEgressError, HttpStream, Validator};
+pub use crate::api::{
+    AlwaysValidConfig, ApplicationConfigBuilder, AssemblyFailure, ConfigRequest, ConfigResponse,
+    ConnectWebsocketRequest, ConnectWebsocketResponse, FormPart, GetRequest, HealthCheckRequest,
+    HttpAuth, HttpBody, HttpByteStream, HttpConfig, HttpConfigBuilder, HttpConfigValidator,
+    HttpEgress, HttpEgressBuildError, HttpEgressError, HttpEgressObject, HttpEgressResult,
+    HttpMethod, HttpRequest, HttpRequestBuilder, HttpResponse, HttpSecurityContext, HttpStream,
+    HttpStreamResponse, HttpTransportSvc, JsonValue, MetricsHttpEgress, SseEvent, SseStream,
+    SubscribeSseRequest, SubscribeSseResponse, ValidatableHttpConfig, ValidateRequest,
+    ValidationError, Validator, ValidatorObject, WsChannel, WsMessage, WsReceiver, WsSender,
+};
+pub use crate::saf::{HttpEgressSvcFactory, HttpStreamSvcFactory, ValidatorSvcFactory};
+pub use edge_application::SecurityContext;

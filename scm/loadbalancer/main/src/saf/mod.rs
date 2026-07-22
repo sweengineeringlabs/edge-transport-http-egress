@@ -1,20 +1,13 @@
 //! SAF layer — public facade.
 //!
-//! Re-exports public API types and exposes factory functions as methods on
-//! `LoadbalancerSvc`. Traits are NOT re-exported from this module (SEA Rule 126).
-//! Core types are NOT re-exported directly (SEA Rule 47).
+//! Exposes trait factories for the loadbalancer middleware. Traits are NOT
+//! re-exported from this module (SEA Rule 126). Core types are NOT re-exported
+//! directly (SEA Rule 47).
 
-mod loadbalancer_svc;
-mod processor_svc;
-mod validator_svc;
+mod pool_metrics_svc_factory;
+mod processor_svc_factory;
+mod validator_svc_factory;
 
-// Public types re-exported from api/
-pub(crate) use crate::api::error::LoadbalancerMiddlewareError;
-pub(crate) use crate::api::types::{
-    Backend, BackendConfig, BackendHealth, BackendId, BackendPoolInstance, LoadbalancerConfig,
-    LoadbalancerLayer, LoadbalancerSvc, Outcome, PoolError, Strategy,
-};
-
-// SAF standalone functions — all take/return api/ types only
-pub(crate) use loadbalancer_svc::build_loadbalancer_layer;
-pub(crate) use loadbalancer_svc::validate_loadbalancer_config;
+pub use pool_metrics_svc_factory::PoolMetricsFactory;
+pub use processor_svc_factory::ProcessorFactory;
+pub use validator_svc_factory::ValidatorFactory;

@@ -1,6 +1,8 @@
 //! Integration tests for `HttpEgressError`.
 
-use swe_edge_egress_http_transport::HttpEgressError;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_transport::HttpEgressError;
 
 #[test]
 fn test_http_egress_error_enum_connection_failed_formats_message() {

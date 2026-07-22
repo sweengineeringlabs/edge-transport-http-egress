@@ -1,2 +1,2 @@
+//! Default impl of the primary api trait ([`Processor`](crate::api::Processor)).
 pub(crate) mod http_rate;
-pub(crate) use http_rate::DefaultHttpRate;

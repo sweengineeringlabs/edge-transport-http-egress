@@ -2,7 +2,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_http_transport::HttpResponse;
+use edge_transport_http_egress_transport::HttpResponse;
 
 /// @covers: is_success
 #[test]

@@ -1,6 +1,8 @@
 //! Integration tests for `HttpConfig`.
 
-use swe_edge_egress_http_transport::HttpConfig;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_transport::HttpConfig;
 
 /// @covers: with_base_url
 #[test]

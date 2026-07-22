@@ -7,13 +7,15 @@ use std::convert::Infallible;
 use std::time::Duration;
 
 use bytes::Bytes;
+use edge_transport_http_egress_transport::{
+    HttpConfig, HttpRequest, HttpTransportSvc, SecurityContext,
+};
 use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
-use swe_edge_egress_http_transport::{HttpConfig, HttpRequest, HttpTransportSvc, SecurityContext};
 
 // ─── test-server helper ──────────────────────────────────────────────────────
 
@@ -60,11 +62,15 @@ async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
         claims: HashMap::new(),
         trace_id: Some("trace-abc".to_string()),
         authenticated: true,
+        token: None,
+        metadata: HashMap::new(),
+        is_authorized: false,
+        extensions: HashMap::new(),
     };
 
     // Act: call send_with_context — default impl must delegate to send.
     let resp = client
-        .send_with_context(HttpRequest::get("/"), ctx)
+        .send_with_context(HttpRequest::get("/"), ctx.into())
         .await
         .expect("send_with_context must succeed when server is reachable");
 
@@ -109,11 +115,15 @@ async fn test_send_with_context_propagates_request_unchanged_to_server() {
         claims: HashMap::new(),
         trace_id: None,
         authenticated: false,
+        token: None,
+        metadata: HashMap::new(),
+        is_authorized: false,
+        extensions: HashMap::new(),
     };
 
     // Act
     let resp = client
-        .send_with_context(request, ctx)
+        .send_with_context(request, ctx.into())
         .await
         .expect("send_with_context must succeed");
 

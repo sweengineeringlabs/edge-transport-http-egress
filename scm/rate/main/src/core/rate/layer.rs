@@ -1,5 +1,5 @@
-//! Impl blocks for [`RateLayer`] — constructor +
-//! [`reqwest_middleware::Middleware`] impl.
+//! Impl blocks for [`RateLayerRateMetrics`] — constructor +
+//! [`reqwest_middleware::Middleware`] impl + [`RateMetrics`] impl.
 
 use std::sync::Arc;
 
@@ -7,9 +7,9 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use tokio::sync::Mutex;
 
-use crate::api::traits::RateBucketOps;
-use crate::api::types::RateConfig;
-use crate::api::types::RateLayer;
+use crate::api::{
+    RateConfig, RateError, RateLayerRateMetrics, RateLimitRequest, RateLimitResponse, RateMetrics,
+};
 
 use crate::core::token::TokenBucket;
 
@@ -19,7 +19,7 @@ const MAX_TRACKED_HOSTS: u64 = 10_000;
 /// bucket keyed by this sentinel.
 const GLOBAL_KEY: &str = "__global__";
 
-impl RateLayer {
+impl RateLayerRateMetrics {
     pub(crate) fn new(config: RateConfig) -> Self {
         let buckets: Cache<String, Arc<Mutex<TokenBucket>>> =
             Cache::builder().max_capacity(MAX_TRACKED_HOSTS).build();
@@ -55,7 +55,7 @@ impl RateLayer {
 }
 
 #[async_trait]
-impl reqwest_middleware::Middleware for RateLayer {
+impl reqwest_middleware::Middleware for RateLayerRateMetrics {
     async fn handle(
         &self,
         req: reqwest::Request,
@@ -65,7 +65,7 @@ impl reqwest_middleware::Middleware for RateLayer {
         let key = self.key_for(&req);
         let bucket = self.bucket(&key).await;
 
-        // Acquire loop — try_acquire, if empty sleep for the
+        // Acquire loop — try_consume, if empty sleep for the
         // indicated wait, retry. Holding the mutex across the
         // sleep keeps the ordering fair (first waiter wakes
         // first when tokens become available).
@@ -87,6 +87,24 @@ impl reqwest_middleware::Middleware for RateLayer {
         }
 
         next.run(req, ext).await
+    }
+}
+
+impl RateMetrics for RateLayerRateMetrics {
+    fn rate_limit(&self, _request: RateLimitRequest) -> Result<RateLimitResponse, RateError> {
+        Ok(RateLimitResponse {
+            tokens_per_second: self.config.tokens_per_second,
+        })
+    }
+}
+
+impl std::fmt::Debug for RateLayerRateMetrics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("RateLayerRateMetrics")
+            .field("tokens_per_second", &self.config.tokens_per_second)
+            .field("burst_capacity", &self.config.burst_capacity)
+            .field("per_host", &self.config.per_host)
+            .finish()
     }
 }
 
@@ -126,20 +144,46 @@ mod tests {
     /// @covers: new
     #[test]
     fn test_new_constructs_with_bucket_cache() {
-        let _l = RateLayer::new(test_config());
+        let layer = RateLayerRateMetrics::new(test_config());
+        // test_config() uses tokens_per_second=10, burst_capacity=20.
+        let dbg = format!("{layer:?}");
+        assert!(
+            dbg.contains("10") && dbg.contains("20"),
+            "constructed layer must carry the config it was built from; got: {dbg}"
+        );
+    }
+
+    /// @covers: rate_limit
+    #[test]
+    fn test_rate_limit_returns_configured_tokens_per_second() {
+        let layer = RateLayerRateMetrics::new(test_config());
+        let resp = layer
+            .rate_limit(RateLimitRequest)
+            .expect("rate_limit is infallible");
+        assert_eq!(resp.tokens_per_second, 10);
     }
 
     /// @covers: handle
-    #[test]
-    fn test_handle_layer_is_send_sync() {
-        fn assert_send_sync<T: Send + Sync>() {}
-        assert_send_sync::<RateLayer>();
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_handle_impl_layer_moves_across_thread_boundary() {
+        // The Middleware `handle` impl requires `RateLayerRateMetrics: Send + Sync`
+        // to be installed in a shared client. Prove that bound at runtime by
+        // moving the layer onto a spawned worker thread and reading its Debug
+        // output there — a stub that wasn't Send would not compile.
+        let layer = RateLayerRateMetrics::new(test_config());
+        let dbg = tokio::spawn(async move { format!("{layer:?}") })
+            .await
+            .expect("layer must move across the tokio worker boundary");
+        assert!(
+            dbg.contains("10"),
+            "Debug observed on the worker thread must reflect the config; got: {dbg}"
+        );
     }
 
     /// @covers: key_for
     #[test]
     fn test_key_for_per_host_returns_authority() {
-        let l = RateLayer::new(test_config());
+        let l = RateLayerRateMetrics::new(test_config());
         let k = l.key_for(&stub_req("http://example.test:8080/path"));
         assert_eq!(k, "example.test:8080");
     }
@@ -147,7 +191,7 @@ mod tests {
     /// @covers: key_for
     #[test]
     fn test_key_for_per_host_omits_default_port() {
-        let l = RateLayer::new(test_config());
+        let l = RateLayerRateMetrics::new(test_config());
         let k = l.key_for(&stub_req("http://example.test/"));
         assert_eq!(k, "example.test");
     }
@@ -155,7 +199,7 @@ mod tests {
     /// @covers: key_for
     #[test]
     fn test_key_for_global_mode_same_for_all_hosts() {
-        let l = RateLayer::new(global_config());
+        let l = RateLayerRateMetrics::new(global_config());
         let k1 = l.key_for(&stub_req("http://a.test/"));
         let k2 = l.key_for(&stub_req("http://b.test/"));
         assert_eq!(k1, k2);
@@ -164,7 +208,7 @@ mod tests {
     /// @covers: bucket
     #[tokio::test]
     async fn test_bucket_shared_across_calls_for_same_key() {
-        let l = RateLayer::new(test_config());
+        let l = RateLayerRateMetrics::new(test_config());
         let a = l.bucket("example.test").await;
         let b = l.bucket("example.test").await;
         assert!(Arc::ptr_eq(&a, &b));
@@ -173,7 +217,7 @@ mod tests {
     /// @covers: bucket
     #[tokio::test]
     async fn test_bucket_distinct_for_different_keys() {
-        let l = RateLayer::new(test_config());
+        let l = RateLayerRateMetrics::new(test_config());
         let a = l.bucket("a.test").await;
         let b = l.bucket("b.test").await;
         assert!(!Arc::ptr_eq(&a, &b));

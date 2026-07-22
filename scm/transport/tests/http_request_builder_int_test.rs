@@ -1,8 +1,10 @@
 //! Integration tests for `HttpRequestBuilder`.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use std::time::Duration;
 
-use swe_edge_egress_http_transport::{HttpMethod, HttpRequestBuilder};
+use edge_transport_http_egress_transport::{HttpMethod, HttpRequestBuilder};
 
 #[test]
 fn test_http_request_builder_struct_new_creates_builder_with_method_and_url() {

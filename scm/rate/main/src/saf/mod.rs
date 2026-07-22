@@ -1,14 +1,9 @@
 //! SAF layer — public facade.
 
-mod bucket_svc;
-mod http_rate_svc;
-mod processor_svc;
-mod rate;
-mod validator_svc;
+mod processor_svc_factory;
+mod rate_metrics_svc_factory;
+mod validator_svc_factory;
 
-pub(crate) use crate::api::types::HttpRateSvc;
-
-pub(crate) use crate::api::error::Error;
-pub(crate) use crate::api::error::RateError;
-pub(crate) use crate::api::types::RateConfig;
-pub(crate) use crate::api::types::RateLayer;
+pub use processor_svc_factory::ProcessorFactory;
+pub use rate_metrics_svc_factory::RateMetricsFactory;
+pub use validator_svc_factory::ValidatorFactory;

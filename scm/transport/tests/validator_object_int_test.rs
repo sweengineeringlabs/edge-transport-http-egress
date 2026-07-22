@@ -1,29 +1,70 @@
-//! Integration tests for `ValidatorObject`.
+//! Integration tests for `ValidatorObject` (`dyn Validator`).
 //!
-//! Rule 120: `src/api/validator/validator_object.rs` requires a corresponding
-//! test file.
-//!
-//! `ValidatorObject` is a type alias for `dyn Validator`. We test that the
-//! alias is accessible and that the trait is object-safe.
+//! `ValidatorObject` is the public dyn-safe alias for the `Validator` trait.
+//! These tests dispatch real validation calls through the alias so a stub that
+//! ignored the concrete implementation would be caught.
 
-use core::marker::PhantomData;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_http_transport::DefaultValidatorAlias;
+use edge_transport_http_egress_transport::{
+    AlwaysValidConfig, HttpConfig, ValidatableHttpConfig, ValidateRequest, ValidationError,
+    ValidatorObject,
+};
 
-/// @covers: ValidatorObject (alias accessibility)
-/// Naming the SAF-exported `DefaultValidatorAlias` is a compile-time contract:
-/// this fails to compile if the alias is removed or renamed. (Replaces a prior
-/// `assert!(size_of::<*const _>() > 0)`, which was always true.)
+/// @covers: ValidatorObject
 #[test]
 fn transport_struct_validator_object_alias_is_accessible_int_test() {
-    let _exists = PhantomData::<DefaultValidatorAlias>;
+    // A passing config dispatched through the `dyn Validator` alias returns Ok...
+    let ok: &ValidatorObject = &AlwaysValidConfig;
+    assert!(
+        ok.validate(ValidateRequest).is_ok(),
+        "AlwaysValidConfig must pass validation"
+    );
+
+    // ...and a zero-timeout config dispatched through the same alias returns the
+    // concrete impl's real error, proving the call routes to the implementation.
+    let bad = ValidatableHttpConfig {
+        config: HttpConfig {
+            timeout_secs: 0,
+            ..HttpConfig::default()
+        },
+    };
+    let bad_ref: &ValidatorObject = &bad;
+    let err = bad_ref
+        .validate(ValidateRequest)
+        .expect_err("zero timeout_secs must fail validation");
+    assert!(
+        matches!(err, ValidationError::Invalid(ref m) if m.contains("timeout_secs")),
+        "unexpected error: {err}"
+    );
 }
 
 /// @covers: ValidatorObject object safety
-/// `DefaultValidatorAlias` is `dyn Validator`; it only forms a valid type if the
-/// `Validator` trait is object-safe, so binding `PhantomData::<DefaultValidatorAlias>`
-/// fails to compile if object safety is lost. (Replaces a prior `assert!(true)`.)
 #[test]
 fn transport_struct_validator_object_is_object_safe_int_test() {
-    let _dyn_compatible: PhantomData<DefaultValidatorAlias> = PhantomData;
+    // Two distinct concrete impls coerced to the same `dyn Validator` alias must
+    // each dispatch to their own behaviour.
+    let good = ValidatableHttpConfig {
+        config: HttpConfig::default(),
+    };
+    let good_ref: &ValidatorObject = &good;
+    assert!(
+        good_ref.validate(ValidateRequest).is_ok(),
+        "default config must validate through the alias"
+    );
+
+    let bad = ValidatableHttpConfig {
+        config: HttpConfig {
+            connect_timeout_secs: 0,
+            ..HttpConfig::default()
+        },
+    };
+    let bad_ref: &ValidatorObject = &bad;
+    let err = bad_ref
+        .validate(ValidateRequest)
+        .expect_err("zero connect_timeout_secs must fail validation");
+    assert!(
+        matches!(err, ValidationError::Invalid(ref m) if m.contains("connect_timeout_secs")),
+        "unexpected error: {err}"
+    );
 }

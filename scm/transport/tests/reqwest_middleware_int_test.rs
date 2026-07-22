@@ -10,6 +10,7 @@ use std::convert::Infallible;
 use std::time::Duration;
 
 use bytes::Bytes;
+use edge_transport_http_egress_transport::{HttpConfig, HttpRequest, HttpTransportSvc};
 use http_body_util::Full;
 use hyper::body::Incoming;
 use hyper::server::conn::http1;
@@ -17,7 +18,6 @@ use hyper::service::service_fn;
 use hyper::{Request, Response};
 use hyper_util::rt::TokioIo;
 use reqwest_middleware::ClientBuilder;
-use swe_edge_egress_http_transport::{HttpConfig, HttpRequest, HttpTransportSvc};
 
 /// Spawn a single-connection HTTP/1 test server.
 async fn spawn_once<F, Fut>(handler: F) -> (u16, tokio::task::JoinHandle<()>)
@@ -46,12 +46,30 @@ where
 }
 
 /// @covers: plain_http_egress
-#[test]
-fn test_reqwest_middleware_client_builder_constructs_passthrough_client() {
-    // Directly exercise reqwest_middleware::ClientBuilder to verify the dep is wired.
+#[tokio::test]
+async fn test_reqwest_middleware_client_builder_constructs_passthrough_client() {
+    // A passthrough `ClientWithMiddleware` (no layers) must complete a real
+    // request end-to-end against a loopback server — proving the dep is wired
+    // and the empty middleware stack is transparent.
+    let (port, _jh) =
+        spawn_once(|_req| async { Response::new(Full::new(Bytes::from("pong"))) }).await;
     let inner = reqwest::Client::new();
-    let _client = ClientBuilder::new(inner).build();
-    // If this compiles and runs, the dep is present and functional.
+    let client = ClientBuilder::new(inner).build();
+    let resp = client
+        .get(format!("http://127.0.0.1:{port}/"))
+        .send()
+        .await
+        .expect("passthrough client must complete the request");
+    assert_eq!(
+        resp.status().as_u16(),
+        200,
+        "passthrough ClientWithMiddleware must return the server's 200 response"
+    );
+    assert_eq!(
+        resp.text().await.expect("body must decode"),
+        "pong",
+        "passthrough client must return the server's body verbatim"
+    );
 }
 
 /// @covers: plain_http_egress

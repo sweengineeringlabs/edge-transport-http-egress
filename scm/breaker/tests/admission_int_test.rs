@@ -1,7 +1,7 @@
 //! Integration tests for `api/types/breaker/admission.rs`.
 //! @covers: src/api/types/breaker/admission.rs
 
-use swe_edge_egress_breaker::Admission;
+use edge_transport_http_egress_breaker::Admission;
 
 /// @covers: Admission
 /// Confirms `Proceed` and `RejectOpen` are distinct variants — the breaker
@@ -17,17 +17,17 @@ fn breaker_enum_admission_proceed_ne_reject_open_int_test() {
 
 /// @covers: Admission
 /// Confirms `Admission` supports `Copy` semantics required for use inside
-/// the mutex-protected state machine.
+/// the mutex-protected state machine: using the original after copying it
+/// into another binding must not be a move error, and both must still
+/// compare equal to the same variant.
 #[test]
 fn breaker_enum_admission_is_copy_int_test() {
-    fn require_copy<T: Copy>(_: T) {}
-    require_copy(Admission::Proceed);
-    require_copy(Admission::RejectOpen);
-}
-
-/// @covers: Admission
-/// Confirms `Admission::Proceed` is the default path (equality with itself).
-#[test]
-fn breaker_enum_admission_proceed_equals_itself_int_test() {
-    assert_eq!(Admission::Proceed, Admission::Proceed);
+    let original = Admission::Proceed;
+    let copy = original;
+    assert_eq!(
+        original,
+        Admission::Proceed,
+        "original must remain usable after the copy (would be a move error otherwise)"
+    );
+    assert_eq!(copy, original, "the copy must equal the original");
 }

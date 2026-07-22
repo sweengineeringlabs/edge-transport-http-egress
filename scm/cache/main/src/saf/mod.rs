@@ -1,18 +1,9 @@
 //! SAF layer — public facade.
 
-mod cache;
-mod http_cache_svc;
-mod processor_svc;
-mod request_snapshot_svc;
-mod ttl_decision_svc;
-mod validator_svc;
-mod vary_directive_svc;
+mod http_cache_svc_factory;
+mod processor_svc_factory;
+mod validator_svc_factory;
 
-pub(crate) use crate::api::types::CachedEntry;
-pub(crate) use crate::api::types::CachedEntryBuilder;
-pub(crate) use crate::api::types::HttpCacheSvc;
-
-pub(crate) use crate::api::error::CacheError;
-pub(crate) use crate::api::error::Error;
-pub(crate) use crate::api::types::cache_config::CacheConfig;
-pub(crate) use crate::api::types::cache_layer::CacheLayer;
+pub use http_cache_svc_factory::HttpCacheSvcFactory;
+pub use processor_svc_factory::ProcessorSvcFactory;
+pub use validator_svc_factory::ValidatorSvcFactory;

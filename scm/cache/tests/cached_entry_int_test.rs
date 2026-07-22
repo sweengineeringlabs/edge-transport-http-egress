@@ -8,13 +8,13 @@
 //! - A layer built with a **positive** TTL must accept cacheable configs.
 //! - A layer built with a **zero** TTL (disabling the fallback) must also
 //!   build cleanly — the "do not cache when no Cache-Control and TTL = 0"
-//!   behaviour is documented on `CacheLayer::ttl_for`.
+//!   behaviour is documented on `MiddlewareHttpCache::ttl_for`.
 //! - The per-entry vary-header snapshot logic is indirectly verified by
 //!   confirming that the layer can be built with configs that would exercise
 //!   different Vary paths at runtime.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::{CacheConfig, CacheLayer, HttpCacheSvc};
+use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor, MiddlewareHttpCache};
 
 // ---------------------------------------------------------------------------
 // TTL-positive layers (entries will be stored)
@@ -30,7 +30,8 @@ fn test_cached_entry_positive_ttl_layer_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    let layer: CacheLayer = HttpCacheSvc::build_cache_layer(cfg).expect("build must succeed");
+    let layer: MiddlewareHttpCache =
+        HttpCacheSvcProcessor::build_cache_layer(cfg).expect("build must succeed");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("300"),
@@ -48,7 +49,7 @@ fn test_cached_entry_short_ttl_layer_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("TTL=1 must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("TTL=1 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -66,7 +67,7 @@ fn test_cached_entry_zero_ttl_fallback_layer_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("TTL=0 must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("TTL=0 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -83,7 +84,8 @@ fn test_cached_entry_large_capacity_layer_builds() {
         respect_cache_control: true,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("max_entries=500_000 must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
+        .expect("max_entries=500_000 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -100,7 +102,7 @@ fn test_cached_entry_cache_private_true_layer_builds() {
         respect_cache_control: true,
         cache_private: true,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("cache_private=true must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg).expect("cache_private=true must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -117,5 +119,6 @@ fn test_cached_entry_ignore_cache_control_layer_builds() {
         respect_cache_control: false,
         cache_private: false,
     };
-    HttpCacheSvc::build_cache_layer(cfg).expect("respect_cache_control=false must not be rejected");
+    HttpCacheSvcProcessor::build_cache_layer(cfg)
+        .expect("respect_cache_control=false must not be rejected");
 }

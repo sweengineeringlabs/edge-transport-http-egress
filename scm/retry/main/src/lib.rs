@@ -1,4 +1,4 @@
-//! swe_edge_egress_retry — Opinionated retry middleware (wraps reqwest-retry with SWE defaults).
+//! edge_transport_http_egress_retry — Opinionated retry middleware (wraps reqwest-retry with SWE defaults).
 //!
 
 #![warn(missing_docs)]
@@ -10,4 +10,9 @@ mod api;
 mod core;
 mod saf;
 
-pub use crate::api::{HttpRetrySvc, Processor, RetryConfig, RetryError, Validator};
+pub use crate::api::{
+    ApplicationConfigBuilder, DecorateRequest, DecorateResponse, HttpRetrySvc, Processor,
+    ProcessorRequest, ProcessorResponse, RetryConfig, RetryConfigBuilder, RetryError, RetryLayer,
+    ValidationRequest, Validator,
+};
+pub use crate::saf::{ProcessorFactory, ValidatorFactory};

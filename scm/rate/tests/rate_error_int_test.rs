@@ -1,6 +1,6 @@
-//! Integration tests for `rate_error` in `swe-edge-egress-rate`.
+//! Integration tests for `rate_error` in `edge-transport-http-egress-rate`.
 
-use swe_edge_egress_rate::RateError;
+use edge_transport_http_egress_rate::RateError;
 
 /// @covers: RateError
 #[test]

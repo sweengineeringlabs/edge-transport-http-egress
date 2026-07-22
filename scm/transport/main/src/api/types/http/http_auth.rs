@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpAuth;
+/// use edge_transport_http_egress_transport::HttpAuth;
 ///
 /// let bearer = HttpAuth::bearer("my-token");
 /// assert!(matches!(bearer, HttpAuth::Bearer { .. }));
@@ -54,29 +54,4 @@ pub enum HttpAuth {
         /// Credential value.
         key: String,
     },
-}
-
-impl HttpAuth {
-    /// Construct a `Bearer` variant.
-    pub fn bearer(token: impl Into<String>) -> Self {
-        HttpAuth::Bearer {
-            token: token.into(),
-        }
-    }
-
-    /// Construct a `Basic` variant.
-    pub fn basic(username: impl Into<String>, password: impl Into<String>) -> Self {
-        HttpAuth::Basic {
-            username: username.into(),
-            password: password.into(),
-        }
-    }
-
-    /// Construct an `ApiKey` variant.
-    pub fn api_key(header: impl Into<String>, key: impl Into<String>) -> Self {
-        HttpAuth::ApiKey {
-            header: header.into(),
-            key: key.into(),
-        }
-    }
 }

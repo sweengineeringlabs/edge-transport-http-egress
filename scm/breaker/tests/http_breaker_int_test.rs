@@ -1,43 +1,49 @@
-//! Integration tests for `api/http_breaker.rs` — the `HttpBreaker` trait.
-//!
-//! `HttpBreaker` is `pub(crate)`.  From outside the crate, we verify its
-//! downstream effect: `BreakerLayer` must satisfy the trait's `Send + Sync`
-//! supertrait bounds so it can be installed in a `reqwest_middleware::ClientBuilder`.
+//! Integration tests for `BreakerLayerBreakerMetrics`'s usability as constructed by the
+//! public builder API.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerLayerBreakerMetrics, DescribeRequest, HttpBreakerSvcProcessor,
+    ProcessorFactory,
+};
 
 // ---------------------------------------------------------------------------
-// Send + Sync — compile-time proof that HttpBreaker's supertrait bounds hold
+// create_config_builder / get_failure_threshold / ProcessorFactory::create
 // ---------------------------------------------------------------------------
 
-/// `BreakerLayer` must be `Send`.
+/// @covers: create_config_builder
 #[test]
-fn test_http_breaker_bound_send_satisfied_by_breaker_layer() {
-    fn require_send<T: Send>() {}
-    require_send::<BreakerLayer>();
+fn test_create_config_builder_seeds_crate_name() {
+    let builder = HttpBreakerSvcProcessor::create_config_builder();
+    assert_eq!(builder.name(), "edge-transport-http-egress-breaker");
 }
 
-/// `BreakerLayer` must be `Sync`.
+/// @covers: get_failure_threshold
 #[test]
-fn test_http_breaker_bound_sync_satisfied_by_breaker_layer() {
-    fn require_sync<T: Sync>() {}
-    require_sync::<BreakerLayer>();
+fn test_get_failure_threshold_reads_configured_value() {
+    let cfg = BreakerConfig {
+        failure_threshold: 9,
+        ..BreakerConfig::default()
+    };
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build ok");
+    assert_eq!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 9);
 }
 
-/// Combined `Send + Sync` requirement.
+/// @covers: create
 #[test]
-fn test_http_breaker_send_and_sync_combined_bound_satisfied() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<BreakerLayer>();
+fn test_processor_factory_create_produces_a_working_processor() {
+    let processor = ProcessorFactory::create();
+    let resp = processor.describe(DescribeRequest).expect("infallible");
+    assert_eq!(resp.value, "http-breaker");
 }
 
 // ---------------------------------------------------------------------------
 // Constructed layer is usable
 // ---------------------------------------------------------------------------
 
-/// A `BreakerLayer` produced by the builder must be ready to use — confirmed
+/// @covers: build_breaker_layer
+/// A `BreakerLayerBreakerMetrics` produced by the builder must be ready to use — confirmed
 /// by building and formatting it without panic.
 #[test]
 fn test_breaker_layer_built_from_builder_is_usable() {
@@ -47,23 +53,34 @@ fn test_breaker_layer_built_from_builder_is_usable() {
         reset_after_successes: 2,
         failure_statuses: vec![500, 503],
     };
-    let layer: BreakerLayer =
-        HttpBreakerSvc::build_breaker_layer(cfg).expect("build() must succeed");
+    let layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build() must succeed");
     let dbg = format!("{layer:?}");
     assert!(
         !dbg.is_empty(),
-        "BreakerLayer Debug must produce non-empty output"
+        "BreakerLayerBreakerMetrics Debug must produce non-empty output"
     );
 }
 
 // ---------------------------------------------------------------------------
-// Arc<BreakerLayer> is also Send + Sync
+// Arc<BreakerLayerBreakerMetrics> is usable from another thread
 // ---------------------------------------------------------------------------
 
-/// `Arc<BreakerLayer>` must be `Send + Sync` — reqwest-middleware wraps
-/// middleware in `Arc` internally.
-#[test]
-fn test_arc_breaker_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<std::sync::Arc<BreakerLayer>>();
+/// `Arc<BreakerLayerBreakerMetrics>` — the shape reqwest-middleware wraps middleware in
+/// internally — must be genuinely shareable across a real thread boundary,
+/// not just satisfy a compile-time bound.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn test_arc_breaker_layer_is_usable_from_another_thread() {
+    let layer = std::sync::Arc::new(
+        HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
+            .expect("build() must succeed"),
+    );
+    let shared = std::sync::Arc::clone(&layer);
+    let dbg_on_other_thread = tokio::spawn(async move { format!("{shared:?}") })
+        .await
+        .expect("spawned task must not panic");
+    assert!(
+        dbg_on_other_thread.contains("BreakerLayerBreakerMetrics"),
+        "Arc-shared layer used on another thread must produce real Debug output: {dbg_on_other_thread}"
+    );
 }

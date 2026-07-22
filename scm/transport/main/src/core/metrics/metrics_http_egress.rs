@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use std::time::Instant;
 
-use futures::future::BoxFuture;
+use async_trait::async_trait;
 use swe_observ_metrics::MetricsProvider;
 
-use crate::api::traits::http::http_egress::HttpEgress;
-use crate::api::types::HttpEgressResult;
-use crate::api::types::{HttpRequest, HttpResponse, HttpStreamResponse};
+use crate::api::{
+    ConfigRequest, ConfigResponse, HealthCheckRequest, HttpEgress, HttpEgressResult, HttpRequest,
+    HttpResponse, HttpStreamResponse,
+};
 
 /// Wraps any [`HttpEgress`]; records per-call latency, request count, and
 /// error count using the supplied [`MetricsProvider`].
@@ -21,60 +22,59 @@ impl MetricsHttpEgress {
     }
 }
 
+#[async_trait]
 impl HttpEgress for MetricsHttpEgress {
-    fn send(&self, request: HttpRequest) -> BoxFuture<'_, HttpEgressResult<HttpResponse>> {
-        let provider = Arc::clone(&self.provider);
+    async fn send(&self, request: HttpRequest) -> HttpEgressResult<HttpResponse> {
         let method = request.method.to_string();
-        let fut = self.inner.send(request);
-        Box::pin(async move {
-            let start = Instant::now();
-            let result = fut.await;
-            let labels = &[("method", method.as_str())];
-            provider.record_counter("edge_egress_requests_total", 1.0, labels);
-            provider.record_histogram(
-                "edge_egress_latency_us",
-                start.elapsed().as_micros() as f64,
-                labels,
-            );
-            if result.is_err() {
-                provider.record_counter("edge_egress_errors_total", 1.0, labels);
-            }
-            result
-        })
+        let start = Instant::now();
+        let result = self.inner.send(request).await;
+        let labels = &[("method", method.as_str())];
+        self.provider
+            .record_counter("edge_egress_requests_total", 1.0, labels);
+        self.provider.record_histogram(
+            "edge_egress_latency_us",
+            start.elapsed().as_micros() as f64,
+            labels,
+        );
+        if result.is_err() {
+            self.provider
+                .record_counter("edge_egress_errors_total", 1.0, labels);
+        }
+        result
     }
 
-    fn send_stream(
-        &self,
-        request: HttpRequest,
-    ) -> BoxFuture<'_, HttpEgressResult<HttpStreamResponse>> {
-        let provider = Arc::clone(&self.provider);
+    async fn send_stream(&self, request: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {
         let method = request.method.to_string();
-        let fut = self.inner.send_stream(request);
-        Box::pin(async move {
-            let start = Instant::now();
-            let result = fut.await;
-            let labels = &[("method", method.as_str())];
-            provider.record_counter("edge_egress_requests_total", 1.0, labels);
-            provider.record_histogram(
-                "edge_egress_latency_us",
-                start.elapsed().as_micros() as f64,
-                labels,
-            );
-            if result.is_err() {
-                provider.record_counter("edge_egress_errors_total", 1.0, labels);
-            }
-            result
-        })
+        let start = Instant::now();
+        let result = self.inner.send_stream(request).await;
+        let labels = &[("method", method.as_str())];
+        self.provider
+            .record_counter("edge_egress_requests_total", 1.0, labels);
+        self.provider.record_histogram(
+            "edge_egress_latency_us",
+            start.elapsed().as_micros() as f64,
+            labels,
+        );
+        if result.is_err() {
+            self.provider
+                .record_counter("edge_egress_errors_total", 1.0, labels);
+        }
+        result
     }
 
-    fn health_check(&self) -> BoxFuture<'_, HttpEgressResult<()>> {
-        self.inner.health_check()
+    async fn health_check(&self, request: HealthCheckRequest) -> HttpEgressResult<()> {
+        self.inner.health_check(request).await
+    }
+
+    fn config(&self, request: ConfigRequest) -> HttpEgressResult<ConfigResponse> {
+        self.inner.config(request)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::{HttpByteStream, HttpConfig, HttpEgressError};
     use swe_observ_metrics::create_local_metrics_backend;
 
     fn provider() -> Arc<dyn MetricsProvider> {
@@ -82,37 +82,30 @@ mod tests {
     }
 
     struct MetricsNoopEgress;
+    #[async_trait]
     impl HttpEgress for MetricsNoopEgress {
-        fn send(&self, _: HttpRequest) -> BoxFuture<'_, HttpEgressResult<HttpResponse>> {
-            Box::pin(async {
-                Ok(HttpResponse {
-                    status: 200,
-                    headers: Default::default(),
-                    body: vec![],
-                })
+        async fn send(&self, _: HttpRequest) -> HttpEgressResult<HttpResponse> {
+            Ok(HttpResponse {
+                status: 200,
+                headers: Default::default(),
+                body: vec![],
             })
         }
-        fn send_stream(
-            &self,
-            _: HttpRequest,
-        ) -> BoxFuture<'_, HttpEgressResult<HttpStreamResponse>> {
-            Box::pin(async {
-                let body: futures::stream::BoxStream<
-                    'static,
-                    Result<
-                        bytes::Bytes,
-                        crate::api::error::http::http_egress_error::HttpEgressError,
-                    >,
-                > = Box::pin(futures::stream::empty());
-                Ok(HttpStreamResponse {
-                    status: 200,
-                    headers: Default::default(),
-                    body,
-                })
+        async fn send_stream(&self, _: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {
+            let body = HttpByteStream::new(futures::stream::empty());
+            Ok(HttpStreamResponse {
+                status: 200,
+                headers: Default::default(),
+                body,
             })
         }
-        fn health_check(&self) -> BoxFuture<'_, HttpEgressResult<()>> {
-            Box::pin(async { Ok(()) })
+        async fn health_check(&self, _request: HealthCheckRequest) -> HttpEgressResult<()> {
+            Ok(())
+        }
+        fn config(&self, _request: ConfigRequest) -> HttpEgressResult<ConfigResponse> {
+            Ok(ConfigResponse {
+                config: HttpConfig::default(),
+            })
         }
     }
 
@@ -157,20 +150,22 @@ mod tests {
 
     #[tokio::test]
     async fn test_send_records_egress_errors_total_on_failure() {
-        use crate::api::error::http::http_egress_error::HttpEgressError;
         struct MetricsFailEgress;
+        #[async_trait]
         impl HttpEgress for MetricsFailEgress {
-            fn send(&self, _: HttpRequest) -> BoxFuture<'_, HttpEgressResult<HttpResponse>> {
-                Box::pin(async { Err(HttpEgressError::ConnectionFailed("refused".into())) })
+            async fn send(&self, _: HttpRequest) -> HttpEgressResult<HttpResponse> {
+                Err(HttpEgressError::ConnectionFailed("refused".into()))
             }
-            fn send_stream(
-                &self,
-                _: HttpRequest,
-            ) -> BoxFuture<'_, HttpEgressResult<HttpStreamResponse>> {
-                Box::pin(async { Err(HttpEgressError::ConnectionFailed("refused".into())) })
+            async fn send_stream(&self, _: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {
+                Err(HttpEgressError::ConnectionFailed("refused".into()))
             }
-            fn health_check(&self) -> BoxFuture<'_, HttpEgressResult<()>> {
-                Box::pin(async { Ok(()) })
+            async fn health_check(&self, _request: HealthCheckRequest) -> HttpEgressResult<()> {
+                Ok(())
+            }
+            fn config(&self, _request: ConfigRequest) -> HttpEgressResult<ConfigResponse> {
+                Ok(ConfigResponse {
+                    config: HttpConfig::default(),
+                })
             }
         }
         let p = provider();

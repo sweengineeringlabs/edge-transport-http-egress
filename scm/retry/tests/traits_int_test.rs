@@ -1,12 +1,12 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for `swe_edge_egress_retry` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_retry` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` defines the `pub(crate)` type alias `HttpRetryTrait`
 //! for `dyn HttpRetry`. The relevant integration-level contract is that the
 //! SAF re-export surface is complete and `RetryLayer` satisfies all trait
 //! bounds required for use inside `reqwest_middleware::ClientBuilder`.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{DecorateRequest, HttpRetrySvc, Processor, RetryConfig};
 
 fn make_cfg() -> RetryConfig {
     RetryConfig {
@@ -28,8 +28,17 @@ fn make_cfg() -> RetryConfig {
 /// attached to a `reqwest_middleware::ClientBuilder`.
 #[test]
 fn test_retry_layer_implements_reqwest_middleware_trait() {
-    fn assert_middleware<T: reqwest_middleware::Middleware>() {}
-    assert_middleware::<RetryLayer>();
+    // Coerce to `&dyn Middleware` (compiles only with the impl) and assert
+    // the concrete layer keeps its config.
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: make_cfg() })
+        .expect("build")
+        .layer;
+    let _as_dyn: &dyn reqwest_middleware::Middleware = &layer;
+    assert!(
+        format!("{layer:?}").contains("max_retries: 2"),
+        "layer usable as Middleware must retain its config"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -41,10 +50,21 @@ fn test_retry_layer_implements_reqwest_middleware_trait() {
 #[test]
 fn test_retry_layer_is_arc_send_sync() {
     use std::sync::Arc;
-    fn assert_arc_safe<T: Send + Sync + 'static>() {
-        let _ = std::mem::size_of::<Arc<T>>();
-    }
-    assert_arc_safe::<RetryLayer>();
+    // Share the layer across a thread boundary via Arc (requires Send + Sync).
+    let layer = Arc::new(
+        HttpRetrySvc
+            .decorate(DecorateRequest { config: make_cfg() })
+            .expect("build")
+            .layer,
+    );
+    let shared = Arc::clone(&layer);
+    let dbg = std::thread::spawn(move || format!("{shared:?}"))
+        .join()
+        .expect("thread must not panic");
+    assert!(
+        dbg.contains("max_retries: 2"),
+        "Arc-shared layer must retain config across threads; got: {dbg}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -56,7 +76,10 @@ fn test_retry_layer_is_arc_send_sync() {
 /// panic. No real HTTP call is made.
 #[test]
 fn test_retry_layer_attaches_to_reqwest_middleware_client_builder_via_trait_chain() {
-    let layer = HttpRetrySvc::build_retry_layer(make_cfg()).expect("build must succeed");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: make_cfg() })
+        .expect("build must succeed")
+        .layer;
     let _client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
         .with(layer)
         .build();
@@ -71,6 +94,9 @@ fn test_retry_layer_attaches_to_reqwest_middleware_client_builder_via_trait_chai
 #[test]
 fn test_retry_layer_usable_as_arc_dyn_middleware() {
     use std::sync::Arc;
-    let layer = HttpRetrySvc::build_retry_layer(make_cfg()).expect("build");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: make_cfg() })
+        .expect("build")
+        .layer;
     let _arc: Arc<dyn reqwest_middleware::Middleware> = Arc::new(layer);
 }

@@ -1,10 +1,10 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for `swe_edge_egress_retry::RetryError`.
+//! Integration tests for `edge_transport_http_egress_retry::RetryError`.
 //!
 //! Covers: `RetryRetryError::ParseFailed` — Display messages
 //! must be actionable: name the crate, embed the payload, be non-empty.
 
-use swe_edge_egress_retry::RetryError;
+use edge_transport_http_egress_retry::RetryError;
 
 // ---------------------------------------------------------------------------
 // RetryError::ParseFailed
@@ -16,7 +16,7 @@ fn test_parse_failed_display_names_the_crate() {
     let err = RetryError::ParseFailed("unexpected field `max_retry`".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_retry"),
+        msg.contains("edge_transport_http_egress_retry"),
         "ParseFailed Display must name the crate; got: {msg}"
     );
 }
@@ -43,7 +43,12 @@ fn test_parse_failed_display_is_non_empty() {
 /// `ParseFailed` must be `Debug`-printable without panicking.
 #[test]
 fn test_parse_failed_is_debug_printable() {
-    let _ = format!("{:?}", RetryError::ParseFailed("bad config".to_string()));
+    let dbg = format!("{:?}", RetryError::ParseFailed("bad config".to_string()));
+    // Debug must name the variant and embed the payload.
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains("bad config"),
+        "Debug must name the variant and echo the payload; got: {dbg}"
+    );
 }
 
 /// `ParseFailed` must be usable as a `std::error::Error` trait object.

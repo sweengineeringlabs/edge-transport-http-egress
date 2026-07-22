@@ -5,7 +5,7 @@
 //! available.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cache::CacheError;
+use edge_transport_http_egress_cache::CacheError;
 
 // ---------------------------------------------------------------------------
 // CacheError::ParseFailed
@@ -16,7 +16,13 @@ use swe_edge_egress_cache::CacheError;
 /// fails to compile.
 #[test]
 fn test_error_parse_failed_is_publicly_constructable() {
-    let _err = CacheError::ParseFailed("any reason".to_string());
+    let err = CacheError::ParseFailed("any reason".to_string());
+    // Prove the variant genuinely carries its payload through Display, not
+    // just that the constructor exists.
+    assert!(
+        err.to_string().contains("any reason"),
+        "ParseFailed must retain its reason payload; got: {err}"
+    );
 }
 
 /// The `Display` output for `ParseFailed` must contain the crate name so an
@@ -26,7 +32,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = CacheError::ParseFailed("bad field".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_cache"),
+        msg.contains("edge_transport_http_egress_cache"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }
@@ -64,5 +70,9 @@ fn test_error_parse_failed_with_empty_reason_display_is_non_empty() {
 #[test]
 fn test_error_variants_implement_debug() {
     let parse_err = CacheError::ParseFailed("x".to_string());
-    let _ = format!("{parse_err:?}");
+    let dbg = format!("{parse_err:?}");
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains('x'),
+        "Debug must name the variant and include its payload; got: {dbg}"
+    );
 }

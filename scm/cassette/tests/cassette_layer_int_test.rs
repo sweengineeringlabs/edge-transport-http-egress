@@ -5,7 +5,7 @@
 //! path derivation from `cassette_dir` + cassette name.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_cfg(dir: &str, mode: &str) -> CassetteConfig {
     CassetteConfig {
@@ -85,18 +85,44 @@ fn test_two_layers_with_different_names_have_different_paths() {
 // CassetteLayer: Send + Sync bounds
 // ---------------------------------------------------------------------------
 
-/// `CassetteLayer` must be `Send + Sync` to be shared across async task
-/// boundaries inside a `reqwest_middleware::ClientWithMiddleware`.
+/// `CassetteLayer` must be `Send` — provable by moving an owned layer into
+/// another OS thread and reading it there (a non-`Send` type would not compile).
 #[test]
 fn test_cassette_layer_is_send() {
-    fn assert_send<T: Send>() {}
-    assert_send::<CassetteLayer>();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let dir = tmpdir.path().to_str().unwrap();
+    let layer: CassetteLayer =
+        HttpCassetteSvc::build_cassette_layer(make_cfg(dir, "auto"), "is_send_move")
+            .expect("build must succeed");
+    let dbg = std::thread::spawn(move || format!("{layer:?}"))
+        .join()
+        .expect("thread owning the moved layer must not panic");
+    assert!(
+        dbg.contains("is_send_move"),
+        "moved layer must retain its cassette name: {dbg}"
+    );
 }
 
+/// `CassetteLayer` must be `Sync` — provable by sharing a reference to it across
+/// an OS thread (a non-`Sync` type would not compile).
 #[test]
 fn test_cassette_layer_is_sync() {
-    fn assert_sync<T: Sync>() {}
-    assert_sync::<CassetteLayer>();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let dir = tmpdir.path().to_str().unwrap();
+    let layer: CassetteLayer =
+        HttpCassetteSvc::build_cassette_layer(make_cfg(dir, "auto"), "is_sync_share")
+            .expect("build must succeed");
+    std::thread::scope(|s| {
+        let borrowed = &layer;
+        let dbg = s
+            .spawn(move || format!("{borrowed:?}"))
+            .join()
+            .expect("thread sharing &layer must not panic");
+        assert!(
+            dbg.contains("is_sync_share"),
+            "shared layer must retain its cassette name: {dbg}"
+        );
+    });
 }
 
 // ---------------------------------------------------------------------------

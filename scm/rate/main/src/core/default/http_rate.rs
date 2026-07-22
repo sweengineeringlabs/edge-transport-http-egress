@@ -1,45 +1,42 @@
-//! Default impl of [`Processor`](crate::api::traits::Processor).
+//! `impl Processor for HttpRateSvcProcessor` — this crate's `Processor`
+//! identity, plus its factory-method surface.
 //!
-//! Holds a resolved [`RateConfig`](crate::api::types::RateConfig)
-//! and answers `describe()`.
+//! `HttpRateSvcProcessor` is otherwise a static factory namespace (see
+//! `saf/`); this impl gives it a genuine role as a trait implementor,
+//! matching the `Processor` contract declared in `api/`.
 
-use crate::api::traits::Processor;
-use crate::api::traits::Validator;
-use crate::api::types::RateConfig;
+use crate::api::{
+    ConfigValidationRequest, DescribeRequest, DescribeResponse, HttpRateSvcProcessor, Processor,
+    RateConfig, RateError, RateLayerRateMetrics, Validator,
+};
+use crate::core::rate::default_validator::DefaultValidator;
 
-/// Default `Processor` implementation. `pub(crate)` — consumers
-/// never touch this type directly; they go through `saf/`.
-#[derive(Debug)]
-pub(crate) struct DefaultHttpRate {
-    config: RateConfig,
-}
-
-impl DefaultHttpRate {
-    /// Construct from a resolved config.
-    pub(crate) fn new(config: RateConfig) -> Self {
-        Self { config }
+impl Processor for HttpRateSvcProcessor {
+    fn describe(&self, _request: DescribeRequest) -> Result<DescribeResponse, RateError> {
+        Ok(DescribeResponse {
+            value: "http-rate".to_string(),
+        })
     }
 }
 
-impl Processor for DefaultHttpRate {
-    fn describe(&self) -> &'static str {
-        env!("CARGO_PKG_NAME")
+impl HttpRateSvcProcessor {
+    /// Return a config builder pre-seeded with this crate's name and version.
+    pub fn create_config_builder() -> swe_edge_configbuilder::ConfigBuilderImpl {
+        let mut b = swe_edge_configbuilder::ConfigBuilderImpl::new();
+        b = b.with_name(env!("CARGO_PKG_NAME"));
+        b = b.with_version(env!("CARGO_PKG_VERSION"));
+        b
     }
-}
 
-impl Validator for DefaultHttpRate {
-    fn validate(&self) -> Result<(), String> {
-        if self.config.tokens_per_second == 0 {
-            return Err(
-                "tokens_per_second must be >= 1; a rate of 0 would block all requests".to_string(),
-            );
-        }
-        if self.config.burst_capacity == 0 {
-            return Err(
-                "burst_capacity must be >= 1; a burst of 0 would deny every request".to_string(),
-            );
-        }
-        Ok(())
+    /// Validate a [`RateConfig`] and build a [`RateLayerRateMetrics`] from it.
+    ///
+    /// Returns `Err` if the config fails validation (e.g. zero token rate).
+    pub fn build_rate_layer(config: RateConfig) -> Result<RateLayerRateMetrics, RateError> {
+        DefaultValidator.validate(ConfigValidationRequest {
+            config: config.clone(),
+        })?;
+        let layer = RateLayerRateMetrics::new(config);
+        Ok(layer)
     }
 }
 
@@ -47,67 +44,40 @@ impl Validator for DefaultHttpRate {
 mod tests {
     use super::*;
 
-    /// @covers: new
-    #[test]
-    fn test_new_constructs_and_stores_config() {
-        let cfg = RateConfig::default();
-        let d = DefaultHttpRate::new(cfg);
-        let dbg = format!("{d:?}");
-        assert!(dbg.contains("DefaultHttpRate"), "debug output: {dbg}");
-    }
-
     /// @covers: describe
     #[test]
-    fn test_describe_returns_crate_name() {
-        let cfg = RateConfig::default();
-        let d = DefaultHttpRate::new(cfg);
-        assert_eq!(d.describe(), "swe-edge-egress-rate");
+    fn test_describe_returns_crate_label() {
+        let resp = HttpRateSvcProcessor
+            .describe(DescribeRequest)
+            .expect("describe is infallible");
+        assert_eq!(resp.value, "http-rate");
     }
 
-    /// @covers: validate
+    /// @covers: create_config_builder
     #[test]
-    fn test_validate_passes_for_valid_config() {
-        let cfg = RateConfig::default();
-        let d = DefaultHttpRate::new(cfg);
-        assert!(d.validate().is_ok(), "default config must validate");
+    fn test_create_config_builder_seeds_crate_name_inline() {
+        let builder = HttpRateSvcProcessor::create_config_builder();
+        assert_eq!(builder.name(), env!("CARGO_PKG_NAME"));
     }
 
-    /// @covers: validate
+    /// @covers: build_rate_layer
     #[test]
-    fn test_validate_fails_for_zero_tokens_per_second() {
-        let cfg = RateConfig {
+    fn test_build_rate_layer_succeeds_with_default_config_inline() {
+        HttpRateSvcProcessor::build_rate_layer(RateConfig::default())
+            .expect("default config must build");
+    }
+
+    /// @covers: build_rate_layer
+    #[test]
+    fn test_build_rate_layer_rejects_zero_rate_inline() {
+        let bad = RateConfig {
             tokens_per_second: 0,
             burst_capacity: 10,
             per_host: false,
         };
-        let d = DefaultHttpRate::new(cfg);
-        let result = d.validate();
         assert!(
-            result.is_err(),
-            "zero tokens_per_second must fail validation"
-        );
-        let msg = result.expect_err("expected error");
-        assert!(
-            msg.contains("tokens_per_second"),
-            "error must mention the failing field; got: {msg}"
-        );
-    }
-
-    /// @covers: validate
-    #[test]
-    fn test_validate_fails_for_zero_burst_capacity() {
-        let cfg = RateConfig {
-            tokens_per_second: 10,
-            burst_capacity: 0,
-            per_host: false,
-        };
-        let d = DefaultHttpRate::new(cfg);
-        let result = d.validate();
-        assert!(result.is_err(), "zero burst_capacity must fail validation");
-        let msg = result.expect_err("expected error");
-        assert!(
-            msg.contains("burst_capacity"),
-            "error must mention the failing field; got: {msg}"
+            HttpRateSvcProcessor::build_rate_layer(bad).is_err(),
+            "zero token rate must be rejected"
         );
     }
 }

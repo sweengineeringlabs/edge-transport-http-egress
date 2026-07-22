@@ -1,10 +1,9 @@
-//! `Processor` — primary processing contract for the rate middleware.
+//! `Processor` — primary trait for the rate crate.
 
-/// Primary processing contract. Every rate-limiter middleware unit
-/// produced by this crate implements this trait.
+use crate::api::{DescribeRequest, DescribeResponse, RateError};
+
+/// Primary trait for this crate (service_type = "processor").
 pub trait Processor: Send + Sync {
     /// Identify this processor in log / trace output.
-    ///
-    /// Returns the crate's canonical name (e.g. `"swe_edge_egress_rate"`).
-    fn describe(&self) -> &'static str;
+    fn describe(&self, request: DescribeRequest) -> Result<DescribeResponse, RateError>;
 }

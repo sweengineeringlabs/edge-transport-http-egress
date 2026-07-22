@@ -1,19 +1,9 @@
 //! SAF layer — public facade.
 
-mod cassette_svc;
-mod http_cassette_svc;
-mod interaction_svc;
-mod processor_svc;
-mod request_svc;
-mod response_svc;
-mod scrubber_svc;
-mod validator_svc;
+mod http_cassette_svc_factory;
+mod processor_svc_factory;
+mod validator_svc_factory;
 
-pub(crate) use crate::api::error::{CassetteError, Error};
-pub(crate) use crate::api::types::cassette::cassette_config::CassetteConfig;
-pub(crate) use crate::api::types::cassette::cassette_config_builder::CassetteConfigBuilder;
-pub(crate) use crate::api::types::cassette::cassette_layer::CassetteLayer;
-pub(crate) use crate::api::types::cassette::cassette_layer_builder::CassetteLayerBuilder;
-pub(crate) use crate::api::types::http_cassette_svc::HttpCassetteSvc;
-pub(crate) use crate::api::types::RecordedRequestTrait;
-pub(crate) use crate::api::types::RecordedResponseTrait;
+pub use http_cassette_svc_factory::HttpCassetteFactory;
+pub use processor_svc_factory::ProcessorFactory;
+pub use validator_svc_factory::ValidatorFactory;

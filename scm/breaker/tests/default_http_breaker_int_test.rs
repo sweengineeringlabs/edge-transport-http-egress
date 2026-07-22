@@ -1,20 +1,18 @@
-//! Integration tests for `core/default_http_breaker.rs`.
-//!
-//! `DefaultHttpBreaker` is `pub(crate)`.  Its observable effect is through the
-//! SAF `HttpBreakerSvc::build_breaker_layer()` function, which accepts a `BreakerConfig`.
+//! Integration tests for the SWE-default `BreakerConfig` baseline used by
+//! `HttpBreakerSvcProcessor::build_breaker_layer()`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
 
 // ---------------------------------------------------------------------------
 // SWE baseline — verify default config has production-safe values
 // ---------------------------------------------------------------------------
 
-/// `HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())` must succeed without error.
+/// `HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())` must succeed without error.
 #[test]
 fn test_default_http_breaker_swe_default_builder_succeeds() {
-    HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())
+    HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
         .expect("swe_default baseline must parse without error");
 }
 
@@ -40,10 +38,10 @@ fn test_default_http_breaker_swe_default_reset_after_successes_is_positive() {
     );
 }
 
-/// Building from the SWE default must produce a valid `BreakerLayer`.
+/// Building from the SWE default must produce a valid `BreakerLayerBreakerMetrics`.
 #[test]
 fn test_default_http_breaker_swe_default_builds_layer() {
-    HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())
+    HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
         .expect("build from swe_default must succeed");
 }
 

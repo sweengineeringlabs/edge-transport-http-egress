@@ -1,23 +1,23 @@
-//! Integration tests for `swe_edge_egress_cassette::CassetteError`.
+//! Integration tests for `edge_transport_http_egress_cassette::CassetteError`.
 //!
 //! Covers: `CassetteError::ParseFailed`, `CassetteError::NotImplemented` — Display messages
 //! must be actionable: name the crate, embed the payload, be non-empty.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::CassetteError;
+use edge_transport_http_egress_cassette::CassetteError;
 
 // ---------------------------------------------------------------------------
 // CassetteError::ParseFailed
 // ---------------------------------------------------------------------------
 
 /// `ParseFailed` display must name the crate so an operator can trace the
-/// error back to `swe_edge_egress_cassette` without reading source code.
+/// error back to `edge_transport_http_egress_cassette` without reading source code.
 #[test]
 fn test_parse_failed_display_names_the_crate() {
     let err = CassetteError::ParseFailed("unexpected key 'mode2'".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_cassette"),
+        msg.contains("edge_transport_http_egress_cassette"),
         "ParseFailed Display must name the crate; got: {msg}"
     );
 }
@@ -34,11 +34,16 @@ fn test_parse_failed_display_contains_supplied_reason() {
     );
 }
 
-/// `ParseFailed` must be `Debug`-printable without panicking.
+/// `ParseFailed` must be `Debug`-printable and the Debug output must name the
+/// variant and embed the payload, so logs pinpoint the failure.
 #[test]
 fn test_parse_failed_is_debug_printable() {
     let err = CassetteError::ParseFailed("bad config".to_string());
-    let _ = format!("{err:?}");
+    let dbg = format!("{err:?}");
+    assert!(
+        dbg.contains("ParseFailed") && dbg.contains("bad config"),
+        "Debug must name the variant and embed the payload; got: {dbg}"
+    );
 }
 
 /// `ParseFailed` must be displayable as a `std::error::Error` trait object,

@@ -1,6 +1,6 @@
-//! Integration tests for `create_config_builder` in `swe_edge_egress_cassette`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cassette`.
 
-use swe_edge_egress_cassette::HttpCassetteSvc;
+use edge_transport_http_egress_cassette::HttpCassetteSvc;
 
 /// @covers: HttpCassetteSvc::create_config_builder — dep coverage for swe-edge-configbuilder
 #[test]

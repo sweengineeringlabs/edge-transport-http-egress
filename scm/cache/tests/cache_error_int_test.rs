@@ -1,11 +1,16 @@
-//! Integration tests for `cache_error` in `swe-edge-egress-cache`.
+//! Integration tests for `cache_error` in `edge-transport-http-egress-cache`.
 
-use swe_edge_egress_cache::CacheError;
+use edge_transport_http_egress_cache::CacheError;
 
 /// @covers: CacheError
 #[test]
 fn test_cache_error_is_accessible() {
-    // Verify CacheError is part of the public API by instantiating a PhantomData
-    // marker — if the type is not exported this file will not compile.
-    let _exists = core::marker::PhantomData::<CacheError>;
+    // Construct a real variant and prove its Display carries the supplied
+    // reason verbatim — a stub that dropped the payload would fail this.
+    let err = CacheError::ParseFailed("missing field `max_entries`".to_string());
+    let msg = err.to_string();
+    assert!(
+        msg.contains("missing field `max_entries`"),
+        "CacheError::ParseFailed Display must echo the reason; got: {msg}"
+    );
 }

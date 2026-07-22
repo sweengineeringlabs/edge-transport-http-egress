@@ -1,10 +1,10 @@
 //! Minimal usage: build the cache layer with the default config.
 
 fn main() {
-    match swe_edge_egress_cache::HttpCacheSvc::build_cache_layer(
-        swe_edge_egress_cache::CacheConfig::default(),
+    match edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
+        edge_transport_http_egress_cache::CacheConfig::default(),
     ) {
-        Ok(_) => println!("swe_edge_egress_cache layer built"),
-        Err(e) => println!("swe_edge_egress_cache: {e}"),
+        Ok(_) => println!("edge_transport_http_egress_cache layer built"),
+        Err(e) => println!("edge_transport_http_egress_cache: {e}"),
     }
 }

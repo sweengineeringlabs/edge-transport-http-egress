@@ -1,7 +1,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Integration tests for `LoadbalancerConfig` TOML parsing.
 
-use swe_edge_egress_loadbalancer::{LoadbalancerConfig, Strategy};
+use edge_transport_http_egress_loadbalancer::{LoadbalancerConfig, Strategy};
 
 /// @covers: LoadbalancerConfig::from_toml — round-robin strategy
 #[test]

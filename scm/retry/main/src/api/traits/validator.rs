@@ -1,8 +1,14 @@
 //! `Validator` — configuration validation contract.
 
+use crate::api::RetryError;
+use crate::api::ValidationRequest;
+
 /// Configuration validation contract.
-#[expect(dead_code, reason = "SEA api/ interface anchor — intentionally unused")]
+///
+/// Implemented by [`DefaultValidator`](crate::api::RetryConfig) validators in
+/// `core/`. Returns [`RetryError::InvalidConfig`] when a policy field is out
+/// of range.
 pub trait Validator {
-    /// Validate the configuration.
-    fn validate(&self) -> Result<(), String>;
+    /// Validate the supplied retry policy.
+    fn validate(&self, req: ValidationRequest) -> Result<(), RetryError>;
 }

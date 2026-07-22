@@ -5,7 +5,7 @@
 //! `build_cassette_layer` and that field values are preserved without mutation.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 // ---------------------------------------------------------------------------
 // Struct construction — all public fields must be writable

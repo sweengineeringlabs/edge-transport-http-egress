@@ -1,4 +1,4 @@
-# swe-edge-egress-http
+# edge-transport-http-egress
 
 ## WHAT
 

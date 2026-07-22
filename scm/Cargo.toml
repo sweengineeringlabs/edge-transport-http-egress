@@ -1,15 +1,12 @@
 [workspace]
 resolver = "2"
 members  = [
-  "auth",
   "breaker",
   "cache",
   "cassette",
   "loadbalancer",
-  "oauth",
   "rate",
   "retry",
-  "tls",
   "transport",
 ]
 
@@ -19,7 +16,7 @@ edition      = "2021"
 license      = "MIT OR Apache-2.0"
 rust-version = "1.95"
 authors      = ["SWE Engineering Labs"]
-repository   = "https://github.com/sweengineeringlabs/edge-egress-http"
+repository   = "https://github.com/sweengineeringlabs/edge-transport-http-egress"
 
 [workspace.lints.rust]
 unsafe_code  = "deny"
@@ -28,59 +25,3 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"
-
-[workspace.dependencies]
-# ── domain contracts ──────────────────────────────────────────────────────────
-edge-domain            = { git = "https://github.com/sweengineeringlabs/edge-domain.git", tag = "v0.8.30", features = ["security"] }
-
-# ── security primitives ───────────────────────────────────────────────────────
-swe-edge-security      = { path = "../../security/scm/security" }
-
-# ── config ────────────────────────────────────────────────────────────────────
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
-swe-observ-metrics     = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
-
-# ── loadbalancer contract ─────────────────────────────────────────────────────
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
-
-# ── internal middleware ───────────────────────────────────────────────────────
-swe-edge-egress-http         = { package = "swe-edge-egress-http-transport", path = "transport" }
-swe-edge-egress-auth         = { path = "auth" }
-swe-edge-egress-breaker      = { path = "breaker" }
-swe-edge-egress-cache        = { path = "cache" }
-swe-edge-egress-cassette     = { path = "cassette" }
-swe-edge-egress-loadbalancer = { path = "loadbalancer" }
-swe-edge-egress-oauth        = { path = "oauth" }
-swe-edge-egress-rate         = { path = "rate" }
-swe-edge-egress-retry        = { path = "retry" }
-swe-edge-egress-tls          = { path = "tls" }
-
-# ── HTTP client stack ─────────────────────────────────────────────────────────
-reqwest            = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
-reqwest-middleware = { version = "0.3", features = ["json", "multipart"] }
-http               = "1"
-moka               = { version = "0.12", features = ["future"] }
-
-# ── Auth / TLS crypto ─────────────────────────────────────────────────────────
-secrecy          = "0.10"
-sha2             = "0.10"
-hmac             = "0.12"
-hex              = "0.4"
-time             = { version = "0.3", features = ["formatting", "macros"] }
-percent-encoding = "2.3"
-base64           = "0.22"
-
-# ── Common ────────────────────────────────────────────────────────────────────
-anyhow      = "1"
-async-trait = "0.1"
-bytes       = "1"
-chrono      = { version = "0.4", features = ["serde"] }
-futures     = "0.3"
-parking_lot = "0.12"
-serde       = { version = "1.0", features = ["derive"] }
-serde_json  = "1.0"
-serde-saphyr = "0.0.27"
-thiserror   = "2"
-tokio       = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
-toml        = "0.8"
-tracing     = { version = "0.1", default-features = false }

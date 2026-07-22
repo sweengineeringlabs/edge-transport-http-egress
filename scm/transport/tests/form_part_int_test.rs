@@ -1,6 +1,8 @@
 //! Integration tests for `FormPart`.
 
-use swe_edge_egress_http_transport::FormPart;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_transport::FormPart;
 
 #[test]
 fn test_form_part_struct_stores_name_and_data() {

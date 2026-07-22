@@ -1,7 +1,6 @@
 //! HTTP method enum.
 
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// An HTTP request method.
 ///
@@ -12,7 +11,7 @@ use std::fmt;
 /// # Examples
 ///
 /// ```rust
-/// use swe_edge_egress_http_transport::HttpMethod;
+/// use edge_transport_http_egress_transport::HttpMethod;
 ///
 /// assert_eq!(HttpMethod::Get.to_string(), "GET");
 /// assert_eq!(HttpMethod::Post.to_string(), "POST");
@@ -36,18 +35,4 @@ pub enum HttpMethod {
     Head,
     /// HTTP OPTIONS.
     Options,
-}
-
-impl fmt::Display for HttpMethod {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            HttpMethod::Get => write!(f, "GET"),
-            HttpMethod::Post => write!(f, "POST"),
-            HttpMethod::Put => write!(f, "PUT"),
-            HttpMethod::Patch => write!(f, "PATCH"),
-            HttpMethod::Delete => write!(f, "DELETE"),
-            HttpMethod::Head => write!(f, "HEAD"),
-            HttpMethod::Options => write!(f, "OPTIONS"),
-        }
-    }
 }

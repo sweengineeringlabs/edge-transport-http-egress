@@ -1,10 +1,12 @@
 //! Integration tests for the `build_breaker_layer` SAF entry point.
 //!
-//! Covers: `build_breaker_layer`, `BreakerConfig` fields, `BreakerLayer` construction.
+//! Covers: `build_breaker_layer`, `BreakerConfig` fields, `BreakerLayerBreakerMetrics` construction.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerError, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerError, BreakerLayerBreakerMetrics, HttpBreakerSvcProcessor,
+};
 
 // ---------------------------------------------------------------------------
 // build_breaker_layer — SAF entry point
@@ -15,7 +17,7 @@ use swe_edge_egress_breaker::{BreakerConfig, BreakerError, BreakerLayer, HttpBre
 /// default config is broken.
 #[test]
 fn test_builder_fn_succeeds_with_swe_default() {
-    HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())
+    HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
         .expect("builder() must succeed with the crate-shipped baseline");
 }
 
@@ -81,17 +83,18 @@ fn test_config_accessor_returns_reference_not_divergent_copy() {
 }
 
 // ---------------------------------------------------------------------------
-// build_breaker_layer — produces a usable BreakerLayer
+// build_breaker_layer — produces a usable BreakerLayerBreakerMetrics
 // ---------------------------------------------------------------------------
 
-/// The nominal build path must succeed and return a `BreakerLayer`.
+/// The nominal build path must succeed and return a `BreakerLayerBreakerMetrics`.
 #[test]
 fn test_build_from_swe_default_returns_breaker_layer() {
-    let layer: BreakerLayer = HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())
-        .expect("build() must succeed");
+    let layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
+            .expect("build() must succeed");
     let dbg = format!("{layer:?}");
     assert!(
-        dbg.contains("BreakerLayer"),
+        dbg.contains("BreakerLayerBreakerMetrics"),
         "Debug output must identify the type; got: {dbg}"
     );
 }
@@ -105,7 +108,7 @@ fn test_build_with_custom_config_succeeds() {
         reset_after_successes: 2,
         failure_statuses: vec![500, 503],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("custom config must build");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("custom config must build");
 }
 
 /// An empty `failure_statuses` list is a valid policy (no HTTP status triggers
@@ -118,7 +121,8 @@ fn test_build_with_empty_failure_statuses_succeeds() {
         reset_after_successes: 2,
         failure_statuses: vec![],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("empty failure_statuses must not be rejected");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("empty failure_statuses must not be rejected");
 }
 
 /// A high `failure_threshold` (aggressive tolerance) is a legitimate
@@ -131,7 +135,8 @@ fn test_build_with_high_failure_threshold_succeeds() {
         reset_after_successes: 1,
         failure_statuses: vec![500],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("failure_threshold=1000 must not be rejected");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("failure_threshold=1000 must not be rejected");
 }
 
 /// A single-success reset policy is legitimate — probe once and close.
@@ -143,7 +148,8 @@ fn test_build_with_single_success_reset_policy_succeeds() {
         reset_after_successes: 1,
         failure_statuses: vec![503],
     };
-    HttpBreakerSvc::build_breaker_layer(cfg).expect("reset_after_successes=1 must not be rejected");
+    HttpBreakerSvcProcessor::build_breaker_layer(cfg)
+        .expect("reset_after_successes=1 must not be rejected");
 }
 
 // ---------------------------------------------------------------------------
@@ -156,7 +162,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = BreakerError::ParseFailed("bad toml".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("swe_edge_egress_breaker"),
+        msg.contains("edge_transport_http_egress_breaker"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }

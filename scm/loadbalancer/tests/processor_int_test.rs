@@ -1,30 +1,73 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for the Processor contract.
+//! Integration tests for the `Processor` contract.
 
-use swe_edge_egress_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
+use edge_transport_http_egress_loadbalancer::{
+    DescribeRequest, DescribeResponse, LoadbalancerMiddlewareError, Processor, ProcessorFactory,
+};
 
-fn one_backend_config() -> LoadbalancerConfig {
-    LoadbalancerConfig {
-        strategy: Strategy::RoundRobin,
-        backends: vec![BackendConfig {
-            url: "https://api-1.internal".to_string(),
-            weight: 1,
-        }],
+/// @covers: describe
+/// The crate's own `Processor` implementor (via the SAF factory) must report
+/// this crate's canonical name.
+#[test]
+fn test_describe_returns_crate_name_happy() {
+    let processor = ProcessorFactory::create();
+    let resp = processor
+        .describe(DescribeRequest)
+        .expect("describe is infallible");
+    assert_eq!(resp.value, "edge-transport-http-egress-loadbalancer");
+}
+
+/// @covers: describe
+/// Proves `Processor` is genuinely implementable by external consumers — the
+/// actual contract of exporting a public trait — by implementing it locally.
+struct TestProcessor;
+
+impl Processor for TestProcessor {
+    fn describe(
+        &self,
+        _request: DescribeRequest,
+    ) -> Result<DescribeResponse, LoadbalancerMiddlewareError> {
+        Ok(DescribeResponse {
+            value: "test-processor".to_string(),
+        })
     }
 }
 
-/// @covers: LoadbalancerSvc::build_layer — processor describe contract
+/// @covers: describe
 #[test]
-fn test_build_layer_processor_describe_returns_crate_name() {
-    let layer =
-        LoadbalancerSvc::build_layer(one_backend_config()).expect("valid config must build");
-    let dbg = format!("{layer:?}");
-    assert!(dbg.contains("LoadbalancerLayer"), "{dbg}");
+fn test_describe_external_implementor_dispatches_to_its_own_impl_edge() {
+    let p = TestProcessor;
+    let resp = p.describe(DescribeRequest).expect("infallible");
+    assert_eq!(
+        resp.value, "test-processor",
+        "an external Processor impl must dispatch to its own describe()"
+    );
 }
 
-/// @covers: LoadbalancerSvc::create_config_builder
+/// A minimal external test-double proving `Processor::describe` can
+/// genuinely fail for a real implementor — the crate's own
+/// `LoadbalancerSvcProcessor` never returns `Err` here, so this is the only
+/// way to exercise the error path.
+struct FailingProcessor;
+
+impl Processor for FailingProcessor {
+    fn describe(
+        &self,
+        _request: DescribeRequest,
+    ) -> Result<DescribeResponse, LoadbalancerMiddlewareError> {
+        Err(LoadbalancerMiddlewareError::InvalidConfig(
+            "no processor identity configured".to_string(),
+        ))
+    }
+}
+
+/// @covers: describe
 #[test]
-fn test_create_config_builder_returns_builder_with_name() {
-    // Verify it constructs without panicking; ConfigBuilderImpl doesn't derive Debug.
-    let _builder = LoadbalancerSvc::create_config_builder();
+fn test_describe_unconfigured_implementor_returns_err_error() {
+    let p = FailingProcessor;
+    let result = p.describe(DescribeRequest);
+    assert!(
+        matches!(result, Err(LoadbalancerMiddlewareError::InvalidConfig(_))),
+        "an external Processor impl reporting no identity must surface as InvalidConfig; got: {result:?}"
+    );
 }

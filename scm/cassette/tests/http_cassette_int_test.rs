@@ -12,7 +12,7 @@
 //!   `CassetteLayer` completes without error.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 // ---------------------------------------------------------------------------
 // Observable effect: describe() crate name embedded in Debug
@@ -83,12 +83,32 @@ fn test_cassette_layer_debug_reflects_record_mode() {
 
 /// `CassetteLayer` must be `Send + Sync`. The supertrait bounds on
 /// `HttpCassette: Send + Sync` propagate to any concrete type that holds a
-/// `Box<dyn HttpCassette>`. Removing those bounds from the trait would break
-/// this compile-time assertion.
+/// `Box<dyn HttpCassette>`. Proven at runtime by sharing a reference to a built
+/// layer across a real OS thread (a non-`Sync` type would not compile).
 #[test]
 fn test_cassette_layer_satisfies_send_sync_via_http_cassette_supertrait() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<CassetteLayer>();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let dir = tmpdir.path().to_str().unwrap().replace('\\', "/");
+    let cfg = CassetteConfig {
+        mode: "replay".to_string(),
+        cassette_dir: dir,
+        match_on: vec!["method".to_string()],
+        scrub_headers: vec![],
+        scrub_body_paths: vec![],
+    };
+    let layer: CassetteLayer = HttpCassetteSvc::build_cassette_layer(cfg, "supertrait_send_sync")
+        .expect("build must succeed");
+    std::thread::scope(|s| {
+        let borrowed = &layer;
+        let dbg = s
+            .spawn(move || format!("{borrowed:?}"))
+            .join()
+            .expect("thread sharing &layer must not panic");
+        assert!(
+            dbg.contains("supertrait_send_sync"),
+            "layer shared across a thread must retain its cassette name: {dbg}"
+        );
+    });
 }
 
 // ---------------------------------------------------------------------------

@@ -1,43 +1,18 @@
-//! Integration tests for `api/http_rate.rs` — the `HttpRate` trait.
+//! Integration tests for the public `RateLayerRateMetrics` middleware surface.
 //!
-//! `HttpRate` is `pub(crate)`.  From outside the crate, we verify its
-//! downstream effect: `RateLayer` must satisfy the trait's `Send + Sync`
-//! supertrait bounds so it can be installed in a
-//! `reqwest_middleware::ClientBuilder`.
+//! `RateLayerRateMetrics` is installed in a `reqwest_middleware::ClientBuilder`, so it
+//! must be usable and satisfy `Send + Sync` when shared behind an `Arc`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig, RateLayer};
+use std::sync::Arc;
 
-// ---------------------------------------------------------------------------
-// Send + Sync — compile-time proof that HttpRate's supertrait bounds hold
-// ---------------------------------------------------------------------------
-
-/// `RateLayer` must be `Send`.
-#[test]
-fn test_http_rate_bound_send_satisfied_by_rate_layer() {
-    fn require_send<T: Send>() {}
-    require_send::<RateLayer>();
-}
-
-/// `RateLayer` must be `Sync`.
-#[test]
-fn test_http_rate_bound_sync_satisfied_by_rate_layer() {
-    fn require_sync<T: Sync>() {}
-    require_sync::<RateLayer>();
-}
-
-/// Combined `Send + Sync` requirement.
-#[test]
-fn test_http_rate_send_and_sync_combined_bound_satisfied() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<RateLayer>();
-}
+use edge_transport_http_egress_rate::{HttpRateSvcProcessor, RateConfig, RateLayerRateMetrics};
 
 // ---------------------------------------------------------------------------
 // Constructed layer is usable
 // ---------------------------------------------------------------------------
 
-/// A `RateLayer` produced by the builder must be ready to use.
+/// A `RateLayerRateMetrics` produced by the builder must be ready to use.
 #[test]
 fn test_rate_layer_built_from_builder_is_usable() {
     let cfg = RateConfig {
@@ -45,21 +20,45 @@ fn test_rate_layer_built_from_builder_is_usable() {
         burst_capacity: 20,
         per_host: true,
     };
-    let layer: RateLayer = HttpRateSvc::build_rate_layer(cfg).expect("build() must succeed");
+    let layer: RateLayerRateMetrics =
+        HttpRateSvcProcessor::build_rate_layer(cfg).expect("build() must succeed");
     let dbg = format!("{layer:?}");
     assert!(
         !dbg.is_empty(),
-        "RateLayer Debug must produce non-empty output"
+        "RateLayerRateMetrics Debug must produce non-empty output"
     );
 }
 
 // ---------------------------------------------------------------------------
-// Arc<RateLayer> is also Send + Sync
+// Send + Sync — runtime proof via a real thread boundary
 // ---------------------------------------------------------------------------
 
-/// `Arc<RateLayer>` must be `Send + Sync`.
+/// `Arc<RateLayerRateMetrics>` must be `Send + Sync` so the same layer can be shared
+/// across the worker threads of a `reqwest` client. Prove it at runtime by
+/// moving the `Arc` onto a spawned OS thread and asserting the Debug output
+/// observed there reflects the configured (non-default) policy.
 #[test]
 fn test_arc_rate_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<std::sync::Arc<RateLayer>>();
+    let layer = Arc::new(
+        HttpRateSvcProcessor::build_rate_layer(RateConfig {
+            tokens_per_second: 88,
+            burst_capacity: 176,
+            per_host: false,
+        })
+        .expect("build"),
+    );
+    let moved = Arc::clone(&layer);
+    let dbg = std::thread::spawn(move || format!("{moved:?}"))
+        .join()
+        .expect("worker thread must join");
+    assert!(
+        dbg.contains("88") && dbg.contains("176"),
+        "Debug read on the worker thread must reflect the config; got: {dbg}"
+    );
+    // The original Arc is still usable on this thread — sharing, not moving.
+    assert_eq!(
+        Arc::strong_count(&layer),
+        1,
+        "worker thread dropped its clone"
+    );
 }

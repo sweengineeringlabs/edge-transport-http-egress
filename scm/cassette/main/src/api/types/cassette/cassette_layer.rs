@@ -3,7 +3,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::api::types::cassette::cassette_config::CassetteConfig;
+use super::cassette_config::CassetteConfig;
 
 /// Cassette middleware. Attach to a
 /// `reqwest_middleware::ClientBuilder` via `.with(layer)`.
@@ -16,21 +16,5 @@ use crate::api::types::cassette::cassette_config::CassetteConfig;
 pub struct CassetteLayer {
     pub(crate) config: Arc<CassetteConfig>,
     pub(crate) cassette_path: PathBuf,
-    pub(crate) fixtures: Arc<
-        tokio::sync::Mutex<
-            std::collections::HashMap<
-                String,
-                crate::core::recorded::interaction::interaction::RecordedInteraction,
-            >,
-        >,
-    >,
-}
-
-impl std::fmt::Debug for CassetteLayer {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CassetteLayer")
-            .field("mode", &self.config.mode)
-            .field("cassette_path", &self.cassette_path)
-            .finish()
-    }
+    pub(crate) fixtures: Arc<crate::core::cassette::fixture_store::FixtureStore>,
 }

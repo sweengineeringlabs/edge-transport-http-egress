@@ -1,13 +1,41 @@
-//! Integration tests for the `Processor` trait in `swe-edge-egress-cache`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-cache`.
 
-use swe_edge_egress_cache::HttpCacheSvc;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_cache::{
+    CacheError, DescribeRequest, DescribeResponse, HttpCacheSvcProcessor, Processor,
+};
 
 /// @covers: Processor
+/// `HttpCacheSvcProcessor` is the crate's own `Processor` implementor — verify its
+/// real, production `describe()` dispatch.
+#[test]
+fn test_http_cache_svc_describe_returns_crate_label() {
+    let resp = HttpCacheSvcProcessor
+        .describe(DescribeRequest)
+        .expect("describe is infallible");
+    assert_eq!(resp.value, "http-cache");
+}
+
+/// @covers: Processor
+/// Proves `Processor` is genuinely usable by external consumers — the actual
+/// contract of exporting a public trait — by implementing it locally.
+struct TestProcessor;
+
+impl Processor for TestProcessor {
+    fn describe(&self, _request: DescribeRequest) -> Result<DescribeResponse, CacheError> {
+        Ok(DescribeResponse {
+            value: "test-processor".to_string(),
+        })
+    }
+}
+
 #[test]
 fn test_processor_trait_is_implementable() {
-    // The Svc type must implement Processor to satisfy service_type requirements.
-    // If this compiles, the trait contract is satisfied.
-    let svc = HttpCacheSvc;
-    // just creating the type verifies the impl exists
-    let _ = svc;
+    let p = TestProcessor;
+    let resp = p.describe(DescribeRequest).expect("infallible");
+    assert_eq!(
+        resp.value, "test-processor",
+        "an external Processor impl must dispatch to its own describe()"
+    );
 }

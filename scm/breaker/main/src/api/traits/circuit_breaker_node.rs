@@ -1,15 +1,12 @@
 //! `CircuitBreakerNode` — per-host state machine contract.
 
+use crate::api::{AdmitRequest, AdmitResponse, BreakerError, RecordRequest, RecordResponse};
+
 /// Contract for per-host circuit breaker state machines.
 pub trait CircuitBreakerNode {
-    fn admit(
-        &mut self,
-        config: &crate::api::types::breaker_config::BreakerConfig,
-    ) -> crate::api::types::state::Admission;
+    /// Decide whether to admit a new request based on the current breaker state.
+    fn admit(&mut self, request: AdmitRequest) -> Result<AdmitResponse, BreakerError>;
 
-    fn record(
-        &mut self,
-        config: &crate::api::types::breaker_config::BreakerConfig,
-        outcome: crate::api::types::state::Outcome,
-    );
+    /// Record the outcome of a request to update the breaker state.
+    fn record(&mut self, request: RecordRequest) -> Result<RecordResponse, BreakerError>;
 }

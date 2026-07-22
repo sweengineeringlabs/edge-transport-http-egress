@@ -1,4 +1,4 @@
-//! swe_edge_egress_rate — Client-side rate-limiter middleware — token bucket per host.
+//! edge_transport_http_egress_rate — Client-side rate-limiter middleware — token bucket per host.
 //!
 
 #![warn(missing_docs)]
@@ -10,4 +10,9 @@ mod api;
 mod core;
 mod saf;
 
-pub use crate::api::{HttpRateSvc, Processor, RateBucketOps, RateConfig, RateError, Validator};
+pub use crate::api::{
+    ConfigValidationRequest, DescribeRequest, DescribeResponse, HttpRateSvcProcessor, Processor,
+    RateConfig, RateError, RateLayerRateMetrics, RateLimitRequest, RateLimitResponse, RateMetrics,
+    Validator,
+};
+pub use crate::saf::{ProcessorFactory, RateMetricsFactory, ValidatorFactory};

@@ -1,12 +1,10 @@
 //! SAF layer — public facade.
+//!
+//! Exposes trait factories for the retry middleware. Traits are NOT
+//! re-exported from this module; core types are NOT re-exported directly.
 
-mod http_retry_svc;
-mod processor_svc;
-mod retry;
-mod validator_svc;
+mod processor_svc_factory;
+mod validator_svc_factory;
 
-pub(crate) use crate::api::error::RetryError;
-pub(crate) use crate::api::types::HttpRetrySvc;
-pub(crate) use crate::api::types::RetryConfig;
-pub(crate) use crate::api::types::RetryConfigBuilder;
-pub(crate) use crate::api::types::RetryLayer;
+pub use processor_svc_factory::ProcessorFactory;
+pub use validator_svc_factory::ValidatorFactory;

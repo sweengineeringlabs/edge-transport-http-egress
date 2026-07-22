@@ -1,5 +1,4 @@
-//! Loadbalancer public types grouped by prefix.
-pub mod loadbalancer_layer;
-pub mod loadbalancer_svc;
-pub use loadbalancer_layer::LoadbalancerLayer;
-pub use loadbalancer_svc::LoadbalancerSvc;
+//! Grouped loadbalancer type modules.
+
+pub(crate) mod loadbalancer_layer_pool_metrics;
+pub(crate) mod loadbalancer_svc_processor;

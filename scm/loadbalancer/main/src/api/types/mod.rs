@@ -1,10 +1,10 @@
 //! Value objects for the loadbalancer middleware API.
 
-pub mod application_config_builder;
-
+pub(crate) mod application_config_builder;
 pub mod loadbalancer;
-pub use loadbalancer::LoadbalancerLayer;
-pub use loadbalancer::LoadbalancerSvc;
+
+pub use loadbalancer::loadbalancer_layer_pool_metrics::LoadbalancerLayerPoolMetrics;
+pub use loadbalancer::loadbalancer_svc_processor::LoadbalancerSvcProcessor;
 
 // Contract types from the loadbalancer library — re-exported so consumers
 // only need to depend on this crate.

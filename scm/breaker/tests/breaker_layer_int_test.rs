@@ -1,12 +1,14 @@
-//! Integration tests for `api/types/breaker/layer.rs` — the public `BreakerLayer` type.
+//! Integration tests for `api/types/breaker/layer.rs` — the public `BreakerLayerBreakerMetrics` type.
 //!
-//! Covers: constructability via `HttpBreakerSvc::build_breaker_layer(config)`, `Debug` output, and
+//! Covers: constructability via `HttpBreakerSvcProcessor::build_breaker_layer(config)`, `Debug` output, and
 //! `Send + Sync` bounds that allow the layer to be installed in a
 //! `reqwest_middleware::ClientBuilder`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_breaker::{BreakerConfig, BreakerLayer, HttpBreakerSvc};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerLayerBreakerMetrics, HttpBreakerSvcProcessor,
+};
 
 // ---------------------------------------------------------------------------
 // Construction
@@ -21,22 +23,23 @@ fn test_breaker_layer_builds_from_custom_config() {
         reset_after_successes: 2,
         failure_statuses: vec![500, 503],
     };
-    let _layer: BreakerLayer =
-        HttpBreakerSvc::build_breaker_layer(cfg).expect("build() must succeed");
+    let _layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build() must succeed");
 }
 
 /// @covers: build_breaker_layer
 #[test]
 fn test_breaker_layer_builds_from_swe_default() {
-    let _layer: BreakerLayer = HttpBreakerSvc::build_breaker_layer(BreakerConfig::default())
-        .expect("build() must succeed");
+    let _layer: BreakerLayerBreakerMetrics =
+        HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
+            .expect("build() must succeed");
 }
 
 // ---------------------------------------------------------------------------
 // Debug output
 // ---------------------------------------------------------------------------
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_breaker_layer_debug_contains_type_name() {
     let cfg = BreakerConfig {
@@ -45,15 +48,15 @@ fn test_breaker_layer_debug_contains_type_name() {
         reset_after_successes: 2,
         failure_statuses: vec![500],
     };
-    let layer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
-        dbg.contains("BreakerLayer"),
+        dbg.contains("BreakerLayerBreakerMetrics"),
         "Debug must name the type; got: {dbg}"
     );
 }
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_breaker_layer_debug_includes_failure_threshold() {
     let cfg = BreakerConfig {
@@ -62,7 +65,7 @@ fn test_breaker_layer_debug_includes_failure_threshold() {
         reset_after_successes: 1,
         failure_statuses: vec![503],
     };
-    let layer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("7"),
@@ -70,7 +73,7 @@ fn test_breaker_layer_debug_includes_failure_threshold() {
     );
 }
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_breaker_layer_debug_includes_half_open_wait() {
     let cfg = BreakerConfig {
@@ -79,7 +82,7 @@ fn test_breaker_layer_debug_includes_half_open_wait() {
         reset_after_successes: 2,
         failure_statuses: vec![],
     };
-    let layer = HttpBreakerSvc::build_breaker_layer(cfg).expect("build");
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build");
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("42"),
@@ -88,21 +91,10 @@ fn test_breaker_layer_debug_includes_half_open_wait() {
 }
 
 // ---------------------------------------------------------------------------
-// Send + Sync — compile-time proof
-// ---------------------------------------------------------------------------
-
-/// @covers: BreakerLayer
-#[test]
-fn test_breaker_layer_is_send_and_sync() {
-    fn require_send_sync<T: Send + Sync>() {}
-    require_send_sync::<BreakerLayer>();
-}
-
-// ---------------------------------------------------------------------------
 // Two layers from different configs are independent
 // ---------------------------------------------------------------------------
 
-/// @covers: BreakerLayer
+/// @covers: BreakerLayerBreakerMetrics
 #[test]
 fn test_two_breaker_layers_from_different_configs_are_independent() {
     let cfg_a = BreakerConfig {
@@ -117,8 +109,8 @@ fn test_two_breaker_layers_from_different_configs_are_independent() {
         reset_after_successes: 5,
         failure_statuses: vec![503],
     };
-    let layer_a = HttpBreakerSvc::build_breaker_layer(cfg_a).expect("build a");
-    let layer_b = HttpBreakerSvc::build_breaker_layer(cfg_b).expect("build b");
+    let layer_a = HttpBreakerSvcProcessor::build_breaker_layer(cfg_a).expect("build a");
+    let layer_b = HttpBreakerSvcProcessor::build_breaker_layer(cfg_b).expect("build b");
 
     let dbg_a = format!("{layer_a:?}");
     let dbg_b = format!("{layer_b:?}");

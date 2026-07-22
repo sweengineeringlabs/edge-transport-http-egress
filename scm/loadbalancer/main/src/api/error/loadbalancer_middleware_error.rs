@@ -7,9 +7,9 @@ pub enum LoadbalancerMiddlewareError {
     /// Config validation failed.
     #[error("invalid configuration: {0}")]
     InvalidConfig(String),
-    /// The backend pool could not find a healthy backend.
+    /// The backend pool could not be constructed from the config.
     #[error("pool error: {0}")]
-    PoolError(#[from] swe_edge_loadbalancer::LoadbalancerError),
+    PoolBuildFailed(String),
     /// A backend URL was not a valid URL.
     #[error("invalid backend URL: {0}")]
     InvalidBackendUrl(String),

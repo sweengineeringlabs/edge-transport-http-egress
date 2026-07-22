@@ -2,4 +2,4 @@
 
 pub(crate) mod host_breaker;
 pub(crate) mod state;
-pub(crate) use host_breaker::HostBreaker;
+pub(crate) use host_breaker::DefaultHostBreaker;

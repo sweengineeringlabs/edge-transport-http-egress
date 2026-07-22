@@ -1,37 +1,27 @@
 use std::collections::HashMap;
 
+use async_trait::async_trait;
 use bytes::Bytes;
-use futures::future::BoxFuture;
 use futures::StreamExt as _;
 use reqwest_middleware::ClientWithMiddleware;
 
-use crate::api::error::http::http_egress_error::HttpEgressError;
-use crate::api::traits::http::http_egress::HttpEgress;
-use crate::api::traits::http::http_stream::HttpStream;
-use crate::api::types::sse::{SseEvent, SseStream};
-use crate::api::types::ws::WsChannel;
 #[cfg(feature = "websocket")]
-use crate::api::types::ws::WsMessage;
-use crate::api::types::HttpEgressResult;
-use crate::api::types::{HttpBody, HttpRequest, HttpResponse, HttpStreamResponse};
+use crate::api::WsMessage;
+use crate::api::{
+    ConfigRequest, ConfigResponse, ConnectWebsocketRequest, ConnectWebsocketResponse,
+    HealthCheckRequest, HttpAuth, HttpBody, HttpByteStream, HttpConfig, HttpEgress,
+    HttpEgressError, HttpEgressResult, HttpRequest, HttpResponse, HttpStream, HttpStreamResponse,
+    SseEvent, SseStream, SubscribeSseRequest, SubscribeSseResponse, WsChannel,
+};
 
 pub(crate) struct DefaultHttpEgress {
     client: ClientWithMiddleware,
-    base_url: Option<String>,
-    max_response_bytes: Option<usize>,
+    config: HttpConfig,
 }
 
 impl DefaultHttpEgress {
-    pub(crate) fn new(
-        client: ClientWithMiddleware,
-        base_url: Option<String>,
-        max_response_bytes: Option<usize>,
-    ) -> Self {
-        Self {
-            client,
-            base_url,
-            max_response_bytes,
-        }
+    pub(crate) fn new(client: ClientWithMiddleware, config: HttpConfig) -> Self {
+        Self { client, config }
     }
 
     /// Build a reqwest-middleware request builder from an [`HttpRequest`].
@@ -63,7 +53,7 @@ impl DefaultHttpEgress {
 
         if let Some(body) = request.body {
             builder = match body {
-                HttpBody::Json(v) => builder.json(&v),
+                HttpBody::Json(v) => builder.json(&v.into_inner()),
                 HttpBody::Raw(b) => builder.body(b),
                 HttpBody::Form(f) => {
                     let pairs: Vec<(String, String)> = f.into_iter().collect();
@@ -92,11 +82,22 @@ impl DefaultHttpEgress {
             builder = builder.timeout(timeout);
         }
 
+        if let Some(auth) = request.auth {
+            builder = match auth {
+                HttpAuth::None => builder,
+                HttpAuth::Bearer { token } => builder.bearer_auth(token),
+                HttpAuth::Basic { username, password } => {
+                    builder.basic_auth(username, Some(password))
+                }
+                HttpAuth::ApiKey { header, key } => builder.header(header, key),
+            };
+        }
+
         Ok(builder)
     }
 
     fn resolve_url(&self, url: &str) -> String {
-        match &self.base_url {
+        match &self.config.base_url {
             Some(base) if !url.starts_with("http://") && !url.starts_with("https://") => {
                 format!(
                     "{}/{}",
@@ -109,152 +110,149 @@ impl DefaultHttpEgress {
     }
 }
 
+#[async_trait]
 impl HttpEgress for DefaultHttpEgress {
-    fn send(&self, request: HttpRequest) -> BoxFuture<'_, HttpEgressResult<HttpResponse>> {
-        let max_response_bytes = self.max_response_bytes;
-        Box::pin(async move {
-            let builder = self.build_request_builder(request)?;
-            let response = builder.send().await.map_err(|e| {
-                if let reqwest_middleware::Error::Reqwest(ref re) = e {
-                    if re.is_timeout() {
-                        return HttpEgressError::Timeout(e.to_string());
-                    }
-                }
-                HttpEgressError::ConnectionFailed(e.to_string())
-            })?;
-
-            // Early rejection on content-length hint (avoids buffering huge bodies).
-            if let Some(max) = max_response_bytes {
-                if let Some(len) = response.content_length() {
-                    if len as usize > max {
-                        return Err(HttpEgressError::Internal(format!(
-                            "response too large: content-length {len} bytes exceeds limit of {max} bytes"
-                        )));
-                    }
+    async fn send(&self, request: HttpRequest) -> HttpEgressResult<HttpResponse> {
+        let max_response_bytes = self.config.max_response_bytes;
+        let builder = self.build_request_builder(request)?;
+        let response = builder.send().await.map_err(|e| {
+            if let reqwest_middleware::Error::Reqwest(ref re) = e {
+                if re.is_timeout() {
+                    return HttpEgressError::Timeout(e.to_string());
                 }
             }
+            HttpEgressError::ConnectionFailed(e.to_string())
+        })?;
 
-            let status = response.status().as_u16();
-            let headers: HashMap<String, String> = response
-                .headers()
-                .iter()
-                .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
-                .collect();
-            let body_bytes = response
-                .bytes()
-                .await
-                .map_err(|e| HttpEgressError::Internal(e.to_string()))?;
-
-            if let Some(max) = max_response_bytes {
-                if body_bytes.len() > max {
+        // Early rejection on content-length hint (avoids buffering huge bodies).
+        if let Some(max) = max_response_bytes {
+            if let Some(len) = response.content_length() {
+                if len as usize > max {
                     return Err(HttpEgressError::Internal(format!(
-                        "response too large: {} bytes exceeds limit of {} bytes",
-                        body_bytes.len(),
-                        max
+                        "response too large: content-length {len} bytes exceeds limit of {max} bytes"
                     )));
                 }
             }
+        }
 
-            match status {
-                401 => {
-                    return Err(HttpEgressError::Unauthorized(
-                        "remote returned 401 Unauthorized".to_string(),
-                    ))
-                }
-                403 => {
-                    return Err(HttpEgressError::Forbidden(
-                        "remote returned 403 Forbidden".to_string(),
-                    ))
-                }
-                404 => {
-                    return Err(HttpEgressError::NotFound(
-                        "remote returned 404 Not Found".to_string(),
-                    ))
-                }
-                429 => {
-                    return Err(HttpEgressError::RateLimited(
-                        "remote returned 429 Too Many Requests".to_string(),
-                    ))
-                }
-                502 => {
-                    return Err(HttpEgressError::BadGateway(
-                        "remote returned 502 Bad Gateway".to_string(),
-                    ))
-                }
-                503 => {
-                    return Err(HttpEgressError::ServiceUnavailable(
-                        "remote returned 503 Service Unavailable".to_string(),
-                    ))
-                }
-                _ => {}
+        let status = response.status().as_u16();
+        let headers: HashMap<String, String> = response
+            .headers()
+            .iter()
+            .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
+            .collect();
+        let body_bytes = response
+            .bytes()
+            .await
+            .map_err(|e| HttpEgressError::Internal(e.to_string()))?;
+
+        if let Some(max) = max_response_bytes {
+            if body_bytes.len() > max {
+                return Err(HttpEgressError::Internal(format!(
+                    "response too large: {} bytes exceeds limit of {} bytes",
+                    body_bytes.len(),
+                    max
+                )));
             }
+        }
 
-            Ok(HttpResponse {
-                status,
-                headers,
-                body: body_bytes.to_vec(),
-            })
+        match status {
+            401 => {
+                return Err(HttpEgressError::Unauthorized(
+                    "remote returned 401 Unauthorized".to_string(),
+                ))
+            }
+            403 => {
+                return Err(HttpEgressError::Forbidden(
+                    "remote returned 403 Forbidden".to_string(),
+                ))
+            }
+            404 => {
+                return Err(HttpEgressError::NotFound(
+                    "remote returned 404 Not Found".to_string(),
+                ))
+            }
+            429 => {
+                return Err(HttpEgressError::RateLimited(
+                    "remote returned 429 Too Many Requests".to_string(),
+                ))
+            }
+            502 => {
+                return Err(HttpEgressError::BadGateway(
+                    "remote returned 502 Bad Gateway".to_string(),
+                ))
+            }
+            503 => {
+                return Err(HttpEgressError::ServiceUnavailable(
+                    "remote returned 503 Service Unavailable".to_string(),
+                ))
+            }
+            _ => {}
+        }
+
+        Ok(HttpResponse {
+            status,
+            headers,
+            body: body_bytes.to_vec(),
         })
     }
 
-    fn send_stream(
-        &self,
-        request: HttpRequest,
-    ) -> BoxFuture<'_, HttpEgressResult<HttpStreamResponse>> {
-        Box::pin(async move {
-            let builder = self.build_request_builder(request)?;
-            let response = builder.send().await.map_err(|e| {
-                if let reqwest_middleware::Error::Reqwest(ref re) = e {
-                    if re.is_timeout() {
-                        return HttpEgressError::Timeout(e.to_string());
-                    }
+    async fn send_stream(&self, request: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {
+        let builder = self.build_request_builder(request)?;
+        let response = builder.send().await.map_err(|e| {
+            if let reqwest_middleware::Error::Reqwest(ref re) = e {
+                if re.is_timeout() {
+                    return HttpEgressError::Timeout(e.to_string());
                 }
-                HttpEgressError::ConnectionFailed(e.to_string())
-            })?;
+            }
+            HttpEgressError::ConnectionFailed(e.to_string())
+        })?;
 
-            let status = response.status().as_u16();
-            let headers: HashMap<String, String> = response
-                .headers()
-                .iter()
-                .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
-                .collect();
+        let status = response.status().as_u16();
+        let headers: HashMap<String, String> = response
+            .headers()
+            .iter()
+            .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
+            .collect();
 
-            let body: futures::stream::BoxStream<'static, Result<Bytes, HttpEgressError>> =
-                response
-                    .bytes_stream()
-                    .map(|r| r.map_err(|e| HttpEgressError::Internal(e.to_string())))
-                    .boxed();
+        let body = HttpByteStream::new(response.bytes_stream().map(|r| {
+            r.map(|b: Bytes| b.to_vec())
+                .map_err(|e| HttpEgressError::Internal(e.to_string()))
+        }));
 
-            Ok(HttpStreamResponse {
-                status,
-                headers,
-                body,
-            })
+        Ok(HttpStreamResponse {
+            status,
+            headers,
+            body,
         })
     }
 
-    fn health_check(&self) -> BoxFuture<'_, HttpEgressResult<()>> {
-        Box::pin(async move {
-            let url = match &self.base_url {
-                Some(u) => u.clone(),
-                None => return Ok(()),
-            };
-            let resp = self.client.get(&url).send().await.map_err(|e| {
-                if let reqwest_middleware::Error::Reqwest(ref re) = e {
-                    if re.is_timeout() {
-                        return HttpEgressError::Timeout(e.to_string());
-                    }
+    async fn health_check(&self, _request: HealthCheckRequest) -> HttpEgressResult<()> {
+        let url = match &self.config.base_url {
+            Some(u) => u.clone(),
+            None => return Ok(()),
+        };
+        let resp = self.client.get(&url).send().await.map_err(|e| {
+            if let reqwest_middleware::Error::Reqwest(ref re) = e {
+                if re.is_timeout() {
+                    return HttpEgressError::Timeout(e.to_string());
                 }
-                HttpEgressError::ConnectionFailed(e.to_string())
-            })?;
-            if resp.status().is_success() {
-                Ok(())
-            } else {
-                Err(HttpEgressError::Internal(format!(
-                    "health check failed: HTTP {}",
-                    resp.status().as_u16()
-                )))
             }
+            HttpEgressError::ConnectionFailed(e.to_string())
+        })?;
+        if resp.status().is_success() {
+            Ok(())
+        } else {
+            Err(HttpEgressError::Internal(format!(
+                "health check failed: HTTP {}",
+                resp.status().as_u16()
+            )))
+        }
+    }
+
+    fn config(&self, _request: ConfigRequest) -> HttpEgressResult<ConfigResponse> {
+        Ok(ConfigResponse {
+            config: self.config.clone(),
         })
     }
 }
@@ -377,21 +375,18 @@ impl DefaultHttpEgress {
                 }
             });
 
-            let incoming: crate::api::types::ws::WsReceiver =
-                Box::pin(ws_read.filter_map(|item| async move {
-                    match item {
-                        Ok(TungMsg::Text(t)) => Some(Ok(WsMessage::text(t.as_str()))),
-                        Ok(TungMsg::Binary(b)) => {
-                            Some(Ok(WsMessage::binary(bytes::Bytes::from(b.to_vec()))))
-                        }
-                        Ok(TungMsg::Close(_)) => None,
-                        Ok(_) => None,
-                        Err(e) => Some(Err(HttpEgressError::ConnectionFailed(e.to_string()))),
-                    }
-                }));
+            let incoming = crate::api::WsReceiver::new(ws_read.filter_map(|item| async move {
+                match item {
+                    Ok(TungMsg::Text(t)) => Some(Ok(WsMessage::text(t.as_str()))),
+                    Ok(TungMsg::Binary(b)) => Some(Ok(WsMessage::binary(b.to_vec()))),
+                    Ok(TungMsg::Close(_)) => None,
+                    Ok(_) => None,
+                    Err(e) => Some(Err(HttpEgressError::ConnectionFailed(e.to_string()))),
+                }
+            }));
 
             Ok(WsChannel {
-                sender: out_tx,
+                sender: crate::api::WsSender::new(out_tx),
                 receiver: incoming,
             })
         }
@@ -406,35 +401,41 @@ impl DefaultHttpEgress {
     }
 }
 
+#[async_trait]
 impl HttpStream for DefaultHttpEgress {
-    fn subscribe_sse(&self, url: &str) -> BoxFuture<'_, HttpEgressResult<SseStream>> {
-        let url = url.to_string();
+    async fn subscribe_sse(
+        &self,
+        request: SubscribeSseRequest,
+    ) -> HttpEgressResult<SubscribeSseResponse> {
         let client = self.client.clone();
-        Box::pin(async move {
-            let response = client
-                .get(&url)
-                .header("Accept", "text/event-stream")
-                .header("Cache-Control", "no-cache")
-                .send()
-                .await
-                .map_err(|e| HttpEgressError::ConnectionFailed(e.to_string()))?;
+        let response = client
+            .get(&request.url)
+            .header("Accept", "text/event-stream")
+            .header("Cache-Control", "no-cache")
+            .send()
+            .await
+            .map_err(|e| HttpEgressError::ConnectionFailed(e.to_string()))?;
 
-            if !response.status().is_success() {
-                return Err(HttpEgressError::Internal(format!(
-                    "SSE feed returned HTTP {}",
-                    response.status().as_u16()
-                )));
-            }
+        if !response.status().is_success() {
+            return Err(HttpEgressError::Internal(format!(
+                "SSE feed returned HTTP {}",
+                response.status().as_u16()
+            )));
+        }
 
-            let bytes_stream = response.bytes_stream();
-            let sse_stream = DefaultHttpEgress::parse_sse_bytes(bytes_stream);
-            Ok(Box::pin(sse_stream) as SseStream)
+        let bytes_stream = response.bytes_stream();
+        let sse_stream = DefaultHttpEgress::parse_sse_bytes(bytes_stream);
+        Ok(SubscribeSseResponse {
+            stream: SseStream::new(sse_stream),
         })
     }
 
-    fn connect_websocket(&self, url: &str) -> BoxFuture<'_, HttpEgressResult<WsChannel>> {
-        let url = url.to_string();
-        Box::pin(async move { DefaultHttpEgress::connect_ws(url).await })
+    async fn connect_websocket(
+        &self,
+        request: ConnectWebsocketRequest,
+    ) -> HttpEgressResult<ConnectWebsocketResponse> {
+        let channel = DefaultHttpEgress::connect_ws(request.url).await?;
+        Ok(ConnectWebsocketResponse { channel })
     }
 }
 
@@ -448,13 +449,19 @@ mod tests {
     }
 
     fn make_outbound() -> DefaultHttpEgress {
-        DefaultHttpEgress::new(client(), Some("http://localhost".into()), None)
+        DefaultHttpEgress::new(
+            client(),
+            HttpConfig {
+                base_url: Some("http://localhost".into()),
+                ..HttpConfig::default()
+            },
+        )
     }
 
     #[test]
     fn test_new_creates_outbound_with_base_url() {
-        let out = DefaultHttpEgress::new(client(), Some("http://localhost".into()), None);
-        assert_eq!(out.base_url.as_deref(), Some("http://localhost"));
+        let out = make_outbound();
+        assert_eq!(out.config.base_url.as_deref(), Some("http://localhost"));
     }
 
     #[test]
@@ -508,14 +515,22 @@ mod tests {
     #[tokio::test]
     async fn test_subscribe_sse_returns_err_when_no_server() {
         let out = make_outbound();
-        let result = out.subscribe_sse("http://127.0.0.1:1").await;
+        let result = out
+            .subscribe_sse(SubscribeSseRequest {
+                url: "http://127.0.0.1:1".to_string(),
+            })
+            .await;
         assert!(result.is_err());
     }
 
     #[tokio::test]
     async fn test_connect_websocket_returns_err_when_no_feature() {
         let out = make_outbound();
-        let result = out.connect_websocket("ws://127.0.0.1:1").await;
+        let result = out
+            .connect_websocket(ConnectWebsocketRequest {
+                url: "ws://127.0.0.1:1".to_string(),
+            })
+            .await;
         // Without websocket feature: returns an Internal error.
         // With websocket feature: returns a ConnectionFailed error.
         assert!(result.is_err());

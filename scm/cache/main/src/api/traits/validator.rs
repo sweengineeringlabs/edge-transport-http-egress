@@ -1,8 +1,10 @@
-//! Configuration validation contract for the cache crate.
+//! `Validator` — configuration validation contract for the cache crate.
+
+use crate::api::{CacheError, ConfigValidationRequest};
 
 /// Configuration validation contract.
-#[expect(dead_code, reason = "SEA api/ interface anchor — intentionally unused")]
 pub trait Validator: Send + Sync {
-    /// Validate the configuration. Returns `Ok(())` when valid.
-    fn validate(&self) -> Result<(), String>;
+    /// Validate the configuration, returning `Ok(())` when valid or a
+    /// [`CacheError::InvalidConfig`] describing the offending field.
+    fn validate(&self, request: ConfigValidationRequest) -> Result<(), CacheError>;
 }

@@ -2,7 +2,7 @@
 //! struct and its field semantics.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_rate::{HttpRateSvc, RateConfig};
+use edge_transport_http_egress_rate::{HttpRateSvcProcessor, RateConfig};
 
 // ---------------------------------------------------------------------------
 // Struct literal construction — all three fields are public
@@ -33,7 +33,7 @@ fn test_rate_config_minimum_tokens_per_second_builds() {
         burst_capacity: 1,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("tokens_per_second=1 must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("tokens_per_second=1 must build");
 }
 
 /// High token rate — must not be rejected.
@@ -44,7 +44,7 @@ fn test_rate_config_high_tokens_per_second_builds() {
         burst_capacity: u32::MAX,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("max tokens_per_second must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("max tokens_per_second must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ fn test_rate_config_burst_capacity_one_builds() {
         burst_capacity: 1,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("burst_capacity=1 must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("burst_capacity=1 must build");
 }
 
 /// Burst larger than the refill rate — common production pattern.
@@ -70,7 +70,7 @@ fn test_rate_config_burst_larger_than_rate_builds() {
         burst_capacity: 1_000,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("burst > rate must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("burst > rate must build");
 }
 
 // ---------------------------------------------------------------------------
@@ -85,7 +85,7 @@ fn test_rate_config_per_host_true_builds() {
         burst_capacity: 10,
         per_host: true,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=true must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=true must build");
 }
 
 /// `per_host = false` — single global bucket.
@@ -96,7 +96,7 @@ fn test_rate_config_per_host_false_builds() {
         burst_capacity: 10,
         per_host: false,
     };
-    HttpRateSvc::build_rate_layer(cfg).expect("per_host=false must build");
+    HttpRateSvcProcessor::build_rate_layer(cfg).expect("per_host=false must build");
 }
 
 // ---------------------------------------------------------------------------

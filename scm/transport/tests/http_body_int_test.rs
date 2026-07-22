@@ -1,10 +1,12 @@
 //! Integration tests for `HttpBody`.
 
-use swe_edge_egress_http_transport::HttpBody;
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
+use edge_transport_http_egress_transport::{HttpBody, JsonValue};
 
 #[test]
 fn test_http_body_enum_json_holds_value() {
-    let body = HttpBody::Json(serde_json::json!({"k": "v"}));
+    let body = HttpBody::Json(JsonValue::new(serde_json::json!({"k": "v"})));
     assert!(matches!(body, HttpBody::Json(_)));
 }
 

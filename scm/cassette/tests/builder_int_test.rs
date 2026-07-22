@@ -1,9 +1,9 @@
-//! Integration tests for `swe_edge_egress_cassette` SAF builder entry points.
+//! Integration tests for `edge_transport_http_egress_cassette` SAF builder entry points.
 //!
 //! Covers: `create_config_builder()`, `HttpCassetteSvc::build_cassette_layer(config, name)`, and all config variants.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use swe_edge_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
+use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_config(dir: &str) -> CassetteConfig {
     // Normalize backslashes so TOML doesn't treat `\U`, `\t`, etc. as escape
@@ -175,8 +175,32 @@ fn test_build_with_nested_scrub_body_paths_succeeds() {
 
 /// `CassetteLayer` must be `Send + Sync` so it can be used across async
 /// task boundaries (e.g. shared via `Arc` in a `reqwest_middleware` chain).
+/// Prove it at runtime: share a reference across a real OS thread (requires
+/// `Sync`) and move an owned copy into another (requires `Send`), asserting the
+/// value observed on the other thread is intact.
 #[test]
 fn test_cassette_layer_is_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<CassetteLayer>();
+    let tmpdir = tempfile::tempdir().unwrap();
+    let dir = tmpdir.path().to_str().unwrap().replace('\\', "/");
+    let layer: CassetteLayer =
+        HttpCassetteSvc::build_cassette_layer(make_config(&dir), "send_sync_move")
+            .expect("build must succeed");
+    std::thread::scope(|s| {
+        let borrowed = &layer;
+        let dbg = s
+            .spawn(move || format!("{borrowed:?}"))
+            .join()
+            .expect("thread sharing &layer must not panic");
+        assert!(
+            dbg.contains("send_sync_move"),
+            "layer shared across a thread must retain its cassette name: {dbg}"
+        );
+    });
+    let moved = std::thread::spawn(move || format!("{layer:?}"))
+        .join()
+        .expect("thread owning the moved layer must not panic");
+    assert!(
+        moved.contains("send_sync_move"),
+        "layer moved into another thread must retain its cassette name: {moved}"
+    );
 }

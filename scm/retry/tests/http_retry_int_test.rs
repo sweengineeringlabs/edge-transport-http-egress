@@ -11,7 +11,7 @@
 //! - The layer produced by the factory pipeline is non-trivially wired —
 //!   it has a non-zero `max_retries` field visible in Debug.
 
-use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
+use edge_transport_http_egress_retry::{DecorateRequest, HttpRetrySvc, Processor, RetryConfig};
 
 // ---------------------------------------------------------------------------
 // reqwest_middleware::Middleware — compile-time proof
@@ -21,8 +21,25 @@ use swe_edge_egress_retry::{HttpRetrySvc, RetryConfig, RetryLayer};
 /// is removed the test fails to compile, catching the regression immediately.
 #[test]
 fn test_retry_layer_implements_reqwest_middleware() {
-    fn assert_middleware<T: reqwest_middleware::Middleware>() {}
-    assert_middleware::<RetryLayer>();
+    // Coerce to `&dyn Middleware` — compiles only if the impl exists — and
+    // assert the concrete layer retains real state.
+    let cfg = RetryConfig {
+        max_retries: 2,
+        initial_interval_ms: 100,
+        max_interval_ms: 1000,
+        multiplier: 2.0,
+        retryable_statuses: vec![503],
+        retryable_methods: vec!["GET".to_string()],
+    };
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("build")
+        .layer;
+    let _as_dyn: &dyn reqwest_middleware::Middleware = &layer;
+    assert!(
+        format!("{layer:?}").contains("max_retries: 2"),
+        "layer usable as Middleware must keep its config"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -34,8 +51,26 @@ fn test_retry_layer_implements_reqwest_middleware() {
 /// type that wraps a `Box<dyn HttpRetry>`.
 #[test]
 fn test_retry_layer_is_send_and_sync() {
-    fn assert_send_sync<T: Send + Sync>() {}
-    assert_send_sync::<RetryLayer>();
+    // Genuine runtime proof of Send: move the layer into another thread.
+    let cfg = RetryConfig {
+        max_retries: 4,
+        initial_interval_ms: 200,
+        max_interval_ms: 8000,
+        multiplier: 2.0,
+        retryable_statuses: vec![503],
+        retryable_methods: vec!["GET".to_string()],
+    };
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("build")
+        .layer;
+    let dbg = std::thread::spawn(move || format!("{layer:?}"))
+        .join()
+        .expect("thread must not panic");
+    assert!(
+        dbg.contains("max_retries: 4"),
+        "layer moved across a thread must retain config; got: {dbg}"
+    );
 }
 
 /// `Arc<RetryLayer>` must be `Send + Sync` so it can be used in the
@@ -43,14 +78,33 @@ fn test_retry_layer_is_send_and_sync() {
 #[test]
 fn test_retry_layer_is_arc_send_sync() {
     use std::sync::Arc;
-    fn assert_arc_safe<T: Send + Sync + 'static>() {
-        let _ = std::mem::size_of::<Arc<T>>();
-    }
-    assert_arc_safe::<RetryLayer>();
+    // Share the layer across a thread boundary via Arc (requires Send + Sync).
+    let cfg = RetryConfig {
+        max_retries: 6,
+        initial_interval_ms: 100,
+        max_interval_ms: 1000,
+        multiplier: 2.0,
+        retryable_statuses: vec![503],
+        retryable_methods: vec!["GET".to_string()],
+    };
+    let layer = Arc::new(
+        HttpRetrySvc
+            .decorate(DecorateRequest { config: cfg })
+            .expect("build")
+            .layer,
+    );
+    let shared = Arc::clone(&layer);
+    let dbg = std::thread::spawn(move || format!("{shared:?}"))
+        .join()
+        .expect("thread must not panic");
+    assert!(
+        dbg.contains("max_retries: 6"),
+        "Arc-shared layer must retain config across threads; got: {dbg}"
+    );
 }
 
 // ---------------------------------------------------------------------------
-// describe() contract — "swe_edge_egress_retry" embedded in Debug
+// describe() contract — "edge_transport_http_egress_retry" embedded in Debug
 // ---------------------------------------------------------------------------
 
 /// The `RetryLayer` Debug output must include `max_retries`, which flows
@@ -66,7 +120,10 @@ fn test_retry_layer_debug_contains_max_retries() {
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
-    let layer = HttpRetrySvc::build_retry_layer(cfg).expect("build must succeed");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("build must succeed")
+        .layer;
     let dbg = format!("{layer:?}");
     assert!(
         dbg.contains("max_retries"),
@@ -90,7 +147,10 @@ fn test_retry_layer_attaches_to_reqwest_middleware_client_builder() {
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
-    let layer = HttpRetrySvc::build_retry_layer(cfg).expect("build must succeed");
+    let layer = HttpRetrySvc
+        .decorate(DecorateRequest { config: cfg })
+        .expect("build must succeed")
+        .layer;
     let _client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
         .with(layer)
         .build();
