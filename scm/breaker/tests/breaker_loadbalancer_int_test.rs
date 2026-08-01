@@ -22,8 +22,8 @@ use tokio::net::TcpListener;
 
 use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
 use swe_edge_loadbalancer::{
-    build_backend_pool, select_backend, BackendConfig, BackendId, BackendPoolInstance,
-    LoadbalancerConfig, LoadbalancerError, Strategy,
+    BackendConfig, BackendId, BackendPoolInstance, EgressError, LoadbalancerConfig,
+    LoadbalancerError, LoadbalancerSvc, Strategy,
 };
 
 // ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ fn make_pool(url: &str) -> Arc<BackendPoolInstance> {
             weight: 1,
         }],
     };
-    Arc::new(build_backend_pool(cfg).expect("build_pool"))
+    Arc::new(LoadbalancerSvc::build_pool(cfg).expect("build_pool"))
 }
 
 // ---------------------------------------------------------------------------
@@ -138,7 +138,7 @@ fn breaker_config(failure_threshold: u32, half_open_secs: u64) -> BreakerConfig 
 
 /// When the breaker trips (failure_threshold consecutive 500s), `BreakerLayerBreakerMetrics`
 /// must report `Outcome::Failure` to the pool, degrading the backend so that
-/// `select_backend` returns `NoHealthyBackends`.
+/// `LoadbalancerSvc::select` returns `NoHealthyBackends`.
 ///
 /// @covers: build_breaker_layer_with_pool
 #[tokio::test]
@@ -164,9 +164,12 @@ async fn test_breaker_loadbalancer_trip_degrades_backend_in_pool() {
         let _ = client.get(&url).send().await;
     }
 
-    let err = select_backend(&pool).unwrap_err();
+    let err = LoadbalancerSvc::select(&pool).unwrap_err();
     assert!(
-        matches!(err, LoadbalancerError::NoHealthyBackends),
+        matches!(
+            err,
+            LoadbalancerError::Egress(EgressError::NoHealthyBackends)
+        ),
         "pool must have no healthy backends after breaker trip; got: {err:?}"
     );
 }
@@ -200,8 +203,8 @@ async fn test_breaker_loadbalancer_recovery_restores_backend_in_pool() {
     }
     assert!(
         matches!(
-            select_backend(&pool).unwrap_err(),
-            LoadbalancerError::NoHealthyBackends
+            LoadbalancerSvc::select(&pool).unwrap_err(),
+            LoadbalancerError::Egress(EgressError::NoHealthyBackends)
         ),
         "pool must be degraded after trip"
     );
@@ -212,8 +215,8 @@ async fn test_breaker_loadbalancer_recovery_restores_backend_in_pool() {
     fail_flag.store(false, Ordering::SeqCst);
     let _ = client.get(&url).send().await;
 
-    let backend =
-        select_backend(&pool).expect("backend must be Healthy after successful half-open probe");
+    let backend = LoadbalancerSvc::select(&pool)
+        .expect("backend must be Healthy after successful half-open probe");
     assert_eq!(
         backend.id,
         BackendId::new(&url),

@@ -40,7 +40,7 @@ loadbalancer = ["dep:edge-transport-http-egress-loadbalancer"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
-edge-application     = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
+edge-application     = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.20.0", features = ["security"] }
 serde                = { version = "1.0", features = ["derive"] }
 serde_json           = "1.0"
 thiserror            = "2"
@@ -51,9 +51,9 @@ reqwest              = { version = "0.12", features = ["json", "stream", "multip
 reqwest-middleware   = { version = "0.4", features = ["json", "multipart"] }
 # BYOSec reversed (2026-07-16/17): auth/oauth/tls now depend on
 # edge-security's transport crates instead of hand-rolled local ones.
-edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17", optional = true }
-edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17", optional = true }
-edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17", optional = true }
+edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
+edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
+edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
 edge-transport-http-egress-retry    = { path = "../retry", optional = true }
 edge-transport-http-egress-rate     = { path = "../rate", optional = true }
 edge-transport-http-egress-breaker  = { path = "../breaker", optional = true }
@@ -71,7 +71,7 @@ swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-con
 # are needed (and listing them risks silently omitting newly-added test files).
 
 [dev-dependencies]
-edge-application    = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.16.0", features = ["security"] }
+edge-application    = { git = "https://github.com/sweengineeringlabs/edge-application.git", tag = "v0.20.0", features = ["security"] }
 tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "rt-multi-thread", "macros"] }
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }
@@ -80,11 +80,11 @@ bytes               = "1"
 serde_json          = "1.0"
 http                    = "1"
 reqwest-middleware      = { version = "0.4", features = ["json", "multipart"] }
-edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17" }
-edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17" }
-edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17" }
-edge-security-runtime-credential = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17" }
-edge-security-runtime            = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.17" }
+edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
+edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
+edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
+edge-security-runtime-credential = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
+edge-security-runtime            = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
 edge-transport-http-egress-retry   = { path = "../retry" }
 edge-transport-http-egress-rate    = { path = "../rate" }
 edge-transport-http-egress-breaker = { path = "../breaker" }

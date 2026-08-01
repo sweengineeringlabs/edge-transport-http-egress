@@ -108,11 +108,9 @@ mod tests {
     #[cfg(feature = "loadbalancer")]
     #[test]
     fn test_build_breaker_layer_with_pool_succeeds_inline() {
-        use swe_edge_loadbalancer::{
-            build_backend_pool, BackendConfig, LoadbalancerConfig, Strategy,
-        };
+        use swe_edge_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
         let pool = std::sync::Arc::new(
-            build_backend_pool(LoadbalancerConfig {
+            LoadbalancerSvc::build_pool(LoadbalancerConfig {
                 strategy: Strategy::RoundRobin,
                 backends: vec![BackendConfig {
                     url: "http://example.test".to_string(),

@@ -43,8 +43,8 @@ impl BreakerLayerBreakerMetrics {
     /// Construct with an attached [`BackendPool`] for pool-health reporting.
     ///
     /// Requires the `loadbalancer` feature. When the circuit opens or recovers
-    /// the layer calls `report_backend_outcome` on the pool so that tripped
-    /// backends are removed from (or restored to) rotation.
+    /// the layer calls `LoadbalancerSvc::report_outcome` on the pool so that
+    /// tripped backends are removed from (or restored to) rotation.
     #[cfg(feature = "loadbalancer")]
     pub(crate) fn new_with_pool(
         config: BreakerConfig,
@@ -181,7 +181,9 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
                 if let Some(pool) = &self.pool {
                     if let Some(lb_out) = pool_event {
                         if let Some(backend_id) = ext.get::<swe_edge_loadbalancer::BackendId>() {
-                            swe_edge_loadbalancer::report_backend_outcome(pool, backend_id, lb_out);
+                            swe_edge_loadbalancer::LoadbalancerSvc::report_outcome(
+                                pool, backend_id, lb_out,
+                            );
                         }
                     }
                 }
@@ -277,11 +279,9 @@ mod tests {
     #[cfg(feature = "loadbalancer")]
     #[test]
     fn test_new_with_pool_sets_pool_field() {
-        use swe_edge_loadbalancer::{
-            build_backend_pool, BackendConfig, LoadbalancerConfig, Strategy,
-        };
+        use swe_edge_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
         let pool = Arc::new(
-            build_backend_pool(LoadbalancerConfig {
+            LoadbalancerSvc::build_pool(LoadbalancerConfig {
                 strategy: Strategy::RoundRobin,
                 backends: vec![BackendConfig {
                     url: "http://example.test".to_string(),
