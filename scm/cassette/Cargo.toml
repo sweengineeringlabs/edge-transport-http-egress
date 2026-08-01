@@ -36,7 +36,7 @@ serde_json = "1.0"
 serde-saphyr = "0.0.27"
 # `from_config` loads policy from TOML.
 toml = "0.8"
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 tracing = { version = "0.1", default-features = false, optional = true }
 
@@ -47,7 +47,7 @@ tempfile = "3"
 base64 = "0.22"
 sha2 = "0.10"
 hex = "0.4"
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 
 [features]
 default = []

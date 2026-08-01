@@ -1,9 +1,0 @@
-# Workspace overrides for edge-transport-http-egress-loadbalancer.
-# Uncomment and adjust to override defaults from swe-edge-loadbalancer.
-
-# [loadbalancer]
-# strategy = "round-robin"
-#
-# [[loadbalancer.backends]]
-# url = "https://api-1.internal"
-# weight = 1

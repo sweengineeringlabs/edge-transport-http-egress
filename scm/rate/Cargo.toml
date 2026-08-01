@@ -32,7 +32,7 @@ thiserror = "2"
 # literals in source.
 serde = { version = "1.0", features = ["derive"] }
 toml = "0.8"
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 async-trait = "0.1"
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 moka = { version = "0.12", features = ["future"] }
@@ -42,7 +42,7 @@ tracing = { version = "0.1", default-features = false, optional = true }
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 moka = { version = "0.12", features = ["future"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 
 [features]
 default = []

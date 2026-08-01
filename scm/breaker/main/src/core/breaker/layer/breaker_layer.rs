@@ -7,14 +7,10 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use tokio::sync::Mutex;
 
-#[cfg(feature = "loadbalancer")]
-use crate::api::HostBreaker;
 use crate::api::{
     Admission, AdmitRequest, BreakerConfig, BreakerError, BreakerLayerBreakerMetrics,
     CircuitBreakerNode, FailureThresholdRequest, FailureThresholdResponse, Outcome, RecordRequest,
 };
-#[cfg(feature = "loadbalancer")]
-use crate::api::{ClosedStateRequest, HalfOpenStateRequest, OpenStateRequest};
 
 use crate::core::host::DefaultHostBreaker;
 
@@ -35,27 +31,6 @@ impl BreakerLayerBreakerMetrics {
         Self {
             config: Arc::new(config),
             state: cache,
-            #[cfg(feature = "loadbalancer")]
-            pool: None,
-        }
-    }
-
-    /// Construct with an attached [`BackendPool`] for pool-health reporting.
-    ///
-    /// Requires the `loadbalancer` feature. When the circuit opens or recovers
-    /// the layer calls `LoadbalancerSvc::report_outcome` on the pool so that
-    /// tripped backends are removed from (or restored to) rotation.
-    #[cfg(feature = "loadbalancer")]
-    pub(crate) fn new_with_pool(
-        config: BreakerConfig,
-        pool: Arc<swe_edge_loadbalancer::BackendPoolInstance>,
-    ) -> Self {
-        let cache: Cache<String, Arc<Mutex<DefaultHostBreaker>>> =
-            Cache::builder().max_capacity(MAX_TRACKED_HOSTS).build();
-        Self {
-            config: Arc::new(config),
-            state: cache,
-            pool: Some(pool),
         }
     }
 
@@ -119,15 +94,12 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
             Admission::Proceed => {
                 let result = next.run(req, ext).await;
 
-                // Classify outcome + record under the lock, capturing
-                // the state transition for pool reporting below.
+                // Classify + record the outcome under the lock.
                 let outcome = match &result {
                     Ok(resp) if self.is_failure(resp.status()) => Outcome::Failure,
                     Ok(_) => Outcome::Success,
                     Err(_) => Outcome::Failure,
                 };
-                // Record outcome. Without loadbalancer feature, just record.
-                #[cfg(not(feature = "loadbalancer"))]
                 {
                     let mut b = state.lock().await;
                     b.record(RecordRequest {
@@ -135,57 +107,6 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
                         outcome,
                     })
                     .expect("HostBreaker::record is infallible");
-                }
-
-                // With loadbalancer feature, record + capture state transition
-                // in one lock so pool reporting can act on it.
-                #[cfg(feature = "loadbalancer")]
-                let pool_event = {
-                    let mut b = state.lock().await;
-                    let was_closed = b
-                        .is_closed(ClosedStateRequest)
-                        .expect("HostBreaker::is_closed is infallible")
-                        .value;
-                    let was_half_open = b
-                        .is_half_open(HalfOpenStateRequest)
-                        .expect("HostBreaker::is_half_open is infallible")
-                        .value;
-                    b.record(RecordRequest {
-                        config: Arc::clone(&self.config),
-                        outcome,
-                    })
-                    .expect("HostBreaker::record is infallible");
-                    let now_open = b
-                        .is_open(OpenStateRequest)
-                        .expect("HostBreaker::is_open is infallible")
-                        .value;
-                    let now_closed = b
-                        .is_closed(ClosedStateRequest)
-                        .expect("HostBreaker::is_closed is infallible")
-                        .value;
-                    if (was_closed || was_half_open) && now_open {
-                        Some(swe_edge_loadbalancer::Outcome::Failure {
-                            reason: "circuit open".to_string(),
-                        })
-                    } else if was_half_open && now_closed {
-                        Some(swe_edge_loadbalancer::Outcome::Success)
-                    } else {
-                        None
-                    }
-                };
-
-                // Report the transition to the BackendPool so the loadbalancer
-                // stops routing to a tripped backend and resumes once the probe
-                // succeeds.
-                #[cfg(feature = "loadbalancer")]
-                if let Some(pool) = &self.pool {
-                    if let Some(lb_out) = pool_event {
-                        if let Some(backend_id) = ext.get::<swe_edge_loadbalancer::BackendId>() {
-                            swe_edge_loadbalancer::LoadbalancerSvc::report_outcome(
-                                pool, backend_id, lb_out,
-                            );
-                        }
-                    }
                 }
 
                 result
@@ -214,8 +135,6 @@ impl std::fmt::Debug for BreakerLayerBreakerMetrics {
                 &self.config.half_open_after_seconds,
             )
             .field("reset_after_successes", &self.config.reset_after_successes);
-        #[cfg(feature = "loadbalancer")]
-        d.field("pool", &self.pool.is_some());
         d.finish()
     }
 }
@@ -273,27 +192,5 @@ mod tests {
         let a = l.host_state("example.test").await;
         let b = l.host_state("another.test").await;
         assert!(!Arc::ptr_eq(&a, &b));
-    }
-
-    /// @covers: new_with_pool
-    #[cfg(feature = "loadbalancer")]
-    #[test]
-    fn test_new_with_pool_sets_pool_field() {
-        use swe_edge_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
-        let pool = Arc::new(
-            LoadbalancerSvc::build_pool(LoadbalancerConfig {
-                strategy: Strategy::RoundRobin,
-                backends: vec![BackendConfig {
-                    url: "http://example.test".to_string(),
-                    weight: 1,
-                }],
-            })
-            .unwrap(),
-        );
-        let l = BreakerLayerBreakerMetrics::new_with_pool(test_config(), pool);
-        assert!(
-            l.pool.is_some(),
-            "pool field must be Some after new_with_pool"
-        );
     }
 }

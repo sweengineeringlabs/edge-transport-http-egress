@@ -25,7 +25,7 @@ path = "main/src/lib.rs"
 # enables all of them, so the out-of-the-box experience is unchanged; size-conscious
 # consumers use `default-features = false` and enable only what they need.
 [features]
-default = ["auth", "oauth", "tls", "retry", "rate", "breaker", "cache", "cassette", "loadbalancer"]
+default = ["auth", "oauth", "tls", "retry", "rate", "breaker", "cache", "cassette"]
 auth     = ["dep:edge-security-transport-egress-http"]
 # BYOSec reversed for oauth/tls too (2026-07-17): edge-security#40 bumped
 # their reqwest/reqwest-middleware pins to match bearer's.
@@ -36,7 +36,6 @@ rate     = ["dep:edge-transport-http-egress-rate"]
 breaker  = ["dep:edge-transport-http-egress-breaker"]
 cache    = ["dep:edge-transport-http-egress-cache"]
 cassette = ["dep:edge-transport-http-egress-cassette"]
-loadbalancer = ["dep:edge-transport-http-egress-loadbalancer"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
@@ -59,12 +58,11 @@ edge-transport-http-egress-rate     = { path = "../rate", optional = true }
 edge-transport-http-egress-breaker  = { path = "../breaker", optional = true }
 edge-transport-http-egress-cache    = { path = "../cache", optional = true }
 edge-transport-http-egress-cassette = { path = "../cassette", optional = true }
-edge-transport-http-egress-loadbalancer = { path = "../loadbalancer", optional = true }
 async-trait          = "0.1"
 bytes                = "1"
 swe-observ-metrics   = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
 tokio-tungstenite    = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 
 # Integration tests live in tests/*.rs and are auto-discovered by Cargo — one
 # test target per file, named after the file stem. No explicit [[test]] entries
@@ -90,7 +88,6 @@ edge-transport-http-egress-rate    = { path = "../rate" }
 edge-transport-http-egress-breaker = { path = "../breaker" }
 edge-transport-http-egress-cache   = { path = "../cache" }
 edge-transport-http-egress-cassette = { path = "../cassette" }
-edge-transport-http-egress-loadbalancer = { path = "../loadbalancer" }
 async-trait              = "0.1"
 futures                  = "0.3"
 tokio-tungstenite        = { version = "0.26", features = ["rustls-tls-native-roots"] }

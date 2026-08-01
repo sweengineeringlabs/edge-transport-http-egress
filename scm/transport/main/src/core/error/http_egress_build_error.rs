@@ -39,15 +39,6 @@ impl From<edge_transport_http_egress_cassette::CassetteError> for HttpEgressBuil
     }
 }
 
-#[cfg(feature = "loadbalancer")]
-impl From<edge_transport_http_egress_loadbalancer::LoadbalancerMiddlewareError>
-    for HttpEgressBuildError
-{
-    fn from(e: edge_transport_http_egress_loadbalancer::LoadbalancerMiddlewareError) -> Self {
-        Self::Loadbalancer(AssemblyFailure(Box::new(e)))
-    }
-}
-
 #[cfg(feature = "tls")]
 impl From<edge_security_transport_egress_http_tls::TlsConfigError> for HttpEgressBuildError {
     fn from(e: edge_security_transport_egress_http_tls::TlsConfigError) -> Self {

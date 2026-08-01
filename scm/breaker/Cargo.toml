@@ -32,13 +32,12 @@ thiserror = "2"
 # literals in source.
 serde = { version = "1.0", features = ["derive", "rc"] }
 toml = "0.8"
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 async-trait = "0.1"
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 moka = { version = "0.12", features = ["future"] }
 anyhow = "1"
 tracing             = { version = "0.1", default-features = false, optional = true }
-swe-edge-loadbalancer = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0", optional = true }
 
 [dev-dependencies]
 reqwest             = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
@@ -46,8 +45,7 @@ reqwest-middleware  = { version = "0.4", features = ["json", "multipart"] }
 async-trait         = "0.1"
 tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 moka                = { version = "0.12", features = ["future"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0" }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
 bytes               = "1"
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }
@@ -58,9 +56,6 @@ default = []
 # Emit spans via the `tracing` crate. Off by default so consumers
 # without tracing infrastructure don't pay the cost.
 tracing = ["dep:tracing"]
-# Wire circuit-trip events back to a `swe-edge-loadbalancer` BackendPool so
-# tripped backends are removed from rotation.
-loadbalancer = ["dep:swe-edge-loadbalancer"]
 
 
 [lints.rust]

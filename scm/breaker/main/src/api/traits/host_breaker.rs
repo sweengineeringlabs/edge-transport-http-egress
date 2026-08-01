@@ -9,7 +9,12 @@ use crate::api::{
 ///
 /// Provides observable state inspection methods that consumers can rely on
 /// without depending on the concrete `core::host::breaker::HostBreaker` type.
-#[cfg_attr(not(feature = "loadbalancer"), allow(dead_code))]
+///
+/// Not called from `main/src/` itself — `BreakerLayerBreakerMetrics::handle`
+/// only needs `record`/`admit` — but real, tested public API (see the
+/// `is_open`/`is_half_open`/`is_closed` integration tests) for consumers who
+/// want to introspect breaker state directly.
+#[allow(dead_code)]
 pub trait HostBreaker: Send + Sync {
     /// Returns whether the breaker is in the Open (fail-fast) state.
     fn is_open(&self, request: OpenStateRequest) -> Result<OpenStateResponse, BreakerError>;
