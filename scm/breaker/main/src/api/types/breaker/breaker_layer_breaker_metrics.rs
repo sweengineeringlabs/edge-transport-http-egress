@@ -15,9 +15,4 @@ pub struct BreakerLayerBreakerMetrics {
     /// concurrent access with background expiration of
     /// long-idle entries.
     pub(crate) state: Cache<String, Arc<tokio::sync::Mutex<crate::core::host::DefaultHostBreaker>>>,
-    /// Optional loadbalancer pool. When set (requires the `loadbalancer`
-    /// feature), the breaker reports circuit-trip and recovery events back
-    /// to the pool so that tripped backends are removed from rotation.
-    #[cfg(feature = "loadbalancer")]
-    pub(crate) pool: Option<Arc<swe_edge_loadbalancer::BackendPoolInstance>>,
 }

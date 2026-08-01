@@ -1,6 +1,6 @@
 //! Coverage tests (rules 221 + 222) — _happy / _error / _edge variants.
-//! Rule 221: get_failure_threshold, create_config_builder, build_breaker_layer,
-//!            build_breaker_layer_with_pool in breaker_svc.rs.
+//! Rule 221: get_failure_threshold, create_config_builder, build_breaker_layer
+//!            in breaker_svc.rs.
 //! Rule 222: failure_threshold (BreakerMetrics), admit / record (CircuitBreakerNode),
 //!            is_open / is_half_open / is_closed (HostBreaker),
 //!            describe (Processor), validate (BreakerConfig::from_config).
@@ -72,18 +72,6 @@ fn test_build_breaker_layer_idempotent_for_same_config_edge() {
         r1.is_ok() && r2.is_ok(),
         "repeated builds must both succeed"
     );
-}
-
-// ── build_breaker_layer_with_pool (rule 221) — real coverage lives in
-// breaker_loadbalancer_int_test.rs, which exercises the actual
-// `loadbalancer`-feature-gated function ─────────────────────────────────────
-
-#[test]
-fn test_build_breaker_layer_with_pool_threshold_preserved_edge() {
-    let config = BreakerConfig::default();
-    let layer = HttpBreakerSvcProcessor::build_breaker_layer(config).expect("build ok");
-    let t = HttpBreakerSvcProcessor::get_failure_threshold(&layer);
-    assert!(t > 0, "threshold preserved through build");
 }
 
 // ── failure_threshold (rule 222: BreakerMetrics trait) ──────────────────────

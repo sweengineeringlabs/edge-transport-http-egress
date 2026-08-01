@@ -28,7 +28,7 @@ impl HttpTransportSvc {
     /// wired **iff** its `[section]` is present in the loaded config.
     ///
     /// Config-drives `[retry]`, `[rate]`, `[breaker]`, `[cache]`,
-    /// `[cassette]`, and `[loadbalancer]` — present ⇒ the feature is wired;
+    /// and `[cassette]` — present ⇒ the feature is wired;
     /// absent (or `enabled = false`) ⇒ it is **omitted from the chain**, not
     /// added as a no-op (zero overhead when disabled).
     ///
@@ -65,7 +65,7 @@ impl HttpTransportSvc {
     /// [`HttpEgressAuthStrategy`](edge_security_transport_egress_http::HttpEgressAuthStrategy)
     /// — the construct-and-pass-in replacement for the old `[auth]` TOML
     /// section (BYOSec reversed 2026-07-16). The `[retry]`/`[rate]`/
-    /// `[breaker]`/`[cache]`/`[cassette]`/`[loadbalancer]` sections are
+    /// `[breaker]`/`[cache]`/`[cassette]` sections are
     /// honoured as usual.
     ///
     /// # Errors
@@ -91,7 +91,7 @@ impl HttpTransportSvc {
     /// — the construct-and-pass-in replacement for the old `[tls]` TOML
     /// section (BYOSec reversed 2026-07-17; see
     /// [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment for why). The
-    /// `[retry]`/`[rate]`/`[breaker]`/`[cache]`/`[cassette]`/`[loadbalancer]`
+    /// `[retry]`/`[rate]`/`[breaker]`/`[cache]`/`[cassette]`
     /// sections are honoured as usual.
     ///
     /// # Errors
@@ -119,7 +119,7 @@ impl HttpTransportSvc {
     /// `[auth]` section. This is how OAuth — which cannot be expressed in TOML
     /// (the token source is a runtime trait object) — is combined with the
     /// config-driven middleware stack. The `[retry]`/`[rate]`/`[breaker]`/
-    /// `[cache]`/`[cassette]`/`[loadbalancer]` sections are honoured as usual.
+    /// `[cache]`/`[cassette]` sections are honoured as usual.
     ///
     /// # Errors
     ///
@@ -150,7 +150,7 @@ impl HttpTransportSvc {
     /// visibility guardrail against silent config-driven activation.
     ///
     /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[retry]`,
-    /// `[rate]`, `[breaker]`, `[cache]`, `[cassette]`, `[loadbalancer]`.
+    /// `[rate]`, `[breaker]`, `[cache]`, `[cassette]`.
     /// `auth` and `tls` have no config-section form (see
     /// [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment), so neither is part of
     /// this summary.
@@ -170,8 +170,7 @@ impl HttpTransportSvc {
             feature = "rate",
             feature = "breaker",
             feature = "cache",
-            feature = "cassette",
-            feature = "loadbalancer"
+            feature = "cassette"
         )),
         allow(unused_variables, unused_mut)
     )]
@@ -189,8 +188,6 @@ impl HttpTransportSvc {
         registry.load::<edge_transport_http_egress_cache::CacheConfig>(loader)?;
         #[cfg(feature = "cassette")]
         registry.load::<edge_transport_http_egress_cassette::CassetteConfig>(loader)?;
-        #[cfg(feature = "loadbalancer")]
-        registry.load::<edge_transport_http_egress_loadbalancer::LoadbalancerConfig>(loader)?;
         Ok(registry.summary())
     }
 
@@ -382,10 +379,10 @@ impl HttpTransportSvc {
     }
 
     /// Append the non-auth optional middleware — `[retry]`, `[rate]`,
-    /// `[breaker]`, `[cache]`, `[cassette]`, `[loadbalancer]` — each added
+    /// `[breaker]`, `[cache]`, `[cassette]` — each added
     /// via `.with(..)` only when its section is present; a disabled section
     /// adds nothing.
-    // With none of these six features, no layer is appended: `loader` is unread
+    // With none of these five features, no layer is appended: `loader` is unread
     // and `builder` is returned unmutated.
     #[cfg_attr(
         not(any(
@@ -393,8 +390,7 @@ impl HttpTransportSvc {
             feature = "rate",
             feature = "breaker",
             feature = "cache",
-            feature = "cassette",
-            feature = "loadbalancer"
+            feature = "cassette"
         )),
         allow(unused_variables, unused_mut)
     )]
@@ -407,8 +403,7 @@ impl HttpTransportSvc {
             feature = "rate",
             feature = "breaker",
             feature = "cache",
-            feature = "cassette",
-            feature = "loadbalancer"
+            feature = "cassette"
         ))]
         use swe_edge_configbuilder::{FeatureState, OptionalSection as _};
 
@@ -462,16 +457,6 @@ impl HttpTransportSvc {
                 edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
                     cassette_cfg,
                     "default",
-                )?,
-            );
-        }
-        #[cfg(feature = "loadbalancer")]
-        if let FeatureState::Enabled(loadbalancer_cfg) =
-            edge_transport_http_egress_loadbalancer::LoadbalancerConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                edge_transport_http_egress_loadbalancer::LoadbalancerSvcProcessor::build_layer(
-                    loadbalancer_cfg,
                 )?,
             );
         }

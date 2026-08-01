@@ -47,23 +47,6 @@ impl HttpBreakerSvcProcessor {
         let layer = BreakerLayerBreakerMetrics::new(config);
         Ok(layer)
     }
-
-    /// Build a [`BreakerLayerBreakerMetrics`] that reports circuit-trip and recovery events
-    /// back to a `BackendPool`.
-    ///
-    /// Requires the `loadbalancer` feature. When the circuit opens (trip) the
-    /// layer reports `Outcome::Failure { reason: "circuit open" }` to the pool
-    /// for the affected backend, removing it from rotation. When a half-open
-    /// probe succeeds the layer reports `Outcome::Success`, restoring the
-    /// backend.
-    #[cfg(feature = "loadbalancer")]
-    pub fn build_breaker_layer_with_pool(
-        config: BreakerConfig,
-        pool: std::sync::Arc<swe_edge_loadbalancer::BackendPoolInstance>,
-    ) -> Result<BreakerLayerBreakerMetrics, BreakerError> {
-        let layer = BreakerLayerBreakerMetrics::new_with_pool(config, pool);
-        Ok(layer)
-    }
 }
 
 #[cfg(test)]
@@ -102,24 +85,5 @@ mod tests {
     fn test_build_breaker_layer_succeeds_with_default_config_inline() {
         HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default())
             .expect("default config must build");
-    }
-
-    /// @covers: build_breaker_layer_with_pool
-    #[cfg(feature = "loadbalancer")]
-    #[test]
-    fn test_build_breaker_layer_with_pool_succeeds_inline() {
-        use swe_edge_loadbalancer::{BackendConfig, LoadbalancerConfig, LoadbalancerSvc, Strategy};
-        let pool = std::sync::Arc::new(
-            LoadbalancerSvc::build_pool(LoadbalancerConfig {
-                strategy: Strategy::RoundRobin,
-                backends: vec![BackendConfig {
-                    url: "http://example.test".to_string(),
-                    weight: 1,
-                }],
-            })
-            .expect("pool build ok"),
-        );
-        HttpBreakerSvcProcessor::build_breaker_layer_with_pool(BreakerConfig::default(), pool)
-            .expect("build with pool must succeed");
     }
 }

@@ -4,7 +4,6 @@ members  = [
   "breaker",
   "cache",
   "cassette",
-  "loadbalancer",
   "rate",
   "retry",
   "transport",
