@@ -22,7 +22,7 @@ service_type = "processor"
 path = "main/src/lib.rs"
 
 [dependencies]
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
+swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0" }
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
 reqwest                = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 reqwest-middleware     = { version = "0.4", features = ["json", "multipart"] }
@@ -37,7 +37,7 @@ tracing                = { version = "0.1", default-features = false, optional =
 tokio                 = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 reqwest               = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
+swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0" }
 
 [features]
 default = []

@@ -38,7 +38,7 @@ tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "t
 moka = { version = "0.12", features = ["future"] }
 anyhow = "1"
 tracing             = { version = "0.1", default-features = false, optional = true }
-swe-edge-loadbalancer = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0", optional = true }
+swe-edge-loadbalancer = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0", optional = true }
 
 [dev-dependencies]
 reqwest             = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
@@ -47,7 +47,7 @@ async-trait         = "0.1"
 tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 moka                = { version = "0.12", features = ["future"] }
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.3.0" }
-swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.1.0" }
+swe-edge-loadbalancer  = { git = "https://github.com/sweengineeringlabs/edge-loadbalancer.git", tag = "v0.4.0" }
 bytes               = "1"
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }

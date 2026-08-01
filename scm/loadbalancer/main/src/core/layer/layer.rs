@@ -9,13 +9,11 @@ use crate::api::{
     BackendCountRequest, BackendCountResponse, LoadbalancerConfig, LoadbalancerLayerPoolMetrics,
     LoadbalancerMiddlewareError, PoolMetrics,
 };
-use swe_edge_loadbalancer::{
-    build_backend_pool, pool_backend_count, report_backend_outcome, select_backend, Outcome,
-};
+use swe_edge_loadbalancer::{LoadbalancerSvc, Outcome};
 
 impl LoadbalancerLayerPoolMetrics {
     pub(crate) fn new(config: LoadbalancerConfig) -> Result<Self, LoadbalancerMiddlewareError> {
-        let pool = build_backend_pool(config)
+        let pool = LoadbalancerSvc::build_pool(config)
             .map_err(|e| LoadbalancerMiddlewareError::PoolBuildFailed(e.to_string()))?;
         Ok(Self {
             pool: Arc::new(pool),
@@ -51,7 +49,7 @@ impl PoolMetrics for LoadbalancerLayerPoolMetrics {
         _request: BackendCountRequest,
     ) -> Result<BackendCountResponse, LoadbalancerMiddlewareError> {
         Ok(BackendCountResponse {
-            value: pool_backend_count(&self.pool),
+            value: LoadbalancerSvc::backend_count(&self.pool),
         })
     }
 }
@@ -64,7 +62,7 @@ impl reqwest_middleware::Middleware for LoadbalancerLayerPoolMetrics {
         ext: &mut http::Extensions,
         next: reqwest_middleware::Next<'_>,
     ) -> reqwest_middleware::Result<reqwest::Response> {
-        let backend = select_backend(&self.pool)
+        let backend = LoadbalancerSvc::select(&self.pool)
             .map_err(|e| reqwest_middleware::Error::Middleware(anyhow::anyhow!("{e}")))?;
 
         let new_url = Self::rewrite_url(req.url(), &backend.url)
@@ -87,7 +85,7 @@ impl reqwest_middleware::Middleware for LoadbalancerLayerPoolMetrics {
                 reason: e.to_string(),
             },
         };
-        report_backend_outcome(&self.pool, &backend_id, outcome);
+        LoadbalancerSvc::report_outcome(&self.pool, &backend_id, outcome);
 
         result
     }
