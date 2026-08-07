@@ -22,6 +22,8 @@ service_type = "processor"
 path = "main/src/lib.rs"
 
 [dependencies]
+edge-transport-breaker-policy = { git = "https://github.com/sweengineeringlabs/edge-transport-breaker.git", tag = "v0.1.1" }
+edge-transport-breaker        = { git = "https://github.com/sweengineeringlabs/edge-transport-breaker.git", tag = "v0.1.1" }
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 http = "1"

@@ -23,6 +23,7 @@ fn test_retry_config_all_fields_are_public() {
         initial_interval_ms: 100,
         max_interval_ms: 5000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429, 503],
         retryable_methods: vec!["GET".to_string(), "HEAD".to_string()],
     };
@@ -42,6 +43,7 @@ fn test_retry_config_is_clone() {
         initial_interval_ms: 200,
         max_interval_ms: 10_000,
         multiplier: 1.5,
+        jitter_factor: 0.0,
         retryable_statuses: vec![500],
         retryable_methods: vec!["DELETE".to_string()],
     };
@@ -64,6 +66,7 @@ fn test_max_retries_zero_is_valid() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -82,6 +85,7 @@ fn test_max_retries_max_u32_builds_without_error() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![],
         retryable_methods: vec![],
     };
@@ -103,6 +107,7 @@ fn test_retryable_statuses_accepts_full_range_of_u16_values() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![100, 200, 429, 500, 503, 599, 65535],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -120,6 +125,7 @@ fn test_retryable_statuses_empty_is_valid() {
         initial_interval_ms: 100,
         max_interval_ms: 5000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -141,6 +147,7 @@ fn test_retryable_methods_stored_with_original_casing() {
         initial_interval_ms: 50,
         max_interval_ms: 500,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["get".to_string(), "HEAD".to_string(), "Put".to_string()],
     };
@@ -165,6 +172,7 @@ fn test_multiplier_one_produces_constant_interval() {
         initial_interval_ms: 200,
         max_interval_ms: 200,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -182,6 +190,7 @@ fn test_multiplier_below_one_builds_successfully() {
         initial_interval_ms: 1000,
         max_interval_ms: 5000,
         multiplier: 0.5,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429],
         retryable_methods: vec!["GET".to_string()],
     };

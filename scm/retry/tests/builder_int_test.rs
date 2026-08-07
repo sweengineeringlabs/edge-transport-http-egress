@@ -13,6 +13,7 @@ fn make_cfg(max_retries: u32) -> RetryConfig {
         initial_interval_ms: 100,
         max_interval_ms: 5000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429, 500, 502, 503],
         retryable_methods: vec!["GET".to_string(), "HEAD".to_string()],
     }
@@ -136,6 +137,7 @@ fn test_build_retry_layer_with_zero_max_retries_succeeds() {
         initial_interval_ms: 100,
         max_interval_ms: 100,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![],
         retryable_methods: vec![],
     };
@@ -153,6 +155,7 @@ fn test_build_retry_layer_with_empty_retryable_lists_succeeds() {
         initial_interval_ms: 50,
         max_interval_ms: 2000,
         multiplier: 1.5,
+        jitter_factor: 0.0,
         retryable_statuses: vec![],
         retryable_methods: vec![],
     };
@@ -170,6 +173,7 @@ fn test_build_retry_layer_with_large_multiplier_succeeds() {
         initial_interval_ms: 10,
         max_interval_ms: 60_000,
         multiplier: 100.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["POST".to_string()],
     };

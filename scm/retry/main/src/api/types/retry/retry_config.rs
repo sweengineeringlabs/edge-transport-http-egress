@@ -33,6 +33,12 @@ pub struct RetryConfig {
     /// Exponential backoff base (e.g. 2.0 → 200ms, 400ms, 800ms).
     pub multiplier: f64,
 
+    /// Jitter as a fraction of the computed backoff (`0.0` = none, `0.1` = up to 10% random
+    /// delta). Defaults to `0.0` (deterministic backoff, this crate's historical behavior) so
+    /// existing TOML configs without this field keep working unchanged.
+    #[serde(default)]
+    pub jitter_factor: f64,
+
     /// HTTP status codes that trigger a retry.
     pub retryable_statuses: Vec<u16>,
 

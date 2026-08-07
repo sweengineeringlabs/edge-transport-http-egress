@@ -10,6 +10,7 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
+use edge_transport_retry::{BackoffScheduler, DefaultJitterRng};
 
 use crate::api::RetryConfig;
 use crate::api::RetryLayer;
@@ -24,14 +25,13 @@ impl RetryLayer {
     }
 
     /// Compute the backoff delay for retry attempt `attempt` (0-indexed:
-    /// `attempt=0` is the wait before the first retry). Capped at
-    /// `max_interval_ms`.
-    fn backoff_for(&self, attempt: u32) -> Duration {
-        let initial_ms = self.config.initial_interval_ms as f64;
-        let multiplier = self.config.multiplier;
-        let max_ms = self.config.max_interval_ms;
-        let ms = (initial_ms * multiplier.powi(attempt as i32)).round() as u64;
-        Duration::from_millis(ms.min(max_ms))
+    /// `attempt=0` is the wait before the first retry), capped at
+    /// `max_interval_ms`. `random_unit` (`[0.0, 1.0)`) drives jitter — with
+    /// `RetryConfig::jitter_factor` at its default of `0.0`, the value has no
+    /// effect and backoff is fully deterministic (this crate's historical
+    /// behavior).
+    fn backoff_for(&self, attempt: u32, random_unit: f64) -> Duration {
+        BackoffScheduler::next_backoff(self.config.as_ref(), attempt, random_unit)
     }
 
     /// Is this method eligible for retry per config?
@@ -94,9 +94,11 @@ impl reqwest_middleware::Middleware for RetryLayer {
             return next.run(req, ext).await;
         }
 
+        let mut rng = DefaultJitterRng::from_clock();
+
         for attempt in 0..total {
             if attempt > 0 {
-                let delay = self.backoff_for(attempt - 1);
+                let delay = self.backoff_for(attempt - 1, rng.next_unit());
                 tokio::time::sleep(delay).await;
             }
 
@@ -143,31 +145,63 @@ mod tests {
     #[test]
     fn test_new_constructs_and_stores_config() {
         let l = RetryLayer::new(test_config());
-        // Config stored correctly — backoff uses it.
-        assert_eq!(l.backoff_for(0), Duration::from_millis(200));
+        // Config stored correctly — backoff uses it. random_unit is irrelevant here:
+        // test_config()'s jitter_factor defaults to 0.0 (deterministic backoff).
+        assert_eq!(l.backoff_for(0, 0.5), Duration::from_millis(200));
     }
 
     /// @covers: backoff_for
     #[test]
     fn test_backoff_for_initial_attempt_uses_initial_interval() {
         let l = RetryLayer::new(test_config());
-        assert_eq!(l.backoff_for(0), Duration::from_millis(200));
+        assert_eq!(l.backoff_for(0, 0.5), Duration::from_millis(200));
     }
 
     /// @covers: backoff_for
     #[test]
     fn test_backoff_grows_exponentially() {
         let l = RetryLayer::new(test_config());
-        assert_eq!(l.backoff_for(0), Duration::from_millis(200));
-        assert_eq!(l.backoff_for(1), Duration::from_millis(400));
-        assert_eq!(l.backoff_for(2), Duration::from_millis(800));
+        assert_eq!(l.backoff_for(0, 0.5), Duration::from_millis(200));
+        assert_eq!(l.backoff_for(1, 0.5), Duration::from_millis(400));
+        assert_eq!(l.backoff_for(2, 0.5), Duration::from_millis(800));
     }
 
     /// @covers: backoff_for
     #[test]
     fn test_backoff_caps_at_max_interval() {
         let l = RetryLayer::new(test_config());
-        assert_eq!(l.backoff_for(10), Duration::from_millis(10000));
+        assert_eq!(l.backoff_for(10, 0.5), Duration::from_millis(10000));
+    }
+
+    /// @covers: backoff_for
+    /// Proves jitter_factor actually reaches the shared BackoffScheduler and changes the
+    /// result -- without this, jitter_factor would be a field that's plumbed through but
+    /// never actually exercised by any test.
+    #[test]
+    fn test_backoff_for_applies_jitter_when_configured() {
+        let jittered_config = RetryConfig {
+            jitter_factor: 0.5,
+            ..RetryConfig::from_config(
+                r#"
+                    max_retries = 3
+                    initial_interval_ms = 200
+                    max_interval_ms = 10000
+                    multiplier = 2.0
+                    retryable_statuses = [429, 500, 502, 503, 504]
+                    retryable_methods = ["GET", "HEAD", "PUT", "DELETE"]
+                "#,
+            )
+            .expect("test config must parse")
+        };
+        let l = RetryLayer::new(jittered_config);
+        // random_unit=0.0 vs random_unit=0.9 must produce different backoffs once
+        // jitter_factor > 0.0 -- proves the value flows through, not ignored.
+        let low = l.backoff_for(0, 0.0);
+        let high = l.backoff_for(0, 0.9);
+        assert_ne!(
+            low, high,
+            "different random_unit values must produce different backoff when jitter_factor > 0"
+        );
     }
 
     /// @covers: method_retryable

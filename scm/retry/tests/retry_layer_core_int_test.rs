@@ -27,6 +27,7 @@ fn make_cfg_with(
         initial_interval_ms: initial_ms,
         max_interval_ms: max_ms,
         multiplier,
+        jitter_factor: 0.0,
         retryable_statuses: statuses,
         retryable_methods: methods.into_iter().map(str::to_string).collect(),
     }

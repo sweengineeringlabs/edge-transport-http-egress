@@ -7,12 +7,16 @@ use async_trait::async_trait;
 use moka::future::Cache;
 use tokio::sync::Mutex;
 
-use crate::api::{
-    Admission, AdmitRequest, BreakerConfig, BreakerError, BreakerLayerBreakerMetrics,
-    CircuitBreakerNode, FailureThresholdRequest, FailureThresholdResponse, Outcome, RecordRequest,
+use edge_transport_breaker::DefaultBreakerTransition;
+use edge_transport_breaker_policy::{
+    Admission, AdmitRequest, BreakerNode, BreakerState, BreakerTransition, Outcome,
+    RecordOutcomeRequest,
 };
 
-use crate::core::host::DefaultHostBreaker;
+use crate::api::{
+    BreakerConfig, BreakerError, BreakerLayerBreakerMetrics, FailureThresholdRequest,
+    FailureThresholdResponse,
+};
 
 /// Capacity of the per-host breaker cache. Upper bound on the
 /// number of distinct hosts we track state for. Beyond this,
@@ -26,7 +30,7 @@ const MAX_TRACKED_HOSTS: u64 = 10_000;
 impl BreakerLayerBreakerMetrics {
     /// Construct from a resolved config.
     pub(crate) fn new(config: BreakerConfig) -> Self {
-        let cache: Cache<String, Arc<Mutex<DefaultHostBreaker>>> =
+        let cache: Cache<String, Arc<Mutex<BreakerNode>>> =
             Cache::builder().max_capacity(MAX_TRACKED_HOSTS).build();
         Self {
             config: Arc::new(config),
@@ -35,10 +39,14 @@ impl BreakerLayerBreakerMetrics {
     }
 
     /// Get-or-insert per-host state.
-    async fn host_state(&self, key: &str) -> Arc<Mutex<DefaultHostBreaker>> {
+    async fn host_state(&self, key: &str) -> Arc<Mutex<BreakerNode>> {
         self.state
             .get_with(key.to_string(), async {
-                Arc::new(Mutex::new(DefaultHostBreaker::new()))
+                Arc::new(Mutex::new(BreakerNode {
+                    state: BreakerState::Closed,
+                    consecutive_failures: 0,
+                    consecutive_successes: 0,
+                }))
             })
             .await
     }
@@ -75,16 +83,23 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
             None => "__hostless__".to_string(),
         };
 
-        let state = self.host_state(&key).await;
+        let node = self.host_state(&key).await;
 
         // Admission decision under the lock.
         let admission = {
-            let mut b = state.lock().await;
-            b.admit(AdmitRequest {
-                config: Arc::clone(&self.config),
-            })
-            .expect("HostBreaker::admit is infallible")
-            .admission
+            let mut n = node.lock().await;
+            let resp = DefaultBreakerTransition
+                .admit(AdmitRequest {
+                    state: n.state,
+                    consecutive_failures: n.consecutive_failures,
+                    consecutive_successes: n.consecutive_successes,
+                    config: (*self.config).clone().into(),
+                })
+                .expect("BreakerTransition::admit is infallible");
+            n.state = resp.state;
+            n.consecutive_failures = resp.consecutive_failures;
+            n.consecutive_successes = resp.consecutive_successes;
+            resp.admission
         };
 
         match admission {
@@ -101,12 +116,19 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
                     Err(_) => Outcome::Failure,
                 };
                 {
-                    let mut b = state.lock().await;
-                    b.record(RecordRequest {
-                        config: Arc::clone(&self.config),
-                        outcome,
-                    })
-                    .expect("HostBreaker::record is infallible");
+                    let mut n = node.lock().await;
+                    let resp = DefaultBreakerTransition
+                        .record(RecordOutcomeRequest {
+                            state: n.state,
+                            consecutive_failures: n.consecutive_failures,
+                            consecutive_successes: n.consecutive_successes,
+                            config: (*self.config).clone().into(),
+                            outcome,
+                        })
+                        .expect("BreakerTransition::record is infallible");
+                    n.state = resp.state;
+                    n.consecutive_failures = resp.consecutive_failures;
+                    n.consecutive_successes = resp.consecutive_successes;
                 }
 
                 result

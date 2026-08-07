@@ -12,6 +12,7 @@ impl RetryConfigBuilder {
             initial_interval_ms: defaults.initial_interval_ms,
             max_interval_ms: defaults.max_interval_ms,
             multiplier: defaults.multiplier,
+            jitter_factor: defaults.jitter_factor,
             retryable_statuses: defaults.retryable_statuses,
             retryable_methods: defaults.retryable_methods,
         }
@@ -41,6 +42,12 @@ impl RetryConfigBuilder {
         self
     }
 
+    /// Set the jitter fraction (`0.0` = none, `0.1` = up to 10% random delta).
+    pub fn jitter_factor(mut self, jitter_factor: f64) -> Self {
+        self.jitter_factor = jitter_factor;
+        self
+    }
+
     /// Set the HTTP status codes that trigger a retry.
     pub fn retryable_statuses(mut self, statuses: Vec<u16>) -> Self {
         self.retryable_statuses = statuses;
@@ -61,6 +68,7 @@ impl RetryConfigBuilder {
             initial_interval_ms: self.initial_interval_ms,
             max_interval_ms: self.max_interval_ms,
             multiplier: self.multiplier,
+            jitter_factor: self.jitter_factor,
             retryable_statuses: self.retryable_statuses,
             retryable_methods: self.retryable_methods,
         };

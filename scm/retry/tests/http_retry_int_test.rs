@@ -28,6 +28,7 @@ fn test_retry_layer_implements_reqwest_middleware() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -57,6 +58,7 @@ fn test_retry_layer_is_send_and_sync() {
         initial_interval_ms: 200,
         max_interval_ms: 8000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -84,6 +86,7 @@ fn test_retry_layer_is_arc_send_sync() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -117,6 +120,7 @@ fn test_retry_layer_debug_contains_max_retries() {
         initial_interval_ms: 200,
         max_interval_ms: 8000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -144,6 +148,7 @@ fn test_retry_layer_attaches_to_reqwest_middleware_client_builder() {
         initial_interval_ms: 100,
         max_interval_ms: 1000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };

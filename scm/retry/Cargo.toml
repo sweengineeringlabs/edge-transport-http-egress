@@ -22,6 +22,8 @@ service_type = "processor"
 path = "main/src/lib.rs"
 
 [dependencies]
+edge-transport-retry-policy = { git = "https://github.com/sweengineeringlabs/edge-transport-retry.git", tag = "v0.1.0" }
+edge-transport-retry        = { git = "https://github.com/sweengineeringlabs/edge-transport-retry.git", tag = "v0.1.0" }
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 # `reqwest-retry` kept as a candidate dep but not used directly
@@ -47,6 +49,10 @@ tracing = { version = "0.1", default-features = false, optional = true }
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+bytes               = "1"
+hyper               = { version = "1", features = ["http1", "server"] }
+hyper-util          = { version = "0.1", features = ["tokio"] }
+http-body-util      = "0.1"
 
 [features]
 default = []

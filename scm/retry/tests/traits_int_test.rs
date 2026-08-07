@@ -14,6 +14,7 @@ fn make_cfg() -> RetryConfig {
         initial_interval_ms: 50,
         max_interval_ms: 1000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     }
