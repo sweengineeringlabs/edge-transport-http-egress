@@ -1,13 +1,17 @@
-//! Integration tests verifying that `edge-application` types surface correctly through
-//! the transport crate's public API (SEA Rule 95 — dependency coverage).
+//! Dependency coverage test for `edge-security-runtime`.
+//! @covers: edge-security-runtime
+//!
+//! Verifies that `edge-security-runtime`'s `SecurityContext` type surfaces
+//! correctly through the transport crate's public API (SEA Rule 95 —
+//! dependency coverage).
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::collections::HashMap;
 
-use edge_application::SecurityContext;
+use edge_security_runtime::SecurityContext;
 
-/// @covers: SecurityContext (edge-application)
+/// @covers: SecurityContext (edge-security-runtime)
 /// Verifies that `SecurityContext` is reachable via the crate's public SAF
 /// surface and that a fully-authenticated context can be constructed.
 #[test]
@@ -29,7 +33,7 @@ fn test_security_context_authenticated_with_tenant_and_trace_is_constructible() 
     assert_eq!(ctx.claims.get("role").map(String::as_str), Some("admin"));
 }
 
-/// @covers: SecurityContext (edge-application)
+/// @covers: SecurityContext (edge-security-runtime)
 /// Verifies that the zero-value (unauthenticated, no fields set) context is valid.
 #[test]
 fn test_security_context_unauthenticated_default_fields_are_none() {
@@ -51,7 +55,7 @@ fn test_security_context_unauthenticated_default_fields_are_none() {
     assert!(ctx.claims.is_empty());
 }
 
-/// @covers: SecurityContext (edge-application)
+/// @covers: SecurityContext (edge-security-runtime)
 /// Verifies that two independently constructed contexts are independent
 /// (no shared global state).
 #[test]
