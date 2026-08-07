@@ -21,6 +21,7 @@ fn make_cfg(max_retries: u32, initial_ms: u64) -> RetryConfig {
         initial_interval_ms: initial_ms,
         max_interval_ms: 10_000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429, 503],
         retryable_methods: vec!["GET".to_string()],
     }
@@ -124,6 +125,7 @@ fn test_factory_does_not_mutate_config_in_default_http_retry() {
         initial_interval_ms: 300,
         max_interval_ms: 15_000,
         multiplier: 1.8,
+        jitter_factor: 0.0,
         retryable_statuses: retryable_statuses.clone(),
         retryable_methods: retryable_methods.clone(),
     };

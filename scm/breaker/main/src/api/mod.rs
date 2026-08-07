@@ -8,14 +8,12 @@ mod types;
 
 // Re-export public traits and errors at the top level
 pub use error::BreakerError;
-pub use traits::{BreakerMetrics, CircuitBreakerNode, HostBreaker, Processor, Validator};
+pub use traits::{BreakerMetrics, BreakerTransition, Processor, Validator};
 
 // Re-export public DTOs at the top level
 pub use dto::{
-    AdmitRequest, AdmitResponse, ClosedStateRequest, ClosedStateResponse, ConfigValidationRequest,
-    DescribeRequest, DescribeResponse, FailureThresholdRequest, FailureThresholdResponse,
-    HalfOpenStateRequest, HalfOpenStateResponse, OpenStateRequest, OpenStateResponse,
-    RecordRequest, RecordResponse,
+    AdmitRequest, AdmitResponse, ConfigValidationRequest, DescribeRequest, DescribeResponse,
+    FailureThresholdRequest, FailureThresholdResponse, RecordOutcomeRequest, RecordOutcomeResponse,
 };
 
 // Re-export public types at the top level

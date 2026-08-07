@@ -15,6 +15,7 @@ fn make_cfg() -> RetryConfig {
         initial_interval_ms: 100,
         max_interval_ms: 5000,
         multiplier: 2.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429, 500, 502, 503],
         retryable_methods: vec!["GET".to_string(), "HEAD".to_string()],
     }
@@ -52,6 +53,7 @@ fn test_retry_layer_debug_reflects_configured_max_retries() {
         initial_interval_ms: 50,
         max_interval_ms: 1000,
         multiplier: 1.5,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -76,6 +78,7 @@ fn test_two_layers_with_different_configs_have_different_debug() {
         initial_interval_ms: 100,
         max_interval_ms: 500,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()],
     };
@@ -84,6 +87,7 @@ fn test_two_layers_with_different_configs_have_different_debug() {
         initial_interval_ms: 500,
         max_interval_ms: 30_000,
         multiplier: 3.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![429, 503],
         retryable_methods: vec!["GET".to_string(), "PUT".to_string()],
     };
@@ -196,6 +200,7 @@ async fn test_middleware_does_not_retry_non_retryable_method() {
         initial_interval_ms: 10,
         max_interval_ms: 100,
         multiplier: 1.0,
+        jitter_factor: 0.0,
         retryable_statuses: vec![503],
         retryable_methods: vec!["GET".to_string()], // POST excluded
     };

@@ -11,6 +11,7 @@ impl Default for RetryConfig {
             initial_interval_ms: 200,
             max_interval_ms: 10000,
             multiplier: 2.0,
+            jitter_factor: 0.0,
             retryable_statuses: vec![408, 425, 429, 500, 502, 503, 504],
             retryable_methods: vec!["GET".into(), "HEAD".into(), "PUT".into(), "DELETE".into()],
         }
@@ -71,7 +72,31 @@ impl RetryConfig {
                 self.max_interval_ms, self.initial_interval_ms
             ));
         }
+        if !(0.0..=1.0).contains(&self.jitter_factor) {
+            return Err(format!(
+                "edge_transport_http_egress_retry: jitter_factor must be in [0.0, 1.0], got {}",
+                self.jitter_factor
+            ));
+        }
         Ok(())
+    }
+}
+
+impl edge_transport_retry_policy::BackoffPolicy for RetryConfig {
+    fn initial_backoff_ms(&self) -> u64 {
+        self.initial_interval_ms
+    }
+
+    fn max_backoff_ms(&self) -> u64 {
+        self.max_interval_ms
+    }
+
+    fn backoff_multiplier(&self) -> f64 {
+        self.multiplier
+    }
+
+    fn jitter_factor(&self) -> f64 {
+        self.jitter_factor
     }
 }
 
@@ -141,5 +166,34 @@ mod tests {
             ..RetryConfig::default()
         };
         assert!(bad.validate().is_err(), "max_interval < initial must fail");
+    }
+
+    /// @covers: validate
+    #[test]
+    fn test_validate_rejects_jitter_factor_above_one() {
+        let bad = RetryConfig {
+            jitter_factor: 1.5,
+            ..RetryConfig::default()
+        };
+        let msg = bad.validate().expect_err("jitter_factor > 1.0 must fail");
+        assert!(
+            msg.contains("jitter_factor"),
+            "error must mention jitter_factor: {msg}"
+        );
+    }
+
+    /// @covers: validate
+    #[test]
+    fn test_validate_accepts_jitter_factor_at_bounds() {
+        let low = RetryConfig {
+            jitter_factor: 0.0,
+            ..RetryConfig::default()
+        };
+        let high = RetryConfig {
+            jitter_factor: 1.0,
+            ..RetryConfig::default()
+        };
+        assert!(low.validate().is_ok(), "jitter_factor=0.0 must be valid");
+        assert!(high.validate().is_ok(), "jitter_factor=1.0 must be valid");
     }
 }

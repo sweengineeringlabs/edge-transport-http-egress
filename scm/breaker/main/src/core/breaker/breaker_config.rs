@@ -45,3 +45,13 @@ impl BreakerConfig {
         toml::from_str(toml_text).map_err(|e| BreakerError::ParseFailed(e.to_string()))
     }
 }
+
+impl From<BreakerConfig> for edge_transport_breaker_policy::BreakerConfig {
+    fn from(cfg: BreakerConfig) -> Self {
+        Self {
+            failure_threshold: cfg.failure_threshold,
+            cool_down_seconds: cfg.half_open_after_seconds,
+            half_open_probe_count: cfg.reset_after_successes,
+        }
+    }
+}

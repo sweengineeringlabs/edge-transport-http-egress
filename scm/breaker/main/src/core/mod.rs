@@ -3,4 +3,3 @@
 
 pub(crate) mod breaker;
 pub(crate) mod default;
-pub(crate) mod host;
