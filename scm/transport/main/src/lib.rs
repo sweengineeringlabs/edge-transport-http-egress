@@ -20,4 +20,4 @@ pub use crate::api::{
     ValidationError, Validator, ValidatorObject, WsChannel, WsMessage, WsReceiver, WsSender,
 };
 pub use crate::saf::{HttpEgressSvcFactory, HttpStreamSvcFactory, ValidatorSvcFactory};
-pub use edge_application::SecurityContext;
+pub use edge_security_runtime::SecurityContext;
