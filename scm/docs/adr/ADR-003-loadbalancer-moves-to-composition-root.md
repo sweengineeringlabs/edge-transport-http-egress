@@ -7,6 +7,14 @@
 
 ---
 
+> **Amended 2026-08-07 — see [ADR-005](ADR-005-retry-breaker-composition-moves-out-of-transport.md).**
+> The "Why" section below treats `retry`/`breaker` as legitimate transport-layer middleware
+> alongside `auth`/`rate`/`cache`/`cassette` ("they decorate *how* a call is made"). That framing
+> is superseded for `retry`/`breaker` specifically — ADR-005 moves them out of this crate
+> entirely, on the same "not this crate's responsibility" reasoning this ADR already applied to
+> `loadbalancer`. `auth`/`rate`/`cache`/`cassette` are unaffected; this ADR's `loadbalancer`
+> conclusion stands unchanged.
+
 ## Mandate
 
 Remove the `loadbalancer` Cargo feature (added in an earlier commit, shipped default-on in v0.4.6) from `transport` and the pool-reporting integration it enabled in `breaker`. Delete the `scm/loadbalancer` crate. This crate no longer owns backend-pool selection for outbound calls.
