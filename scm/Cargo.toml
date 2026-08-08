@@ -5,6 +5,7 @@ members  = [
   "cache",
   "cassette",
   "rate",
+  "resilient-port",
   "retry",
   "transport",
 ]

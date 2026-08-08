@@ -1,0 +1,39 @@
+[package]
+name = "edge-transport-http-egress-resilient-port"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Trait contract for composing the retry/rate/breaker/cache/cassette egress chain (zero implementation, per ADR-006)"
+keywords = ["http", "resilient", "reqwest", "middleware", "swe"]
+categories = ["web-programming::http-client"]
+
+[package.metadata.struct-engine]
+application_type = "lib"
+service_type = "port"
+
+[package.metadata.arch]
+application_type = "lib"
+service_type = "port"
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+edge-transport-http-egress-cassette = { path = "../cassette" }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+thiserror = "2"
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
