@@ -15,26 +15,10 @@ use super::AssemblyFailure;
 /// conversions used by the `?` operator at every call site live in `core/`.
 #[derive(Debug, thiserror::Error)]
 pub enum HttpEgressBuildError {
-    /// Retry middleware assembly failed.
-    #[cfg(feature = "retry")]
-    #[error("retry: {0}")]
-    Retry(AssemblyFailure),
-    /// Rate-limiting middleware assembly failed.
-    #[cfg(feature = "rate")]
-    #[error("rate: {0}")]
-    Rate(AssemblyFailure),
-    /// Circuit-breaker middleware assembly failed.
-    #[cfg(feature = "breaker")]
-    #[error("breaker: {0}")]
-    Breaker(AssemblyFailure),
-    /// Cache middleware assembly failed.
-    #[cfg(feature = "cache")]
-    #[error("cache: {0}")]
-    Cache(AssemblyFailure),
-    /// Cassette middleware assembly failed.
-    #[cfg(feature = "cassette")]
-    #[error("cassette: {0}")]
-    Cassette(AssemblyFailure),
+    /// The retry/rate/breaker/cache/cassette chain (`edge-transport-http-egress-resilient`)
+    /// failed to assemble.
+    #[error("resilient: {0}")]
+    Resilient(AssemblyFailure),
     /// TLS middleware assembly failed.
     #[cfg(feature = "tls")]
     #[error("tls: {0}")]

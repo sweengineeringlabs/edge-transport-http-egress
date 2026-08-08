@@ -83,7 +83,7 @@ fn test_http_egress_from_config_empty_sections_builds_happy() {
     assert!(HttpTransportSvc::http_egress_from_config(&l).is_ok());
     // Prove the (absent) sections were genuinely evaluated: nothing is enabled.
     assert_eq!(
-        HttpTransportSvc::preflight(&l)
+        edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
             .expect("preflight succeeds")
             .enabled_count(),
         0,
@@ -111,20 +111,22 @@ fn test_http_egress_from_config_two_calls_independent_edge() {
 #[test]
 fn test_preflight_empty_sections_all_disabled_happy() {
     let (_d, l) = empty_loader();
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight must succeed");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight must succeed");
     assert_eq!(summary.enabled_count(), 0);
 }
 
 #[test]
 fn test_preflight_invalid_section_returns_err_error() {
     let (_d, l) = invalid_loader();
-    assert!(HttpTransportSvc::preflight(&l).is_err());
+    assert!(edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l).is_err());
 }
 
 #[test]
 fn test_preflight_total_count_matches_feature_set_edge() {
     let (_d, l) = empty_loader();
-    let summary = HttpTransportSvc::preflight(&l).expect("ok");
+    let summary =
+        edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l).expect("ok");
     // retry + rate + breaker + cache + cassette = 5 (auth and
     // tls have no config-section form since BYOSec was reversed
     // 2026-07-16/17 — bearer has no swe-edge-configbuilder integration at
@@ -903,7 +905,7 @@ mod oauth_svc_coverage {
         assert!(result.is_ok(), "valid loader + token source must succeed");
         // The config-driven part is genuinely evaluated alongside OAuth.
         assert_eq!(
-            HttpTransportSvc::preflight(&loader)
+            edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&loader)
                 .expect("preflight succeeds")
                 .enabled_count(),
             0,

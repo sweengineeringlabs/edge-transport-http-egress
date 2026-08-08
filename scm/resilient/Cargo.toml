@@ -1,0 +1,52 @@
+[package]
+name = "edge-transport-http-egress-resilient"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Composes the retry/rate/breaker/cache/cassette egress chain (real implementation of edge-transport-http-egress-resilient-port, per ADR-006)"
+keywords = ["http", "resilient", "reqwest", "middleware", "swe"]
+categories = ["web-programming::http-client"]
+
+[package.metadata.struct-engine]
+application_type = "lib"
+service_type = "adapter"
+
+[package.metadata.arch]
+application_type = "lib"
+service_type = "adapter"
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+edge-transport-http-egress-breaker = { path = "../breaker" }
+edge-transport-http-egress-cache = { path = "../cache" }
+edge-transport-http-egress-cassette = { path = "../cassette" }
+edge-transport-http-egress-rate = { path = "../rate" }
+edge-transport-http-egress-resilient-port = { path = "../resilient-port" }
+edge-transport-http-egress-retry = { path = "../retry" }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+
+[dev-dependencies]
+reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+edge-transport-http-egress-cassette = { path = "../cassette" }
+edge-transport-http-egress-resilient-port = { path = "../resilient-port" }
+tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "macros", "sync", "fs", "io-util", "net", "time"] }
+hyper = { version = "1", features = ["http1", "server"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
+http-body-util = "0.1"
+bytes = "1"
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

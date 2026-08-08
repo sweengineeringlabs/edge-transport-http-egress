@@ -39,7 +39,8 @@ fn test_retry_section_present_builds() {
     );
     // Prove the section was actually recognized (not silently ignored):
     // preflight must report exactly one enabled feature.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         1,
@@ -58,7 +59,8 @@ fn test_no_retry_section_builds() {
     );
     // Prove retry was genuinely omitted (not that config is always ignored):
     // preflight must report zero enabled features.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         0,
@@ -68,7 +70,7 @@ fn test_no_retry_section_builds() {
 
 /// @covers: http_egress_from_config — a semantically invalid `[retry]`
 /// (multiplier = 0) parses fine as TOML but fails the retry crate's own
-/// field validation at decorate-time, surfacing as `HttpEgressBuildError::Retry`
+/// field validation at decorate-time, surfacing as `HttpEgressBuildError::Resilient`
 /// (not `Config`, which is reserved for load/parse-level failures — see the
 /// `bogus` field tests above for that case).
 #[test]
@@ -78,10 +80,10 @@ fn test_retry_invalid_section_returns_retry_error() {
         retryable_methods = [\"GET\"]\n";
     let (_d, l) = loader(toml);
     let result = HttpTransportSvc::http_egress_from_config(&l);
-    let is_retry_err = matches!(result, Err(HttpEgressBuildError::Retry(_)));
+    let is_resilient_err = matches!(result, Err(HttpEgressBuildError::Resilient(_)));
     assert!(
-        is_retry_err,
-        "invalid [retry] (multiplier=0) must surface a Retry validation error"
+        is_resilient_err,
+        "invalid [retry] (multiplier=0) must surface a Resilient validation error"
     );
 }
 
@@ -99,7 +101,8 @@ fn test_retry_enabled_false_omits_retry() {
     );
     // `enabled = false` must be honoured: the section is present but must not
     // count as an enabled feature.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         0,
@@ -155,7 +158,8 @@ fn test_all_sections_present_builds() {
     );
     // All five config-driven sections are present and enabled — preflight
     // must count every one of them.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         5,
@@ -164,14 +168,15 @@ fn test_all_sections_present_builds() {
 }
 
 /// @covers: http_egress_from_config — `[rate]` is config-driven: a malformed
-/// section surfaces a Config error (proving the section is loaded, not ignored).
+/// section surfaces a Resilient error, wrapping the underlying Config parse
+/// failure (proving the section is loaded, not ignored).
 #[test]
 fn test_rate_invalid_section_returns_config_error() {
     let (_d, l) = loader("[rate]\nbogus = 1");
     assert!(
         matches!(
             HttpTransportSvc::http_egress_from_config(&l),
-            Err(HttpEgressBuildError::Config(_))
+            Err(HttpEgressBuildError::Resilient(_))
         ),
         "[rate] must be config-driven and reject a malformed section"
     );
@@ -184,7 +189,7 @@ fn test_breaker_invalid_section_returns_config_error() {
     assert!(
         matches!(
             HttpTransportSvc::http_egress_from_config(&l),
-            Err(HttpEgressBuildError::Config(_))
+            Err(HttpEgressBuildError::Resilient(_))
         ),
         "[breaker] must be config-driven and reject a malformed section"
     );
@@ -197,7 +202,7 @@ fn test_cache_invalid_section_returns_config_error() {
     assert!(
         matches!(
             HttpTransportSvc::http_egress_from_config(&l),
-            Err(HttpEgressBuildError::Config(_))
+            Err(HttpEgressBuildError::Resilient(_))
         ),
         "[cache] must be config-driven and reject a malformed section"
     );
@@ -210,7 +215,7 @@ fn test_cassette_invalid_section_returns_config_error() {
     assert!(
         matches!(
             HttpTransportSvc::http_egress_from_config(&l),
-            Err(HttpEgressBuildError::Config(_))
+            Err(HttpEgressBuildError::Resilient(_))
         ),
         "[cassette] must be config-driven and reject a malformed section"
     );
@@ -253,7 +258,8 @@ fn test_auth_with_config_driven_middleware_builds() {
     );
     // The config-driven part must be genuinely wired alongside auth: preflight
     // over the same loader reports the [retry] feature enabled.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         1,
@@ -271,7 +277,8 @@ fn test_auth_only_builds() {
     let result = HttpTransportSvc::http_egress_from_config_with_auth(&l, strategy);
     assert!(result.is_ok(), "auth-only egress must build");
     // No config-driven sections present ⇒ preflight reports nothing enabled.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         0,
@@ -289,7 +296,8 @@ fn test_preflight_reports_enabled_and_disabled() {
         "[cache]\ndefault_ttl_seconds = 60\nmax_entries = 1000\n\
          respect_cache_control = true\ncache_private = false",
     );
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.total_count(),
         5,
@@ -304,7 +312,8 @@ fn test_preflight_reports_enabled_and_disabled() {
 #[test]
 fn test_preflight_all_disabled_when_no_sections() {
     let (_d, l) = loader("[unrelated]\nx = 1");
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(summary.total_count(), 5);
     assert_eq!(summary.enabled_count(), 0, "no sections ⇒ nothing enabled");
 }
@@ -314,10 +323,7 @@ fn test_preflight_all_disabled_when_no_sections() {
 fn test_preflight_invalid_section_returns_config_error() {
     let (_d, l) = loader("[cache]\nbogus = 1");
     assert!(
-        matches!(
-            HttpTransportSvc::preflight(&l),
-            Err(HttpEgressBuildError::Config(_))
-        ),
+        edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l).is_err(),
         "preflight must surface a Config error for a malformed section"
     );
 }
@@ -357,7 +363,8 @@ fn test_oauth_with_config_driven_middleware_builds() {
         "OAuth + [retry] must assemble into one egress"
     );
     // The config-driven part must be genuinely wired alongside OAuth.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         1,
@@ -374,7 +381,8 @@ fn test_oauth_only_builds() {
     let result = HttpTransportSvc::http_egress_from_config_with_oauth(&l, source);
     assert!(result.is_ok(), "OAuth-only egress must build");
     // No config-driven sections present ⇒ preflight reports nothing enabled.
-    let summary = HttpTransportSvc::preflight(&l).expect("preflight succeeds");
+    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
+        .expect("preflight succeeds");
     assert_eq!(
         summary.enabled_count(),
         0,

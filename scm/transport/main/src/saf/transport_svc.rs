@@ -6,6 +6,10 @@ use std::time::Duration;
 use reqwest_middleware::ClientBuilder;
 use swe_observ_metrics::MetricsProvider;
 
+use edge_transport_http_egress_resilient::{
+    ApplyDefaultsRequest, ApplyFromConfigRequest, DefaultResilientLayers, ResilientLayers,
+};
+
 use crate::api::Validator as _;
 use crate::api::{
     ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError, HttpStream,
@@ -23,14 +27,13 @@ impl HttpTransportSvc {
             .with_version(env!("CARGO_PKG_VERSION"))
     }
 
-    /// Build an [`HttpEgress`](crate::HttpEgress) whose optional middleware are activated by the
-    /// consumer's configuration (ADR-006 config-driven activation): a feature is
-    /// wired **iff** its `[section]` is present in the loaded config.
+    /// Build an [`HttpEgress`](crate::HttpEgress) whose retry/rate/breaker/cache/cassette chain
+    /// is activated by the consumer's configuration (config-driven activation, per
+    /// `edge-transport-http-egress-resilient`): a layer is wired **iff** its `[section]` is
+    /// present in the loaded config.
     ///
-    /// Config-drives `[retry]`, `[rate]`, `[breaker]`, `[cache]`,
-    /// and `[cassette]` — present ⇒ the feature is wired;
-    /// absent (or `enabled = false`) ⇒ it is **omitted from the chain**, not
-    /// added as a no-op (zero overhead when disabled).
+    /// Present ⇒ the layer is wired; absent (or `enabled = false`) ⇒ it is
+    /// **omitted from the chain**, not added as a no-op (zero overhead when disabled).
     ///
     /// Auth and TLS have no config-section form (BYOSec reversed 2026-07-16/17:
     /// both now depend on `edge-security` crates that have no usable
@@ -57,7 +60,9 @@ impl HttpTransportSvc {
         let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
         let builder = ClientBuilder::new(client);
 
-        let builder = Self::with_optional_layers(loader, builder)?;
+        let builder = DefaultResilientLayers
+            .apply_from_config(ApplyFromConfigRequest { builder, loader })
+            .map_err(HttpEgressBuildError::from)?;
         Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
@@ -82,7 +87,9 @@ impl HttpTransportSvc {
         let mut builder = ClientBuilder::new(client);
         builder = builder.with(SecurityAuthMiddleware::new(strategy));
 
-        builder = Self::with_optional_layers(loader, builder)?;
+        let builder = DefaultResilientLayers
+            .apply_from_config(ApplyFromConfigRequest { builder, loader })
+            .map_err(HttpEgressBuildError::from)?;
         Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
@@ -110,7 +117,9 @@ impl HttpTransportSvc {
         let client = Self::configure_http_builder(cb, &http_cfg).build()?;
         let builder = ClientBuilder::new(client);
 
-        let builder = Self::with_optional_layers(loader, builder)?;
+        let builder = DefaultResilientLayers
+            .apply_from_config(ApplyFromConfigRequest { builder, loader })
+            .map_err(HttpEgressBuildError::from)?;
         Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
     }
 
@@ -139,56 +148,10 @@ impl HttpTransportSvc {
         let oauth = Self::build_oauth_middleware(token_source)?;
         builder = builder.with(oauth);
 
-        builder = Self::with_optional_layers(loader, builder)?;
+        let builder = DefaultResilientLayers
+            .apply_from_config(ApplyFromConfigRequest { builder, loader })
+            .map_err(HttpEgressBuildError::from)?;
         Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
-    }
-
-    /// Dry-run the config-driven egress: load every optional `[section]` into a
-    /// [`FeatureRegistry`] and return a [`FeatureSummary`] of what would
-    /// activate — without building any middleware. Log this at startup so
-    /// operators see exactly which features are on (and why); it is the
-    /// visibility guardrail against silent config-driven activation.
-    ///
-    /// Mirrors the section set of [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config): `[retry]`,
-    /// `[rate]`, `[breaker]`, `[cache]`, `[cassette]`.
-    /// `auth` and `tls` have no config-section form (see
-    /// [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment), so neither is part of
-    /// this summary.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`HttpEgressBuildError::Config`] if a present section fails to
-    /// parse or validate.
-    ///
-    /// [`FeatureRegistry`]: swe_edge_configbuilder::FeatureRegistry
-    /// [`FeatureSummary`]: swe_edge_configbuilder::FeatureSummary
-    // With zero middleware features, no section is registered: `loader` goes
-    // unread and `registry` is never mutated before `summary()`.
-    #[cfg_attr(
-        not(any(
-            feature = "retry",
-            feature = "rate",
-            feature = "breaker",
-            feature = "cache",
-            feature = "cassette"
-        )),
-        allow(unused_variables, unused_mut)
-    )]
-    pub fn preflight(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-    ) -> Result<swe_edge_configbuilder::FeatureSummary, HttpEgressBuildError> {
-        let mut registry = swe_edge_configbuilder::FeatureRegistry::new();
-        #[cfg(feature = "retry")]
-        registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
-        #[cfg(feature = "rate")]
-        registry.load::<edge_transport_http_egress_rate::RateConfig>(loader)?;
-        #[cfg(feature = "breaker")]
-        registry.load::<edge_transport_http_egress_breaker::BreakerConfig>(loader)?;
-        #[cfg(feature = "cache")]
-        registry.load::<edge_transport_http_egress_cache::CacheConfig>(loader)?;
-        #[cfg(feature = "cassette")]
-        registry.load::<edge_transport_http_egress_cassette::CassetteConfig>(loader)?;
-        Ok(registry.summary())
     }
 
     /// Build an [`HttpEgress`](crate::HttpEgress) using the SWE-shipped defaults for every
@@ -198,9 +161,7 @@ impl HttpTransportSvc {
     pub fn default_http_egress() -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         Ok(Box::new(Self::build_default_egress(
             HttpConfig::default(),
-            #[cfg(feature = "cassette")]
-            edge_transport_http_egress_cassette::CassetteConfig::default(),
-            #[cfg(feature = "cassette")]
+            edge_transport_http_egress_resilient::CassetteConfig::default(),
             "default",
         )?))
     }
@@ -215,21 +176,11 @@ impl HttpTransportSvc {
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
         Ok(Box::new(Self::build_default_egress(
             http,
-            #[cfg(feature = "cassette")]
-            edge_transport_http_egress_cassette::CassetteConfig::disabled(),
-            #[cfg(feature = "cassette")]
+            edge_transport_http_egress_resilient::CassetteConfig::disabled(),
             "unused",
         )?))
     }
 
-    /// Wrap any [`HttpEgress`](crate::HttpEgress) with per-call metrics observation.
-    ///
-    /// Consumers call this after any of the factory functions to add observability
-    /// without changing how the outbound is configured:
-    ///
-    /// ```rust,ignore
-    /// let outbound = HttpTransportSvc::observe_http_egress(default_http_egress()?, metrics_provider);
-    /// ```
     /// Wrap any [`HttpEgress`](crate::HttpEgress) with per-call metrics observation.
     ///
     /// Consumers call this after any of the factory functions to add observability
@@ -254,9 +205,7 @@ impl HttpTransportSvc {
     pub fn default_http_stream_outbound() -> Result<Box<dyn HttpStream>, HttpEgressBuildError> {
         Ok(Box::new(Self::build_default_egress(
             HttpConfig::default(),
-            #[cfg(feature = "cassette")]
-            edge_transport_http_egress_cassette::CassetteConfig::default(),
-            #[cfg(feature = "cassette")]
+            edge_transport_http_egress_resilient::CassetteConfig::default(),
             "default",
         )?))
     }
@@ -378,111 +327,14 @@ impl HttpTransportSvc {
         v.validate(ValidateRequest).map_err(|e| e.to_string())
     }
 
-    /// Append the non-auth optional middleware — `[retry]`, `[rate]`,
-    /// `[breaker]`, `[cache]`, `[cassette]` — each added
-    /// via `.with(..)` only when its section is present; a disabled section
-    /// adds nothing.
-    // With none of these five features, no layer is appended: `loader` is unread
-    // and `builder` is returned unmutated.
-    #[cfg_attr(
-        not(any(
-            feature = "retry",
-            feature = "rate",
-            feature = "breaker",
-            feature = "cache",
-            feature = "cassette"
-        )),
-        allow(unused_variables, unused_mut)
-    )]
-    fn with_optional_layers(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        mut builder: ClientBuilder,
-    ) -> Result<ClientBuilder, HttpEgressBuildError> {
-        #[cfg(any(
-            feature = "retry",
-            feature = "rate",
-            feature = "breaker",
-            feature = "cache",
-            feature = "cassette"
-        ))]
-        use swe_edge_configbuilder::{FeatureState, OptionalSection as _};
-
-        #[cfg(feature = "retry")]
-        if let FeatureState::Enabled(retry_cfg) =
-            edge_transport_http_egress_retry::RetryConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                {
-                    use edge_transport_http_egress_retry::Processor as _;
-                    edge_transport_http_egress_retry::HttpRetrySvc.decorate(
-                        edge_transport_http_egress_retry::DecorateRequest { config: retry_cfg },
-                    )?
-                }
-                .layer,
-            );
-        }
-        #[cfg(feature = "rate")]
-        if let FeatureState::Enabled(rate_cfg) =
-            edge_transport_http_egress_rate::RateConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(rate_cfg)?,
-            );
-        }
-        #[cfg(feature = "breaker")]
-        if let FeatureState::Enabled(breaker_cfg) =
-            edge_transport_http_egress_breaker::BreakerConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
-                    breaker_cfg,
-                )?,
-            );
-        }
-        #[cfg(feature = "cache")]
-        if let FeatureState::Enabled(cache_cfg) =
-            edge_transport_http_egress_cache::CacheConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
-                    cache_cfg,
-                )?,
-            );
-        }
-        #[cfg(feature = "cassette")]
-        if let FeatureState::Enabled(cassette_cfg) =
-            edge_transport_http_egress_cassette::CassetteConfig::load_optional(loader)?
-        {
-            builder = builder.with(
-                edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
-                    cassette_cfg,
-                    "default",
-                )?,
-            );
-        }
-        Ok(builder)
-    }
-
     /// Build a [`DefaultHttpEgress`] with the full SWE-default middleware stack —
     /// no auth (see [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth)), default
     /// retry/rate/breaker/cache, the supplied cassette config, and no client
-    /// TLS. Shared by the `default_*` factories; built directly (no
-    /// `assemble`) so each layer can be feature-gated independently.
-    #[cfg_attr(
-        not(any(
-            feature = "retry",
-            feature = "rate",
-            feature = "breaker",
-            feature = "cache",
-            feature = "cassette"
-        )),
-        allow(unused_mut)
-    )]
+    /// TLS. Shared by the `default_*` factories.
     fn build_default_egress(
         http_cfg: HttpConfig,
-        #[cfg(feature = "cassette")]
-        cassette_cfg: edge_transport_http_egress_cassette::CassetteConfig,
-        #[cfg(feature = "cassette")] cassette_name: &str,
+        cassette_cfg: edge_transport_http_egress_resilient::CassetteConfig,
+        cassette_name: &str,
     ) -> Result<DefaultHttpEgress, HttpEgressBuildError> {
         let mut cb = reqwest::Client::builder();
         #[cfg(feature = "tls")]
@@ -494,54 +346,14 @@ impl HttpTransportSvc {
         }
         cb = Self::configure_http_builder(cb, &http_cfg);
 
-        let mut builder = ClientBuilder::new(cb.build()?);
-        #[cfg(feature = "retry")]
-        {
-            builder = builder.with(
-                {
-                    use edge_transport_http_egress_retry::Processor as _;
-                    edge_transport_http_egress_retry::HttpRetrySvc.decorate(
-                        edge_transport_http_egress_retry::DecorateRequest {
-                            config: Default::default(),
-                        },
-                    )?
-                }
-                .layer,
-            );
-        }
-        #[cfg(feature = "rate")]
-        {
-            builder = builder.with(
-                edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(
-                    Default::default(),
-                )?,
-            );
-        }
-        #[cfg(feature = "breaker")]
-        {
-            builder = builder.with(
-                edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
-                    Default::default(),
-                )?,
-            );
-        }
-        #[cfg(feature = "cache")]
-        {
-            builder = builder.with(
-                edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
-                    Default::default(),
-                )?,
-            );
-        }
-        #[cfg(feature = "cassette")]
-        {
-            builder = builder.with(
-                edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
-                    cassette_cfg,
-                    cassette_name,
-                )?,
-            );
-        }
+        let builder = ClientBuilder::new(cb.build()?);
+        let builder = DefaultResilientLayers
+            .apply_defaults(ApplyDefaultsRequest {
+                builder,
+                cassette: cassette_cfg,
+                cassette_name: cassette_name.to_string(),
+            })
+            .map_err(HttpEgressBuildError::from)?;
 
         Ok(DefaultHttpEgress::new(builder.build(), http_cfg))
     }
