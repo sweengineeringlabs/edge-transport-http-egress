@@ -25,17 +25,12 @@ path = "main/src/lib.rs"
 # enables all of them, so the out-of-the-box experience is unchanged; size-conscious
 # consumers use `default-features = false` and enable only what they need.
 [features]
-default = ["auth", "oauth", "tls", "retry", "rate", "breaker", "cache", "cassette"]
+default = ["auth", "oauth", "tls"]
 auth     = ["dep:edge-security-transport-egress-http"]
 # BYOSec reversed for oauth/tls too (2026-07-17): edge-security#40 bumped
 # their reqwest/reqwest-middleware pins to match bearer's.
 oauth    = ["dep:edge-security-transport-egress-http-oauth"]
 tls      = ["dep:edge-security-transport-egress-http-tls"]
-retry    = ["dep:edge-transport-http-egress-retry"]
-rate     = ["dep:edge-transport-http-egress-rate"]
-breaker  = ["dep:edge-transport-http-egress-breaker"]
-cache    = ["dep:edge-transport-http-egress-cache"]
-cassette = ["dep:edge-transport-http-egress-cassette"]
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
@@ -53,11 +48,7 @@ reqwest-middleware   = { version = "0.4", features = ["json", "multipart"] }
 edge-security-transport-egress-http      = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
 edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
 edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22", optional = true }
-edge-transport-http-egress-retry    = { path = "../retry", optional = true }
-edge-transport-http-egress-rate     = { path = "../rate", optional = true }
-edge-transport-http-egress-breaker  = { path = "../breaker", optional = true }
-edge-transport-http-egress-cache    = { path = "../cache", optional = true }
-edge-transport-http-egress-cassette = { path = "../cassette", optional = true }
+edge-transport-http-egress-resilient = { path = "../resilient" }
 async-trait          = "0.1"
 bytes                = "1"
 swe-observ-metrics   = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
@@ -82,11 +73,7 @@ edge-security-transport-egress-http-oauth = { git = "https://github.com/sweengin
 edge-security-transport-egress-http-tls  = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
 edge-security-runtime-credential = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
 edge-security-runtime            = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
-edge-transport-http-egress-retry   = { path = "../retry" }
-edge-transport-http-egress-rate    = { path = "../rate" }
-edge-transport-http-egress-breaker = { path = "../breaker" }
-edge-transport-http-egress-cache   = { path = "../cache" }
-edge-transport-http-egress-cassette = { path = "../cassette" }
+edge-transport-http-egress-resilient = { path = "../resilient" }
 async-trait              = "0.1"
 futures                  = "0.3"
 tokio-tungstenite        = { version = "0.26", features = ["rustls-tls-native-roots"] }

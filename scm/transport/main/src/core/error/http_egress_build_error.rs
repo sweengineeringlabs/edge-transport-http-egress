@@ -4,38 +4,9 @@
 
 use crate::api::{AssemblyFailure, HttpEgressBuildError};
 
-#[cfg(feature = "retry")]
-impl From<edge_transport_http_egress_retry::RetryError> for HttpEgressBuildError {
-    fn from(e: edge_transport_http_egress_retry::RetryError) -> Self {
-        Self::Retry(AssemblyFailure(Box::new(e)))
-    }
-}
-
-#[cfg(feature = "rate")]
-impl From<edge_transport_http_egress_rate::RateError> for HttpEgressBuildError {
-    fn from(e: edge_transport_http_egress_rate::RateError) -> Self {
-        Self::Rate(AssemblyFailure(Box::new(e)))
-    }
-}
-
-#[cfg(feature = "breaker")]
-impl From<edge_transport_http_egress_breaker::BreakerError> for HttpEgressBuildError {
-    fn from(e: edge_transport_http_egress_breaker::BreakerError) -> Self {
-        Self::Breaker(AssemblyFailure(Box::new(e)))
-    }
-}
-
-#[cfg(feature = "cache")]
-impl From<edge_transport_http_egress_cache::CacheError> for HttpEgressBuildError {
-    fn from(e: edge_transport_http_egress_cache::CacheError) -> Self {
-        Self::Cache(AssemblyFailure(Box::new(e)))
-    }
-}
-
-#[cfg(feature = "cassette")]
-impl From<edge_transport_http_egress_cassette::CassetteError> for HttpEgressBuildError {
-    fn from(e: edge_transport_http_egress_cassette::CassetteError) -> Self {
-        Self::Cassette(AssemblyFailure(Box::new(e)))
+impl From<edge_transport_http_egress_resilient::ResilientError> for HttpEgressBuildError {
+    fn from(e: edge_transport_http_egress_resilient::ResilientError) -> Self {
+        Self::Resilient(AssemblyFailure(Box::new(e)))
     }
 }
 

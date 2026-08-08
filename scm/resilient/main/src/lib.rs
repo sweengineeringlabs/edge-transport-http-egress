@@ -11,5 +11,5 @@ mod core;
 
 pub use crate::core::DefaultResilientLayers;
 pub use edge_transport_http_egress_resilient_port::{
-    ApplyDefaultsRequest, ApplyFromConfigRequest, ResilientError, ResilientLayers,
+    ApplyDefaultsRequest, ApplyFromConfigRequest, CassetteConfig, ResilientError, ResilientLayers,
 };
