@@ -126,9 +126,17 @@ impl HttpTransportSvc {
         Ok(reqwest_middleware::ClientBuilder::new(cb.build()?).build())
     }
 
-    /// Apply [`HttpConfig`] transport settings — timeouts, user-agent, redirect policy, and default
-    /// headers — to a reqwest client builder.
-    fn configure_http_builder(
+    /// Apply an [`HttpConfig`]'s transport settings — timeouts, user-agent, redirect policy, and
+    /// default headers — to a [`reqwest::ClientBuilder`].
+    ///
+    /// This is the **canonical `HttpConfig` → reqwest mapping**. `transport`'s own bare primitives
+    /// ([`plain_http_egress`](HttpTransportSvc::plain_http_egress) /
+    /// [`plain_http_stream`](HttpTransportSvc::plain_http_stream)) apply it internally; it is exposed
+    /// so a *composition root* assembling its own middleware stack (TLS layer + resilient decorator +
+    /// this mapping, then [`egress_from_middleware_client`](HttpTransportSvc::egress_from_middleware_client))
+    /// applies the config through the same single implementation rather than re-deriving it. See
+    /// edge-transport-http-egress#29.
+    pub fn configure_http_builder(
         mut cb: reqwest::ClientBuilder,
         http_cfg: &HttpConfig,
     ) -> reqwest::ClientBuilder {
