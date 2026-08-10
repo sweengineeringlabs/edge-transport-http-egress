@@ -116,6 +116,65 @@ async fn test_reqwest_middleware_client_forwards_custom_headers() {
     );
 }
 
+/// A caller-assembled middleware layer that stamps a marker header on every
+/// outbound request — used to prove the seam actually runs the caller's chain.
+struct HeaderInjector;
+
+#[async_trait::async_trait]
+impl reqwest_middleware::Middleware for HeaderInjector {
+    async fn handle(
+        &self,
+        mut req: reqwest::Request,
+        ext: &mut http::Extensions,
+        next: reqwest_middleware::Next<'_>,
+    ) -> reqwest_middleware::Result<reqwest::Response> {
+        req.headers_mut().insert(
+            "x-seam-mw",
+            reqwest::header::HeaderValue::from_static("applied"),
+        );
+        next.run(req, ext).await
+    }
+}
+
+/// @covers: egress_from_middleware_client
+/// The seam must honour BOTH the caller-assembled middleware chain (here a real
+/// header-injecting layer) AND the `HttpConfig` (here `base_url`, exercised by
+/// sending a relative `/` path) — proving it wraps the finished client faithfully
+/// rather than discarding the middleware or ignoring the config.
+#[tokio::test]
+async fn test_egress_from_middleware_client_honours_middleware_and_config() {
+    let (port, _jh) = spawn_once(|req| async move {
+        let seen = req
+            .headers()
+            .get("x-seam-mw")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or("")
+            .to_owned();
+        Response::new(Full::new(Bytes::from(seen)))
+    })
+    .await;
+
+    // The composition root assembles its own chain with one real layer.
+    let client = ClientBuilder::new(reqwest::Client::new())
+        .with(HeaderInjector)
+        .build();
+    let cfg = HttpConfig::with_base_url(format!("http://127.0.0.1:{port}"));
+    let egress = HttpTransportSvc::egress_from_middleware_client(client, cfg);
+
+    // Relative path proves base_url (HttpConfig) is applied; the echoed header
+    // proves the caller's middleware layer ran.
+    let resp = egress
+        .send(HttpRequest::get("/"))
+        .await
+        .expect("seam-wrapped egress must send");
+    assert_eq!(resp.status, 200);
+    assert_eq!(
+        String::from_utf8(resp.body).unwrap(),
+        "applied",
+        "server must observe the caller's middleware-injected header — the seam must run the supplied chain"
+    );
+}
+
 /// @covers: plain_http_egress
 #[tokio::test]
 async fn test_reqwest_middleware_client_sends_post_with_json_body() {

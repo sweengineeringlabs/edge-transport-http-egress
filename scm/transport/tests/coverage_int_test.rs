@@ -1,8 +1,6 @@
 //! Coverage tests (rules 221 + 222) — _happy / _error / _edge variants.
-//! Rule 221: create_config_builder, http_egress_from_config, preflight,
-//!            default_http_egress, default_http_egress_with_config,
-//!            observe_http_egress, default_http_stream_outbound, plain_http_egress,
-//!            validate_http_config, validate.
+//! Rule 221: create_config_builder, observe_http_egress, plain_http_egress,
+//!            plain_http_stream, validate_http_config, validate.
 //! Rule 222: send + send_stream + health_check + get (HttpEgress trait),
 //!            subscribe_sse + connect_websocket (HttpStream trait),
 //!            validate (Validator trait).
@@ -10,9 +8,12 @@
 //! The factory methods return opaque `Box<dyn HttpEgress>` / `Box<dyn HttpStream>`
 //! values with no synchronous observable state, so build-only tests assert
 //! repeatable construction (a builder with broken shared state fails the second
-//! call) and cross-check `preflight` where a section's on/off state is
-//! observable. End-to-end request behaviour is asserted by the `#[tokio::test]`
-//! cases (unreachable host ⇒ Err) and by reqwest_middleware_int_test.rs.
+//! call). End-to-end request behaviour is asserted by the `#[tokio::test]` cases
+//! (unreachable host ⇒ Err) and by reqwest_middleware_int_test.rs.
+//!
+//! `transport` is a bare primitive: the composed constructors (default_http_egress*,
+//! http_egress_from_config*, preflight, oauth) moved to the composition root —
+//! see edge-transport-http-egress#28 / edge-bootstrap ADR-008.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
@@ -23,25 +24,7 @@ use edge_transport_http_egress_transport::{
     HttpConfig, HttpMethod, HttpRequest, HttpTransportSvc, SubscribeSseRequest,
     ValidatableHttpConfig,
 };
-use swe_edge_configbuilder::ConfigLoaderFactory;
 use swe_observ_metrics::{create_local_metrics_backend, MetricsProvider};
-use tempfile::TempDir;
-
-fn empty_loader() -> (TempDir, swe_edge_configbuilder::SectionLoaderImpl) {
-    let dir = TempDir::new().expect("create temp dir");
-    std::fs::write(dir.path().join("application.toml"), "[unused]\nx = 1")
-        .expect("write application.toml");
-    let loader = ConfigLoaderFactory::create_loader_for_dir(dir.path());
-    (dir, loader)
-}
-
-fn invalid_loader() -> (TempDir, swe_edge_configbuilder::SectionLoaderImpl) {
-    let dir = TempDir::new().expect("create temp dir");
-    std::fs::write(dir.path().join("application.toml"), "[cache]\nbogus = 1")
-        .expect("write application.toml");
-    let loader = ConfigLoaderFactory::create_loader_for_dir(dir.path());
-    (dir, loader)
-}
 
 /// A zero-timeout config that every validator in this crate must reject — the
 /// canonical "known-bad" input for validation tests.
@@ -75,139 +58,6 @@ fn test_create_config_builder_two_independent_instances_edge() {
     assert_eq!(b1.name(), b2.name());
 }
 
-// ── http_egress_from_config (rule 221) ───────────────────────────────────────
-
-#[test]
-fn test_http_egress_from_config_empty_sections_builds_happy() {
-    let (_d, l) = empty_loader();
-    assert!(HttpTransportSvc::http_egress_from_config(&l).is_ok());
-    // Prove the (absent) sections were genuinely evaluated: nothing is enabled.
-    assert_eq!(
-        edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
-            .expect("preflight succeeds")
-            .enabled_count(),
-        0,
-        "empty config ⇒ no features enabled"
-    );
-}
-
-#[test]
-fn test_http_egress_from_config_invalid_section_returns_err_error() {
-    let (_d, l) = invalid_loader();
-    assert!(HttpTransportSvc::http_egress_from_config(&l).is_err());
-}
-
-#[test]
-fn test_http_egress_from_config_two_calls_independent_edge() {
-    let (_d1, l1) = empty_loader();
-    let (_d2, l2) = empty_loader();
-    let r1 = HttpTransportSvc::http_egress_from_config(&l1);
-    let r2 = HttpTransportSvc::http_egress_from_config(&l2);
-    assert!(r1.is_ok() && r2.is_ok());
-}
-
-// ── preflight (rule 221) ──────────────────────────────────────────────────────
-
-#[test]
-fn test_preflight_empty_sections_all_disabled_happy() {
-    let (_d, l) = empty_loader();
-    let summary = edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l)
-        .expect("preflight must succeed");
-    assert_eq!(summary.enabled_count(), 0);
-}
-
-#[test]
-fn test_preflight_invalid_section_returns_err_error() {
-    let (_d, l) = invalid_loader();
-    assert!(edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l).is_err());
-}
-
-#[test]
-fn test_preflight_total_count_matches_feature_set_edge() {
-    let (_d, l) = empty_loader();
-    let summary =
-        edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&l).expect("ok");
-    // retry + rate + breaker + cache + cassette = 5 (auth and
-    // tls have no config-section form since BYOSec was reversed
-    // 2026-07-16/17 — bearer has no swe-edge-configbuilder integration at
-    // all, and tls's OptionalSection impl resolves against edge-security's
-    // own vendored swe-edge-configbuilder, a different compiled crate than
-    // this repo's)
-    assert_eq!(summary.total_count(), 5);
-}
-
-// ── default_http_egress (rule 221) ────────────────────────────────────────────
-
-#[test]
-fn test_default_http_egress_returns_ok_happy() {
-    let a = HttpTransportSvc::default_http_egress();
-    let b = HttpTransportSvc::default_http_egress();
-    assert!(
-        a.is_ok() && b.is_ok(),
-        "default_http_egress must build repeatably: {:?} / {:?}",
-        a.err(),
-        b.err(),
-    );
-}
-
-#[test]
-fn test_default_http_egress_boxed_trait_is_send_sync_error() {
-    fn assert_send_sync<T: Send + Sync + ?Sized>(_: &T) {}
-    let egress = HttpTransportSvc::default_http_egress().expect("ok");
-    assert_send_sync(egress.as_ref());
-}
-
-#[test]
-fn test_default_http_egress_two_calls_independent_edge() {
-    let r1 = HttpTransportSvc::default_http_egress();
-    let r2 = HttpTransportSvc::default_http_egress();
-    assert!(r1.is_ok() && r2.is_ok());
-}
-
-// ── default_http_egress_with_config (rule 221) ────────────────────────────────
-
-#[test]
-fn test_default_http_egress_with_config_default_config_returns_ok_happy() {
-    let a = HttpTransportSvc::default_http_egress_with_config(HttpConfig::default());
-    let b = HttpTransportSvc::default_http_egress_with_config(HttpConfig::default());
-    assert!(
-        a.is_ok() && b.is_ok(),
-        "default config must build repeatably: {:?} / {:?}",
-        a.err(),
-        b.err(),
-    );
-}
-
-#[test]
-fn test_default_http_egress_with_config_with_base_url_returns_ok_error() {
-    let with_url = HttpTransportSvc::default_http_egress_with_config(HttpConfig::with_base_url(
-        "https://svc.internal",
-    ));
-    let without_url = HttpTransportSvc::default_http_egress_with_config(HttpConfig::default());
-    assert!(
-        with_url.is_ok() && without_url.is_ok(),
-        "must build with and without a base_url: {:?} / {:?}",
-        with_url.err(),
-        without_url.err(),
-    );
-}
-
-#[test]
-fn test_default_http_egress_with_config_zero_timeout_still_builds_edge() {
-    // zero timeout is odd but not invalid at the config level
-    let zero = HttpTransportSvc::default_http_egress_with_config(HttpConfig {
-        timeout_secs: 0,
-        ..HttpConfig::default()
-    });
-    let normal = HttpTransportSvc::default_http_egress_with_config(HttpConfig::default());
-    assert!(
-        zero.is_ok() && normal.is_ok(),
-        "a zero-timeout config must still build: {:?} / {:?}",
-        zero.err(),
-        normal.err(),
-    );
-}
-
 // ── observe_http_egress (rule 221) ────────────────────────────────────────────
 
 #[test]
@@ -233,34 +83,6 @@ fn test_observe_http_egress_shared_provider_two_instances_edge() {
     let b = HttpTransportSvc::plain_http_egress(HttpConfig::default()).expect("ok");
     let _wa = HttpTransportSvc::observe_http_egress(a, Arc::clone(&provider));
     let _wb = HttpTransportSvc::observe_http_egress(b, provider);
-}
-
-// ── default_http_stream_outbound (rule 221) ───────────────────────────────────
-
-#[test]
-fn test_default_http_stream_outbound_returns_ok_happy() {
-    let a = HttpTransportSvc::default_http_stream_outbound();
-    let b = HttpTransportSvc::default_http_stream_outbound();
-    assert!(
-        a.is_ok() && b.is_ok(),
-        "default_http_stream_outbound must build repeatably: {:?} / {:?}",
-        a.err(),
-        b.err(),
-    );
-}
-
-#[test]
-fn test_default_http_stream_outbound_boxed_trait_is_send_sync_error() {
-    fn assert_send_sync<T: Send + Sync + ?Sized>(_: &T) {}
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
-    assert_send_sync(stream.as_ref());
-}
-
-#[test]
-fn test_default_http_stream_outbound_two_calls_independent_edge() {
-    let r1 = HttpTransportSvc::default_http_stream_outbound();
-    let r2 = HttpTransportSvc::default_http_stream_outbound();
-    assert!(r1.is_ok() && r2.is_ok());
 }
 
 // ── plain_http_egress (rule 221) ─────────────────────────────────────────────
@@ -303,6 +125,34 @@ fn test_plain_http_egress_no_redirects_returns_ok_edge() {
         no_redirects.err(),
         with_redirects.err(),
     );
+}
+
+// ── plain_http_stream (rule 221) ──────────────────────────────────────────────
+
+#[test]
+fn test_plain_http_stream_default_config_returns_ok_happy() {
+    let a = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    assert!(
+        a.is_ok() && b.is_ok(),
+        "plain_http_stream must build repeatably: {:?} / {:?}",
+        a.err(),
+        b.err(),
+    );
+}
+
+#[test]
+fn test_plain_http_stream_boxed_trait_is_send_sync_error() {
+    fn assert_send_sync<T: Send + Sync + ?Sized>(_: &T) {}
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
+    assert_send_sync(stream.as_ref());
+}
+
+#[test]
+fn test_plain_http_stream_two_calls_independent_edge() {
+    let r1 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let r2 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    assert!(r1.is_ok() && r2.is_ok());
 }
 
 // ── validate_http_config (rule 221) ──────────────────────────────────────────
@@ -524,7 +374,7 @@ async fn test_get_two_sequential_calls_both_err_edge() {
 
 #[tokio::test]
 async fn test_subscribe_sse_unreachable_url_returns_err_happy() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .subscribe_sse(SubscribeSseRequest {
             url: "http://0.0.0.0:1/events".to_string(),
@@ -535,7 +385,7 @@ async fn test_subscribe_sse_unreachable_url_returns_err_happy() {
 
 #[tokio::test]
 async fn test_subscribe_sse_empty_url_returns_err_error() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .subscribe_sse(SubscribeSseRequest {
             url: "".to_string(),
@@ -546,7 +396,7 @@ async fn test_subscribe_sse_empty_url_returns_err_error() {
 
 #[tokio::test]
 async fn test_subscribe_sse_repeated_calls_do_not_panic_edge() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let _ = stream
         .subscribe_sse(SubscribeSseRequest {
             url: "http://0.0.0.0:1/e1".to_string(),
@@ -563,7 +413,7 @@ async fn test_subscribe_sse_repeated_calls_do_not_panic_edge() {
 
 #[tokio::test]
 async fn test_connect_websocket_unreachable_url_returns_err_happy() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://0.0.0.0:1/ws".to_string(),
@@ -574,7 +424,7 @@ async fn test_connect_websocket_unreachable_url_returns_err_happy() {
 
 #[tokio::test]
 async fn test_connect_websocket_empty_url_returns_err_error() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "".to_string(),
@@ -585,7 +435,7 @@ async fn test_connect_websocket_empty_url_returns_err_error() {
 
 #[tokio::test]
 async fn test_connect_websocket_repeated_calls_do_not_panic_edge() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let _ = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://0.0.0.0:1/w1".to_string(),
@@ -825,151 +675,45 @@ fn test_config_repeated_calls_return_a_stable_value_edge() {
 // ── subscribe_sse (rule 222: HttpStream::subscribe_sse) — sync proxies ────────
 
 #[test]
-fn test_subscribe_sse_stream_outbound_builds_happy() {
-    let a = HttpTransportSvc::default_http_stream_outbound();
-    let b = HttpTransportSvc::default_http_stream_outbound();
+fn test_subscribe_sse_stream_builds_happy() {
+    let a = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(a.is_ok() && b.is_ok(), "{:?} / {:?}", a.err(), b.err());
 }
 
 #[test]
-fn test_subscribe_sse_stream_outbound_second_build_succeeds_error() {
-    let a = HttpTransportSvc::default_http_stream_outbound();
-    let b = HttpTransportSvc::default_http_stream_outbound();
+fn test_subscribe_sse_stream_second_build_succeeds_error() {
+    let a = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(a.is_ok() && b.is_ok(), "{:?} / {:?}", a.err(), b.err());
 }
 
 #[test]
-fn test_subscribe_sse_two_stream_outbounds_independent_edge() {
-    let r1 = HttpTransportSvc::default_http_stream_outbound();
-    let r2 = HttpTransportSvc::default_http_stream_outbound();
+fn test_subscribe_sse_two_streams_independent_edge() {
+    let r1 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let r2 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(r1.is_ok() && r2.is_ok());
 }
 
 // ── connect_websocket (rule 222: HttpStream::connect_websocket) — sync proxies ─
 
 #[test]
-fn test_connect_websocket_stream_outbound_builds_happy() {
-    let a = HttpTransportSvc::default_http_stream_outbound();
-    let b = HttpTransportSvc::default_http_stream_outbound();
+fn test_connect_websocket_stream_builds_happy() {
+    let a = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(a.is_ok() && b.is_ok(), "{:?} / {:?}", a.err(), b.err());
 }
 
 #[test]
-fn test_connect_websocket_stream_outbound_second_instance_succeeds_error() {
-    let a = HttpTransportSvc::default_http_stream_outbound();
-    let b = HttpTransportSvc::default_http_stream_outbound();
+fn test_connect_websocket_stream_second_instance_succeeds_error() {
+    let a = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let b = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(a.is_ok() && b.is_ok(), "{:?} / {:?}", a.err(), b.err());
 }
 
 #[test]
-fn test_connect_websocket_two_independent_stream_outbounds_edge() {
-    let r1 = HttpTransportSvc::default_http_stream_outbound();
-    let r2 = HttpTransportSvc::default_http_stream_outbound();
+fn test_connect_websocket_two_independent_streams_edge() {
+    let r1 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
+    let r2 = HttpTransportSvc::plain_http_stream(HttpConfig::default());
     assert!(r1.is_ok() && r2.is_ok());
-}
-
-// ── http_egress_from_config_with_oauth + plain_http_egress_with_oauth (rule 221)
-
-#[cfg(feature = "oauth")]
-mod oauth_svc_coverage {
-    use std::sync::Arc;
-
-    use edge_security_transport_egress_http_oauth::{
-        AccessTokenRequest, AccessTokenResponse, OAuthError, OAuthTokenSource,
-    };
-    use edge_transport_http_egress_transport::{HttpConfig, HttpTransportSvc};
-
-    #[derive(Debug)]
-    struct StaticToken(String);
-
-    #[async_trait::async_trait]
-    impl OAuthTokenSource for StaticToken {
-        async fn get_access_token(
-            &self,
-            _request: AccessTokenRequest,
-        ) -> std::result::Result<AccessTokenResponse, OAuthError> {
-            Ok(AccessTokenResponse {
-                token: self.0.clone(),
-            })
-        }
-    }
-
-    fn static_token() -> Arc<dyn OAuthTokenSource> {
-        Arc::new(StaticToken("test-access-token".to_string()))
-    }
-
-    #[test]
-    fn test_http_egress_from_config_with_oauth_valid_loader_succeeds_happy() {
-        let (_dir, loader) = super::empty_loader();
-        let result = HttpTransportSvc::http_egress_from_config_with_oauth(&loader, static_token());
-        assert!(result.is_ok(), "valid loader + token source must succeed");
-        // The config-driven part is genuinely evaluated alongside OAuth.
-        assert_eq!(
-            edge_transport_http_egress_resilient::DefaultResilientLayers::preflight(&loader)
-                .expect("preflight succeeds")
-                .enabled_count(),
-            0,
-            "no config sections ⇒ no features enabled"
-        );
-    }
-
-    #[test]
-    fn test_http_egress_from_config_with_oauth_invalid_config_returns_err_error() {
-        let (_dir, loader) = super::invalid_loader();
-        // cache feature is enabled by default; the bogus cache section fails to parse.
-        let result = HttpTransportSvc::http_egress_from_config_with_oauth(&loader, static_token());
-        assert!(
-            result.is_err(),
-            "a malformed [cache] section must surface a build error"
-        );
-    }
-
-    #[test]
-    fn test_http_egress_from_config_with_oauth_two_builds_independent_edge() {
-        let (_dir, loader) = super::empty_loader();
-        let r1 = HttpTransportSvc::http_egress_from_config_with_oauth(&loader, static_token());
-        let r2 = HttpTransportSvc::http_egress_from_config_with_oauth(&loader, static_token());
-        assert!(r1.is_ok() && r2.is_ok());
-    }
-
-    #[test]
-    fn test_plain_http_egress_with_oauth_default_config_succeeds_happy() {
-        let a =
-            HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), static_token());
-        let b =
-            HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), static_token());
-        assert!(
-            a.is_ok() && b.is_ok(),
-            "default config + token source must build repeatably: {:?} / {:?}",
-            a.err(),
-            b.err(),
-        );
-    }
-
-    #[test]
-    fn test_plain_http_egress_with_oauth_no_base_url_still_builds_error() {
-        // HttpConfig without a base_url is valid at build time; error only
-        // surfaces when a request is made without an explicit URL.
-        let no_url =
-            HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), static_token());
-        let with_url = HttpTransportSvc::plain_http_egress_with_oauth(
-            HttpConfig::with_base_url("https://svc.internal"),
-            static_token(),
-        );
-        assert!(
-            no_url.is_ok() && with_url.is_ok(),
-            "must build with and without a base_url: {:?} / {:?}",
-            no_url.err(),
-            with_url.err(),
-        );
-    }
-
-    #[test]
-    fn test_plain_http_egress_with_oauth_two_independent_builds_edge() {
-        let r1 =
-            HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), static_token());
-        let r2 =
-            HttpTransportSvc::plain_http_egress_with_oauth(HttpConfig::default(), static_token());
-        assert!(r1.is_ok() && r2.is_ok());
-    }
 }

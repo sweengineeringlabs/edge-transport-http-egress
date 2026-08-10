@@ -2,13 +2,13 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_transport::{ConnectWebsocketRequest, HttpTransportSvc};
+use edge_transport_http_egress_transport::{ConnectWebsocketRequest, HttpConfig, HttpTransportSvc};
 
 /// An unreachable `url` must surface as an `Err`, proving `connect_websocket`
 /// isn't a stub that always succeeds regardless of the request.
 #[tokio::test]
 async fn test_connect_websocket_request_unreachable_url_returns_err_happy() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://0.0.0.0:1/ws".to_string(),
@@ -20,7 +20,7 @@ async fn test_connect_websocket_request_unreachable_url_returns_err_happy() {
 /// An empty `url` must also be rejected.
 #[tokio::test]
 async fn test_connect_websocket_request_empty_url_returns_err_error() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest { url: String::new() })
         .await;
@@ -31,7 +31,7 @@ async fn test_connect_websocket_request_empty_url_returns_err_error() {
 /// same stream implementor must both be dispatched independently.
 #[tokio::test]
 async fn test_connect_websocket_request_url_field_is_per_call_edge() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let a = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://0.0.0.0:1/a".to_string(),

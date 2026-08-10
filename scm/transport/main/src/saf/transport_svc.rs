@@ -1,22 +1,23 @@
-//! SAF factory methods on [`HttpTransportSvc`](crate::HttpTransportSvc) for assembling [`HttpEgress`](crate::HttpEgress) instances.
+//! SAF factory methods on [`HttpTransportSvc`](crate::HttpTransportSvc) for assembling bare
+//! [`HttpEgress`](crate::HttpEgress) / [`HttpStream`](crate::HttpStream) instances.
+//!
+//! `transport` is a **bare HTTP primitive**: it builds a client from an [`HttpConfig`] and exposes
+//! it through the `HttpEgress`/`HttpStream` contracts. It does **not** own composition of the
+//! retry/rate/breaker/cache/cassette resilient chain, nor of auth/oauth/tls — those are assembled by
+//! a composition root (e.g. `edge-bootstrap`'s `RuntimeBuilder`), which then hands its finished
+//! `reqwest_middleware::ClientWithMiddleware` back through
+//! [`egress_from_middleware_client`](HttpTransportSvc::egress_from_middleware_client). See ADR-005 /
+//! ADR-006, edge-transport-http-egress#28.
 
 use std::sync::Arc;
 use std::time::Duration;
 
-use reqwest_middleware::ClientBuilder;
 use swe_observ_metrics::MetricsProvider;
 
-use edge_transport_http_egress_resilient::{
-    ApplyDefaultsRequest, ApplyFromConfigRequest, DefaultResilientLayers, ResilientLayers,
-};
-
-use crate::api::Validator as _;
 use crate::api::{
     ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError, HttpStream,
     HttpTransportSvc,
 };
-#[cfg(feature = "auth")]
-use crate::core::SecurityAuthMiddleware;
 use crate::core::{DefaultHttpEgress, MetricsHttpEgress};
 
 impl HttpTransportSvc {
@@ -27,167 +28,61 @@ impl HttpTransportSvc {
             .with_version(env!("CARGO_PKG_VERSION"))
     }
 
-    /// Build an [`HttpEgress`](crate::HttpEgress) whose retry/rate/breaker/cache/cassette chain
-    /// is activated by the consumer's configuration (config-driven activation, per
-    /// `edge-transport-http-egress-resilient`): a layer is wired **iff** its `[section]` is
-    /// present in the loaded config.
+    /// Build a bare [`HttpEgress`](crate::HttpEgress) from just an [`HttpConfig`] — no middleware
+    /// layers.
     ///
-    /// Present ⇒ the layer is wired; absent (or `enabled = false`) ⇒ it is
-    /// **omitted from the chain**, not added as a no-op (zero overhead when disabled).
-    ///
-    /// Auth and TLS have no config-section form (BYOSec reversed 2026-07-16/17:
-    /// both now depend on `edge-security` crates that have no usable
-    /// `swe-edge-configbuilder` integration from this crate's perspective —
-    /// `bearer` has none at all; `tls`'s `OptionalSection` impl resolves
-    /// against `edge-security`'s own vendored `swe-edge-configbuilder`
-    /// instance, a different compiled crate than the external one this repo
-    /// depends on, so the trait bound can never be satisfied cross-crate) —
-    /// supply a strategy/layer through
-    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth) /
-    /// [`http_egress_from_config_with_tls`](HttpTransportSvc::http_egress_from_config_with_tls).
-    /// OAuth token-refresh auth is likewise a runtime `token_source` (a trait
-    /// object), not a config section — use
-    /// [`http_egress_from_config_with_oauth`](HttpTransportSvc::http_egress_from_config_with_oauth).
-    ///
-    /// # Errors
-    ///
-    /// Returns [`HttpEgressBuildError::Config`] if a section fails to load or
-    /// validate, or the relevant middleware build error if assembly fails.
-    pub fn http_egress_from_config(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
+    /// All `HttpConfig` fields are honoured: `timeout_secs`, `connect_timeout_secs`, `user_agent`,
+    /// `follow_redirects`, `max_redirects`, `default_headers`, and `max_response_bytes`. This is the
+    /// primitive — a composition root adds retry/rate/breaker/cache/cassette/auth/tls on top and
+    /// re-wraps the result via
+    /// [`egress_from_middleware_client`](HttpTransportSvc::egress_from_middleware_client).
+    pub fn plain_http_egress(
+        config: HttpConfig,
     ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let http_cfg = HttpConfig::default();
-        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
-        let builder = ClientBuilder::new(client);
-
-        let builder = DefaultResilientLayers
-            .apply_from_config(ApplyFromConfigRequest { builder, loader })
-            .map_err(HttpEgressBuildError::from)?;
-        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
+        let client = Self::build_plain_client(&config)?;
+        Ok(Box::new(DefaultHttpEgress::new(client, config)))
     }
 
-    /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is a caller-supplied
-    /// [`HttpEgressAuthStrategy`](edge_security_transport_egress_http::HttpEgressAuthStrategy)
-    /// — the construct-and-pass-in replacement for the old `[auth]` TOML
-    /// section (BYOSec reversed 2026-07-16). The `[retry]`/`[rate]`/
-    /// `[breaker]`/`[cache]`/`[cassette]` sections are
-    /// honoured as usual.
+    /// Build a bare [`HttpStream`](crate::HttpStream) from just an [`HttpConfig`] — no middleware
+    /// layers.
     ///
-    /// # Errors
-    ///
-    /// Returns [`HttpEgressBuildError::Config`] if a section fails to load or
-    /// validate, or the relevant middleware build error.
-    #[cfg(feature = "auth")]
-    pub fn http_egress_from_config_with_auth(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        strategy: Arc<dyn edge_security_transport_egress_http::HttpEgressAuthStrategy>,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let http_cfg = HttpConfig::default();
-        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
-        let mut builder = ClientBuilder::new(client);
-        builder = builder.with(SecurityAuthMiddleware::new(strategy));
-
-        let builder = DefaultResilientLayers
-            .apply_from_config(ApplyFromConfigRequest { builder, loader })
-            .map_err(HttpEgressBuildError::from)?;
-        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
+    /// The streaming counterpart of [`plain_http_egress`](HttpTransportSvc::plain_http_egress): the
+    /// same bare client, typed as [`HttpStream`](crate::HttpStream) so callers can use SSE and
+    /// WebSocket features without importing or naming the concrete type. As with egress, composing a
+    /// resilient stream is a composition-root concern, not `transport`'s.
+    pub fn plain_http_stream(
+        config: HttpConfig,
+    ) -> Result<Box<dyn HttpStream>, HttpEgressBuildError> {
+        let client = Self::build_plain_client(&config)?;
+        Ok(Box::new(DefaultHttpEgress::new(client, config)))
     }
 
-    /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the TLS layer is a caller-supplied,
-    /// already-built [`TlsLayer`](edge_security_transport_egress_http_tls::TlsLayer)
-    /// — the construct-and-pass-in replacement for the old `[tls]` TOML
-    /// section (BYOSec reversed 2026-07-17; see
-    /// [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config)'s doc comment for why). The
-    /// `[retry]`/`[rate]`/`[breaker]`/`[cache]`/`[cassette]`
-    /// sections are honoured as usual.
+    /// Wrap an already-built [`reqwest_middleware::ClientWithMiddleware`] as an
+    /// [`HttpEgress`](crate::HttpEgress), applying the supplied [`HttpConfig`].
     ///
-    /// # Errors
+    /// This is the construction seam for a *composition root* (e.g. `edge-bootstrap`'s
+    /// `RuntimeBuilder`) that assembles its own middleware chain — TLS at the reqwest layer, the
+    /// `edge-transport-http-egress-resilient` decorator, caller-supplied auth/oauth — and then needs
+    /// to expose the finished client through this crate's `HttpEgress` contract. `transport` provides
+    /// the bare primitive ([`plain_http_egress`](HttpTransportSvc::plain_http_egress)) and this wrap
+    /// seam; it does **not** own the composition of the layers themselves.
     ///
-    /// Returns [`HttpEgressBuildError::Reqwest`] if applying the TLS layer or
-    /// building the client fails, [`HttpEgressBuildError::Config`] if a
-    /// section fails to load or validate, or the relevant middleware build
-    /// error.
-    #[cfg(feature = "tls")]
-    pub fn http_egress_from_config_with_tls(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        tls: edge_security_transport_egress_http_tls::TlsLayer,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let http_cfg = HttpConfig::default();
-        let cb = tls.apply_to(reqwest::Client::builder())?;
-        let client = Self::configure_http_builder(cb, &http_cfg).build()?;
-        let builder = ClientBuilder::new(client);
-
-        let builder = DefaultResilientLayers
-            .apply_from_config(ApplyFromConfigRequest { builder, loader })
-            .map_err(HttpEgressBuildError::from)?;
-        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
-    }
-
-    /// Like [`http_egress_from_config`](HttpTransportSvc::http_egress_from_config), but the auth slot is an **OAuth
-    /// token-refresh** layer built from `token_source` instead of the static
-    /// `[auth]` section. This is how OAuth — which cannot be expressed in TOML
-    /// (the token source is a runtime trait object) — is combined with the
-    /// config-driven middleware stack. The `[retry]`/`[rate]`/`[breaker]`/
-    /// `[cache]`/`[cassette]` sections are honoured as usual.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`HttpEgressBuildError::Config`] if a section fails to load or
-    /// validate, [`HttpEgressBuildError::OAuth`] if the OAuth layer cannot be
-    /// built, or the relevant middleware build error.
-    #[cfg(feature = "oauth")]
-    pub fn http_egress_from_config_with_oauth(
-        loader: &swe_edge_configbuilder::SectionLoaderImpl,
-        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let http_cfg = HttpConfig::default();
-        let client = Self::configure_http_builder(reqwest::Client::builder(), &http_cfg).build()?;
-        let mut builder = ClientBuilder::new(client);
-
-        // OAuth occupies the auth slot, replacing any static [auth] section.
-        let oauth = Self::build_oauth_middleware(token_source)?;
-        builder = builder.with(oauth);
-
-        let builder = DefaultResilientLayers
-            .apply_from_config(ApplyFromConfigRequest { builder, loader })
-            .map_err(HttpEgressBuildError::from)?;
-        Ok(Box::new(DefaultHttpEgress::new(builder.build(), http_cfg)))
-    }
-
-    /// Build an [`HttpEgress`](crate::HttpEgress) using the SWE-shipped defaults for every
-    /// middleware layer (no auth — construct-and-pass a strategy via
-    /// [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth) instead — no TLS, sensible
-    /// retry/rate/breaker policies from each crate's `config/application.toml`).
-    pub fn default_http_egress() -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        Ok(Box::new(Self::build_default_egress(
-            HttpConfig::default(),
-            edge_transport_http_egress_resilient::CassetteConfig::default(),
-            "default",
-        )?))
-    }
-
-    /// Build a fully-assembled [`HttpEgress`](crate::HttpEgress) using the provided [`HttpConfig`]
-    /// and SWE defaults for every middleware layer.
-    ///
-    /// Same middleware stack as [`default_http_egress`](HttpTransportSvc::default_http_egress) but with caller-supplied
-    /// transport settings (base URL, timeouts, headers, etc.).
-    pub fn default_http_egress_with_config(
-        http: HttpConfig,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        Ok(Box::new(Self::build_default_egress(
-            http,
-            edge_transport_http_egress_resilient::CassetteConfig::disabled(),
-            "unused",
-        )?))
+    /// Infallible: wrapping an already-built client cannot fail (any build error surfaced earlier,
+    /// when the caller constructed the `reqwest_middleware::ClientWithMiddleware`).
+    pub fn egress_from_middleware_client(
+        client: reqwest_middleware::ClientWithMiddleware,
+        config: HttpConfig,
+    ) -> Box<dyn HttpEgress> {
+        Box::new(DefaultHttpEgress::new(client, config))
     }
 
     /// Wrap any [`HttpEgress`](crate::HttpEgress) with per-call metrics observation.
     ///
-    /// Consumers call this after any of the factory functions to add observability
-    /// without changing how the outbound is configured:
+    /// Consumers call this after any factory function to add observability without changing how the
+    /// outbound is configured:
     ///
     /// ```rust,ignore
-    /// let outbound = HttpTransportSvc::observe_http_egress(default_http_egress()?, metrics_provider);
+    /// let outbound = HttpTransportSvc::observe_http_egress(plain_http_egress(cfg)?, metrics_provider);
     /// ```
     pub fn observe_http_egress(
         inner: Box<dyn HttpEgress>,
@@ -197,120 +92,13 @@ impl HttpTransportSvc {
         Box::new(MetricsHttpEgress::new(arc_inner, provider))
     }
 
-    /// Build a fully-assembled [`HttpStream`](crate::HttpStream) using the SWE defaults.
-    ///
-    /// Returns the same default middleware stack as [`default_http_egress`](HttpTransportSvc::default_http_egress)
-    /// but typed as [`HttpStream`](crate::HttpStream), so callers can use SSE and WebSocket
-    /// features without importing or naming the concrete type.
-    pub fn default_http_stream_outbound() -> Result<Box<dyn HttpStream>, HttpEgressBuildError> {
-        Ok(Box::new(Self::build_default_egress(
-            HttpConfig::default(),
-            edge_transport_http_egress_resilient::CassetteConfig::default(),
-            "default",
-        )?))
-    }
-
-    /// Build a minimal [`HttpEgress`](crate::HttpEgress) from just an [`HttpConfig`] — no middleware layers.
-    ///
-    /// All `HttpConfig` fields are honoured: `timeout_secs`, `connect_timeout_secs`,
-    /// `user_agent`, `follow_redirects`, `max_redirects`, `default_headers`, and
-    /// `max_response_bytes`.  Useful for integration tests and simple deployments
-    /// that do not need the full auth/retry/rate/breaker/cache/cassette stack.
-    pub fn plain_http_egress(
-        config: HttpConfig,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let mut cb = reqwest::Client::builder();
-        cb = cb.timeout(Duration::from_secs(config.timeout_secs));
-        cb = cb.connect_timeout(Duration::from_secs(config.connect_timeout_secs));
-        if let Some(ua) = &config.user_agent {
-            cb = cb.user_agent(ua);
-        }
-        if config.follow_redirects {
-            cb = cb.redirect(reqwest::redirect::Policy::limited(
-                config.max_redirects as usize,
-            ));
-        } else {
-            cb = cb.redirect(reqwest::redirect::Policy::none());
-        }
-        if !config.default_headers.is_empty() {
-            let mut map = reqwest::header::HeaderMap::new();
-            for (k, v) in &config.default_headers {
-                if let (Ok(name), Ok(val)) = (
-                    reqwest::header::HeaderName::from_bytes(k.as_bytes()),
-                    reqwest::header::HeaderValue::from_str(v),
-                ) {
-                    map.insert(name, val);
-                }
-            }
-            cb = cb.default_headers(map);
-        }
-        let client = reqwest_middleware::ClientBuilder::new(cb.build()?).build();
-        Ok(Box::new(DefaultHttpEgress::new(client, config)))
-    }
-
-    /// Build a minimal [`HttpEgress`](crate::HttpEgress) from an [`HttpConfig`] and a runtime OAuth
-    /// token source — no config-builder, no other middleware layers.
-    ///
-    /// This fills the gap between [`plain_http_egress`] (no auth) and
-    /// [`http_egress_from_config_with_oauth`] (full config-builder stack): a
-    /// caller who already has an `HttpConfig` and an `Arc<dyn OAuthTokenSource>`
-    /// but does not use the config-builder can assemble an OAuth-enabled egress
-    /// through this factory without manually wrapping `DefaultHttpEgress`.
-    ///
-    /// All `HttpConfig` fields are honoured (timeouts, user-agent, redirect policy,
-    /// default headers, `max_response_bytes`). The OAuth bearer token is injected
-    /// per request via the `OAuthSvc` middleware layer.
-    ///
-    /// # Errors
-    ///
-    /// Returns [`HttpEgressBuildError::Reqwest`] if the underlying reqwest client
-    /// cannot be built, or [`HttpEgressBuildError::OAuth`] if the `OAuthSvc`
-    /// layer fails to initialise.
-    ///
-    /// [`plain_http_egress`]: HttpTransportSvc::plain_http_egress
-    /// [`http_egress_from_config_with_oauth`]: HttpTransportSvc::http_egress_from_config_with_oauth
-    #[cfg(feature = "oauth")]
-    pub fn plain_http_egress_with_oauth(
-        config: HttpConfig,
-        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
-    ) -> Result<Box<dyn HttpEgress>, HttpEgressBuildError> {
-        let client = Self::configure_http_builder(reqwest::Client::builder(), &config).build()?;
-        let oauth = Self::build_oauth_middleware(token_source)?;
-        let mw_client = ClientBuilder::new(client).with(oauth).build();
-        Ok(Box::new(DefaultHttpEgress::new(mw_client, config)))
-    }
-
-    /// Assemble an `edge-security` OAuth middleware from a runtime token
-    /// source. Shared by [`http_egress_from_config_with_oauth`](HttpTransportSvc::http_egress_from_config_with_oauth) and
-    /// [`plain_http_egress_with_oauth`](HttpTransportSvc::plain_http_egress_with_oauth) — both take the same
-    /// `token_source` input and only differ in which other layers surround it.
-    #[cfg(feature = "oauth")]
-    fn build_oauth_middleware(
-        token_source: Arc<dyn edge_security_transport_egress_http_oauth::OAuthTokenSource>,
-    ) -> Result<edge_security_transport_egress_http_oauth::OAuthMiddleware, HttpEgressBuildError>
-    {
-        use edge_security_transport_egress_http_oauth::{
-            AssembleRequest, AssemblyRequest, OAuthBuilderOps as _, OAuthSvcFactory,
-            WithTokenSourceRequest,
-        };
-        let assembly = OAuthSvcFactory::builder()
-            .with_token_source(WithTokenSourceRequest {
-                source: token_source,
-            })?
-            .builder
-            .build(AssemblyRequest)?;
-        Ok(assembly
-            .middleware
-            .assemble(AssembleRequest)?
-            .into_middleware())
-    }
-
     /// Validate that an [`HttpConfig`] value is well-formed.
     ///
-    /// Returns `Ok(())` when the config is valid, or a human-readable error
-    /// message explaining what field is invalid and what the expected constraint is.
+    /// Returns `Ok(())` when the config is valid, or a human-readable error message explaining what
+    /// field is invalid and what the expected constraint is.
     pub fn validate_http_config(config: &HttpConfig) -> Result<(), String> {
         use crate::api::ValidateRequest;
+        use crate::api::Validator as _;
         use crate::core::validator::{DefaultValidator, HttpConfigValidator};
         DefaultValidator::new(HttpConfigValidator::new(config))
             .validate(ValidateRequest)
@@ -319,48 +107,27 @@ impl HttpTransportSvc {
 
     /// Validate any value that implements the `Validator` trait.
     ///
-    /// This is the generic gateway to the `Validator` contract — consumers who
-    /// implement `Validator` on their own types can call this to run validation
-    /// through the SAF boundary without holding a direct reference to the trait.
+    /// This is the generic gateway to the `Validator` contract — consumers who implement `Validator`
+    /// on their own types can call this to run validation through the SAF boundary without holding a
+    /// direct reference to the trait.
     pub fn validate<V: crate::api::Validator>(v: &V) -> Result<(), String> {
         use crate::api::ValidateRequest;
         v.validate(ValidateRequest).map_err(|e| e.to_string())
     }
 
-    /// Build a [`DefaultHttpEgress`] with the full SWE-default middleware stack —
-    /// no auth (see [`http_egress_from_config_with_auth`](HttpTransportSvc::http_egress_from_config_with_auth)), default
-    /// retry/rate/breaker/cache, the supplied cassette config, and no client
-    /// TLS. Shared by the `default_*` factories.
-    fn build_default_egress(
-        http_cfg: HttpConfig,
-        cassette_cfg: edge_transport_http_egress_resilient::CassetteConfig,
-        cassette_name: &str,
-    ) -> Result<DefaultHttpEgress, HttpEgressBuildError> {
-        let mut cb = reqwest::Client::builder();
-        #[cfg(feature = "tls")]
-        {
-            let tls = edge_security_transport_egress_http_tls::HttpTlsSvc::build_tls_layer(
-                Default::default(),
-            )?;
-            cb = tls.apply_to(cb)?;
-        }
-        cb = Self::configure_http_builder(cb, &http_cfg);
-
-        let builder = ClientBuilder::new(cb.build()?);
-        let builder = DefaultResilientLayers
-            .apply_defaults(ApplyDefaultsRequest {
-                builder,
-                cassette: cassette_cfg,
-                cassette_name: cassette_name.to_string(),
-            })
-            .map_err(HttpEgressBuildError::from)?;
-
-        Ok(DefaultHttpEgress::new(builder.build(), http_cfg))
+    /// Build the bare `reqwest_middleware::ClientWithMiddleware` shared by
+    /// [`plain_http_egress`](HttpTransportSvc::plain_http_egress) and
+    /// [`plain_http_stream`](HttpTransportSvc::plain_http_stream). No middleware layers are added —
+    /// only the [`HttpConfig`] transport settings are applied to the underlying reqwest client.
+    fn build_plain_client(
+        config: &HttpConfig,
+    ) -> Result<reqwest_middleware::ClientWithMiddleware, HttpEgressBuildError> {
+        let cb = Self::configure_http_builder(reqwest::Client::builder(), config);
+        Ok(reqwest_middleware::ClientBuilder::new(cb.build()?).build())
     }
 
-    /// Apply [`HttpConfig`] transport settings — timeouts, user-agent, redirect
-    /// policy, and default headers — to a reqwest client builder. Shared by the
-    /// config-driven and default-stack builders.
+    /// Apply [`HttpConfig`] transport settings — timeouts, user-agent, redirect policy, and default
+    /// headers — to a reqwest client builder.
     fn configure_http_builder(
         mut cb: reqwest::ClientBuilder,
         http_cfg: &HttpConfig,
