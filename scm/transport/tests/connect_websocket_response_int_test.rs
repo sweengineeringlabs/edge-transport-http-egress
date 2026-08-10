@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use edge_transport_http_egress_transport::{
-    ConnectWebsocketRequest, HttpEgressError, HttpTransportSvc,
+    ConnectWebsocketRequest, HttpConfig, HttpEgressError, HttpTransportSvc,
 };
 
 /// Without the `websocket` feature flag (this crate's default test build),
@@ -12,7 +12,7 @@ use edge_transport_http_egress_transport::{
 /// empty/placeholder channel.
 #[tokio::test]
 async fn test_connect_websocket_response_without_feature_returns_feature_gate_error_happy() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://127.0.0.1:1/ws".to_string(),
@@ -38,7 +38,7 @@ async fn test_connect_websocket_response_without_feature_returns_feature_gate_er
 /// calls — not just the first one.
 #[tokio::test]
 async fn test_connect_websocket_response_repeated_calls_both_fail_edge() {
-    let stream = HttpTransportSvc::default_http_stream_outbound().expect("ok");
+    let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let a = stream
         .connect_websocket(ConnectWebsocketRequest {
             url: "ws://127.0.0.1:1/a".to_string(),

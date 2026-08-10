@@ -19,5 +19,5 @@ pub use crate::api::{
     SubscribeSseRequest, SubscribeSseResponse, ValidatableHttpConfig, ValidateRequest,
     ValidationError, Validator, ValidatorObject, WsChannel, WsMessage, WsReceiver, WsSender,
 };
-pub use crate::saf::{HttpEgressSvcFactory, HttpStreamSvcFactory, ValidatorSvcFactory};
+pub use crate::saf::ValidatorSvcFactory;
 pub use edge_security_runtime::SecurityContext;
