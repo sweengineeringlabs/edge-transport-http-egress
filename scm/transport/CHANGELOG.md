@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- `HttpTransportSvc::configure_http_builder(cb, cfg)` is now **`pub`** — the canonical `HttpConfig` → `reqwest::ClientBuilder` mapping (timeouts, user-agent, redirect policy, default headers). Additive, no behaviour change. A composition root assembling its own middleware stack applies `HttpConfig` through this single implementation instead of re-deriving it, eliminating the mapping duplication flagged in edge-bootstrap ADR-008. ([#29](https://github.com/sweengineeringlabs/edge-transport-http-egress/issues/29))
 - `HttpTransportSvc::egress_from_middleware_client(client, config)` — the construction seam for a composition root: wrap an already-built `reqwest_middleware::ClientWithMiddleware` (with the caller's own TLS + resilient + auth chain) as an `HttpEgress`. ([#28](https://github.com/sweengineeringlabs/edge-transport-http-egress/issues/28))
 - `HttpTransportSvc::plain_http_stream(config)` — the bare `HttpStream` primitive, the streaming counterpart of `plain_http_egress` (no middleware layers).
 
