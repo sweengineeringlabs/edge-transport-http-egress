@@ -1,6 +1,7 @@
 //! Integration tests for `get_failure_threshold` — `BreakerMetrics` contract via SAF wrapper.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::ConfigBuilder as _;
 use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
 
 /// @covers: get_failure_threshold
@@ -16,7 +17,7 @@ fn breaker_trait_breaker_metrics_get_failure_threshold_returns_configured_value_
     assert_eq!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 7);
 }
 
-/// @covers: HttpBreakerSvcProcessor::create_config_builder — dep coverage for swe-edge-configbuilder
+/// @covers: HttpBreakerSvcProcessor::create_config_builder — dep coverage for configbuilder
 #[test]
 fn breaker_struct_http_breaker_svc_create_config_builder_returns_seeded_builder_int_test() {
     let builder = HttpBreakerSvcProcessor::create_config_builder();

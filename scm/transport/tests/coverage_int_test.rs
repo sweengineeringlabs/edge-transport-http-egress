@@ -24,7 +24,7 @@ use edge_transport_http_egress_transport::{
     HttpConfig, HttpMethod, HttpRequest, HttpTransportSvc, SubscribeSseRequest,
     ValidatableHttpConfig,
 };
-use swe_observ_metrics::{create_local_metrics_backend, MetricsProvider};
+use swe_observ_metrics::{MetricsProvider, MetricsSvcFactory};
 
 /// A zero-timeout config that every validator in this crate must reject — the
 /// canonical "known-bad" input for validation tests.
@@ -63,7 +63,8 @@ fn test_create_config_builder_two_independent_instances_edge() {
 #[test]
 fn test_observe_http_egress_wraps_inner_without_error_happy() {
     let inner = HttpTransportSvc::plain_http_egress(HttpConfig::default()).expect("ok");
-    let provider: Arc<dyn MetricsProvider> = Arc::new(create_local_metrics_backend());
+    let provider: Arc<dyn MetricsProvider> =
+        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
     let _observed = HttpTransportSvc::observe_http_egress(inner, provider);
 }
 
@@ -71,14 +72,16 @@ fn test_observe_http_egress_wraps_inner_without_error_happy() {
 fn test_observe_http_egress_wrapper_is_send_sync_error() {
     fn assert_send_sync<T: Send + Sync + ?Sized>(_: &T) {}
     let inner = HttpTransportSvc::plain_http_egress(HttpConfig::default()).expect("ok");
-    let provider: Arc<dyn MetricsProvider> = Arc::new(create_local_metrics_backend());
+    let provider: Arc<dyn MetricsProvider> =
+        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
     let observed = HttpTransportSvc::observe_http_egress(inner, provider);
     assert_send_sync(observed.as_ref());
 }
 
 #[test]
 fn test_observe_http_egress_shared_provider_two_instances_edge() {
-    let provider: Arc<dyn MetricsProvider> = Arc::new(create_local_metrics_backend());
+    let provider: Arc<dyn MetricsProvider> =
+        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
     let a = HttpTransportSvc::plain_http_egress(HttpConfig::default()).expect("ok");
     let b = HttpTransportSvc::plain_http_egress(HttpConfig::default()).expect("ok");
     let _wa = HttpTransportSvc::observe_http_egress(a, Arc::clone(&provider));

@@ -34,7 +34,7 @@ thiserror = "2"
 # literals in source.
 serde = { version = "1.0", features = ["derive", "rc"] }
 toml = "0.8"
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+configbuilder = "0.8"
 async-trait = "0.1"
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 moka = { version = "0.12", features = ["future"] }
@@ -47,7 +47,7 @@ reqwest-middleware  = { version = "0.4", features = ["json", "multipart"] }
 async-trait         = "0.1"
 tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 moka                = { version = "0.12", features = ["future"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+configbuilder = "0.8"
 bytes               = "1"
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }

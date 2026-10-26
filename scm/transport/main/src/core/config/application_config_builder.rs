@@ -1,11 +1,12 @@
 //! `impl ApplicationConfigBuilder` — the declaration lives in `api/`.
 
 use crate::api::ApplicationConfigBuilder;
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder};
 
 impl ApplicationConfigBuilder {
     /// Create a new, unseeded builder.
     pub fn new() -> Self {
-        Self(swe_edge_configbuilder::ConfigBuilderImpl::new())
+        Self(configbuilder::ConfigLoaderFactory::create_config_builder())
     }
 
     /// The package name this builder was seeded with.
@@ -33,8 +34,7 @@ impl ApplicationConfigBuilder {
     /// Consume the builder and return a ready-to-use section loader.
     pub fn build_loader(
         self,
-    ) -> Result<swe_edge_configbuilder::SectionLoaderImpl, swe_edge_configbuilder::ConfigError>
-    {
+    ) -> Result<configbuilder::SectionLoaderImpl, configbuilder::ConfigError> {
         self.0.build_loader()
     }
 }

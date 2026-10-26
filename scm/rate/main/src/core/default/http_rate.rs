@@ -10,6 +10,7 @@ use crate::api::{
     RateConfig, RateError, RateLayerRateMetrics, Validator,
 };
 use crate::core::rate::default_validator::DefaultValidator;
+use configbuilder::ConfigBuilder;
 
 impl Processor for HttpRateSvcProcessor {
     fn describe(&self, _request: DescribeRequest) -> Result<DescribeResponse, RateError> {
@@ -21,8 +22,8 @@ impl Processor for HttpRateSvcProcessor {
 
 impl HttpRateSvcProcessor {
     /// Return a config builder pre-seeded with this crate's name and version.
-    pub fn create_config_builder() -> swe_edge_configbuilder::ConfigBuilderImpl {
-        let mut b = swe_edge_configbuilder::ConfigBuilderImpl::new();
+    pub fn create_config_builder() -> configbuilder::ConfigBuilderImpl {
+        let mut b = configbuilder::ConfigLoaderFactory::create_config_builder();
         b = b.with_name(env!("CARGO_PKG_NAME"));
         b = b.with_version(env!("CARGO_PKG_VERSION"));
         b

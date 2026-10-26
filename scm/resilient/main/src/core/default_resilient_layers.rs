@@ -6,8 +6,8 @@
 //! activation, same `retry → rate → breaker → cache → cassette` ordering.
 //! Only the location and error type changed, per ADR-006.
 
+use configbuilder::{FeatureState, OptionalSection as _};
 use reqwest_middleware::ClientBuilder;
-use swe_edge_configbuilder::{FeatureState, OptionalSection as _};
 
 use edge_transport_http_egress_resilient_port::{
     ApplyDefaultsRequest, ApplyFromConfigRequest, ResilientError, ResilientLayers,

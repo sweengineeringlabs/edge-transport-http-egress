@@ -18,7 +18,7 @@ impl Default for RetryConfig {
     }
 }
 
-impl swe_edge_configbuilder::ConfigSection for RetryConfig {
+impl configbuilder::ConfigSection for RetryConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "retry"
@@ -27,15 +27,15 @@ impl swe_edge_configbuilder::ConfigSection for RetryConfig {
 
 /// Backend-owned opt-in contract (ADR-006): presence of the `[retry]` section
 /// activates the retry middleware; absence leaves it off. Additive alongside
-/// [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for RetryConfig {
+/// [`configbuilder::ConfigSection`].
+impl configbuilder::OptionalSection for RetryConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "retry"
     }
 
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
+    fn metadata() -> configbuilder::FeatureMetadata {
+        configbuilder::FeatureMetadata {
             description: "Retry middleware with exponential backoff",
             owner: "platform-team",
             deprecated_since: None,

@@ -1,7 +1,7 @@
 //! Request DTOs for [`crate::ResilientLayers`].
 
+use configbuilder::SectionLoaderImpl;
 use reqwest_middleware::ClientBuilder;
-use swe_edge_configbuilder::SectionLoaderImpl;
 
 use edge_transport_http_egress_cassette::CassetteConfig;
 

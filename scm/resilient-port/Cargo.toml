@@ -24,7 +24,7 @@ path = "main/src/lib.rs"
 [dependencies]
 edge-transport-http-egress-cassette = { path = "../cassette" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+configbuilder = "0.8"
 thiserror = "2"
 
 [dev-dependencies]

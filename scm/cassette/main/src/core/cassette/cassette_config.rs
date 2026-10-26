@@ -21,7 +21,7 @@ impl Default for CassetteConfig {
     }
 }
 
-impl swe_edge_configbuilder::ConfigSection for CassetteConfig {
+impl configbuilder::ConfigSection for CassetteConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "cassette"
@@ -30,15 +30,15 @@ impl swe_edge_configbuilder::ConfigSection for CassetteConfig {
 
 /// Backend-owned opt-in contract (ADR-006): presence of the `[cassette]` section
 /// activates HTTP record/replay; absence leaves it off. Additive alongside
-/// [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for CassetteConfig {
+/// [`configbuilder::ConfigSection`].
+impl configbuilder::OptionalSection for CassetteConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "cassette"
     }
 
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
+    fn metadata() -> configbuilder::FeatureMetadata {
+        configbuilder::FeatureMetadata {
             description: "HTTP record/replay test fixtures",
             owner: "platform-team",
             deprecated_since: None,
