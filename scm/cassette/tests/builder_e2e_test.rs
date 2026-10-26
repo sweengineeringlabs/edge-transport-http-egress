@@ -1,6 +1,7 @@
 //! End-to-end tests for the edge_transport_http_egress_cassette SAF builder surface.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, Loader as _};
 use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_cfg(dir: &str) -> CassetteConfig {

@@ -40,9 +40,9 @@ reqwest              = { version = "0.12", features = ["json", "stream", "multip
 reqwest-middleware   = { version = "0.4", features = ["json", "multipart"] }
 async-trait          = "0.1"
 bytes                = "1"
-swe-observ-metrics   = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.9" }
+swe-observ-metrics   = { package = "swe-observability-metrics", git = "ssh://git@github.com/sweengineeringlabs/observability.git", tag = "v0.2.11" }
 tokio-tungstenite    = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
-swe-edge-configbuilder = { git = "https://github.com/sweengineeringlabs/edge-configbuilder.git", tag = "v0.4.2" }
+configbuilder = "0.8"
 
 # Integration tests live in tests/*.rs and are auto-discovered by Cargo — one
 # test target per file, named after the file stem. No explicit [[test]] entries

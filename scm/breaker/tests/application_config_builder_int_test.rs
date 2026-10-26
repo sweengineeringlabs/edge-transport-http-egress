@@ -8,6 +8,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::ConfigBuilder as _;
 use edge_transport_http_egress_breaker::HttpBreakerSvcProcessor;
 
 /// @covers: ApplicationConfigBuilder

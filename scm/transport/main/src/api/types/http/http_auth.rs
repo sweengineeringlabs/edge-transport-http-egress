@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 /// transport layer converts this to the appropriate `Authorization` or custom
 /// header before sending.
 ///
-/// [`HttpRequest`]: super::http_request::HttpRequest
+/// [`HttpRequest`]: crate::api::HttpRequest
 ///
 /// # Examples
 ///

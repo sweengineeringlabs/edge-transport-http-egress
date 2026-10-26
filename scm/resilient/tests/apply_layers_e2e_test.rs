@@ -157,7 +157,7 @@ async fn test_apply_from_config_with_no_sections_present_still_round_trips_happy
     let (port, _jh) =
         spawn_once(|_req| async move { Response::new(Full::new(Bytes::from("ok"))) }).await;
 
-    let loader = swe_edge_configbuilder::ConfigLoaderFactory::create_loader()
+    let loader = configbuilder::ConfigLoaderFactory::create_loader()
         .expect("create_loader must succeed with no config dirs configured");
 
     let client = reqwest::Client::builder()

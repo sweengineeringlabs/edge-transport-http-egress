@@ -6,7 +6,9 @@
 //! depends on any of the five concern crates at all, so it cannot know
 //! their config shapes to report on them.
 
-use swe_edge_configbuilder::{ConfigError, FeatureRegistry, FeatureSummary, SectionLoaderImpl};
+use configbuilder::{
+    ConfigError, FeatureRegistry, FeatureRegistryOps as _, FeatureSummary, SectionLoaderImpl,
+};
 
 use crate::core::DefaultResilientLayers;
 

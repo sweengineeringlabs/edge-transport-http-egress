@@ -1,13 +1,13 @@
-//! Integration tests verifying `swe-edge-configbuilder` coverage through the
+//! Integration tests verifying `configbuilder` coverage through the
 //! `HttpBreakerSvcProcessor::create_config_builder()` SAF entry point.
 //!
-//! Rule 95: `swe-edge-configbuilder` is used in `src/` and must have
+//! Rule 95: `configbuilder` is used in `src/` and must have
 //! integration/e2e coverage.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, ConfigBuilderImpl, Loader as _};
 use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
-use swe_edge_configbuilder::ConfigBuilderImpl;
 
 /// @covers: create_config_builder
 /// Verifies the returned loader is genuinely functional — not just that

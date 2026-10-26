@@ -1,8 +1,9 @@
 //! Integration tests for `create_config_builder` in `edge_transport_http_egress_rate`.
 
+use configbuilder::ConfigBuilder as _;
 use edge_transport_http_egress_rate::HttpRateSvcProcessor;
 
-/// @covers: HttpRateSvcProcessor::create_config_builder — dep coverage for swe-edge-configbuilder
+/// @covers: HttpRateSvcProcessor::create_config_builder — dep coverage for configbuilder
 #[test]
 fn rate_struct_create_config_builder_returns_seeded_builder_int_test() {
     let builder = HttpRateSvcProcessor::create_config_builder();

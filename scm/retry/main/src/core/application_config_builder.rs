@@ -2,12 +2,13 @@
 //! delegating accessor. The declaration lives in `api/`.
 
 use crate::api::{ApplicationConfigBuilder, RetryError};
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder};
 
 impl ApplicationConfigBuilder {
     /// Construct the application config builder for `config/application.toml`,
     /// pre-seeded with this crate's name and version.
     pub(crate) fn new() -> Self {
-        let inner = swe_edge_configbuilder::ConfigBuilderImpl::new()
+        let inner = configbuilder::ConfigLoaderFactory::create_config_builder()
             .with_name(env!("CARGO_PKG_NAME"))
             .with_version(env!("CARGO_PKG_VERSION"));
         Self(inner)
@@ -35,7 +36,7 @@ impl ApplicationConfigBuilder {
     ///
     /// Returns an error if the underlying loader construction fails (e.g. an
     /// unreadable config directory).
-    pub fn build_loader(self) -> Result<swe_edge_configbuilder::SectionLoaderImpl, RetryError> {
+    pub fn build_loader(self) -> Result<configbuilder::SectionLoaderImpl, RetryError> {
         self.0
             .build_loader()
             .map_err(|e| RetryError::InvalidConfig(e.to_string()))
@@ -45,6 +46,7 @@ impl ApplicationConfigBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use configbuilder::Loader as _;
 
     /// @covers: name
     #[test]
