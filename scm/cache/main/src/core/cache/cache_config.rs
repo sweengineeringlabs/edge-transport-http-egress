@@ -14,7 +14,7 @@ impl Default for CacheConfig {
     }
 }
 
-impl swe_edge_configbuilder::ConfigSection for CacheConfig {
+impl configbuilder::ConfigSection for CacheConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "cache"
@@ -23,15 +23,15 @@ impl swe_edge_configbuilder::ConfigSection for CacheConfig {
 
 /// Backend-owned opt-in contract (ADR-006): presence of the `[cache]` section
 /// activates the HTTP response cache; absence leaves it off. Additive alongside
-/// [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for CacheConfig {
+/// [`configbuilder::ConfigSection`].
+impl configbuilder::OptionalSection for CacheConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "cache"
     }
 
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
+    fn metadata() -> configbuilder::FeatureMetadata {
+        configbuilder::FeatureMetadata {
             description: "HTTP response cache",
             owner: "platform-team",
             deprecated_since: None,

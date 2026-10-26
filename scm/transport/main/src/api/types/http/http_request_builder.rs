@@ -7,10 +7,10 @@ use super::http_auth::HttpAuth;
 use super::http_method::HttpMethod;
 use crate::api::HttpBody;
 
-/// Fluent builder for [`HttpRequest`].
+/// Fluent builder for [`crate::api::HttpRequest`].
 ///
 /// Construct via [`HttpRequestBuilder::new`] and chain setter methods,
-/// then call [`build`](Self::build) to obtain the final [`HttpRequest`].
+/// then call [`build`](Self::build) to obtain the final [`crate::api::HttpRequest`].
 ///
 /// # Examples
 ///

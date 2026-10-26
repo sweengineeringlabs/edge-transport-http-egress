@@ -5,6 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _};
 use edge_transport_http_egress_rate::{HttpRateSvcProcessor, RateConfig};
 
 const CRATE_NAME: &str = "edge-transport-http-egress-rate";

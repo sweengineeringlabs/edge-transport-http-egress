@@ -14,7 +14,7 @@ impl Default for BreakerConfig {
     }
 }
 
-impl swe_edge_configbuilder::ConfigSection for BreakerConfig {
+impl configbuilder::ConfigSection for BreakerConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "breaker"
@@ -23,15 +23,15 @@ impl swe_edge_configbuilder::ConfigSection for BreakerConfig {
 
 /// Backend-owned opt-in contract (ADR-006): presence of the `[breaker]` section
 /// activates the circuit breaker; absence leaves it off. Additive alongside
-/// [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for BreakerConfig {
+/// [`configbuilder::ConfigSection`].
+impl configbuilder::OptionalSection for BreakerConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "breaker"
     }
 
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
+    fn metadata() -> configbuilder::FeatureMetadata {
+        configbuilder::FeatureMetadata {
             description: "circuit breaker for failing upstreams",
             owner: "platform-team",
             deprecated_since: None,

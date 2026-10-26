@@ -5,6 +5,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, Loader as _};
 use edge_transport_http_egress_cassette::{CassetteConfig, HttpCassetteSvc};
 
 /// Absolute path to the crate's shipped `config/` directory, which contains

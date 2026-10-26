@@ -1,11 +1,11 @@
-//! Dependency coverage test for `swe-edge-configbuilder`.
+//! Dependency coverage test for `configbuilder`.
 //! Verifies that the configbuilder integration works through the
 //! cache public API.
 
+use configbuilder::{ConfigBuilder as _, ConfigBuilderImpl};
 use edge_transport_http_egress_cache::HttpCacheSvcProcessor;
-use swe_edge_configbuilder::ConfigBuilderImpl;
 
-/// @covers: swe-edge-configbuilder
+/// @covers: configbuilder
 #[test]
 fn cache_struct_dep_configbuilder_create_config_builder_returns_builder_int_test() {
     let builder: ConfigBuilderImpl = HttpCacheSvcProcessor::create_config_builder();

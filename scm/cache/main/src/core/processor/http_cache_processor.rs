@@ -9,6 +9,7 @@ use crate::api::{
     CacheConfig, CacheError, DescribeRequest, DescribeResponse, HttpCacheSvcProcessor,
     MiddlewareHttpCache, Processor,
 };
+use configbuilder::ConfigBuilder;
 
 impl Processor for HttpCacheSvcProcessor {
     fn describe(&self, _request: DescribeRequest) -> Result<DescribeResponse, CacheError> {
@@ -20,8 +21,8 @@ impl Processor for HttpCacheSvcProcessor {
 
 impl HttpCacheSvcProcessor {
     /// Return a config builder pre-seeded with this crate's name and version.
-    pub fn create_config_builder() -> swe_edge_configbuilder::ConfigBuilderImpl {
-        let mut b = swe_edge_configbuilder::ConfigBuilderImpl::new();
+    pub fn create_config_builder() -> configbuilder::ConfigBuilderImpl {
+        let mut b = configbuilder::ConfigLoaderFactory::create_config_builder();
         b = b.with_name(env!("CARGO_PKG_NAME"));
         b = b.with_version(env!("CARGO_PKG_VERSION"));
         b

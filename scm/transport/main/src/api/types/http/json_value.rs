@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// A JSON value carried by [`HttpBody::Json`](super::http_body::HttpBody::Json).
+/// A JSON value carried by [`HttpBody::Json`](crate::api::HttpBody::Json).
 ///
 /// Wraps `serde_json::Value` so `HttpBody`'s variant payload never names the
 /// foreign type directly (SEA `no_foreign_type`). Construct with

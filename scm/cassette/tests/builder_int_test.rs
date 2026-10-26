@@ -3,6 +3,7 @@
 //! Covers: `create_config_builder()`, `HttpCassetteSvc::build_cassette_layer(config, name)`, and all config variants.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::BuilderFinalizer as _;
 use edge_transport_http_egress_cassette::{CassetteConfig, CassetteLayer, HttpCassetteSvc};
 
 fn make_config(dir: &str) -> CassetteConfig {

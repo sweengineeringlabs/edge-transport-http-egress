@@ -75,10 +75,10 @@ impl HttpEgress for MetricsHttpEgress {
 mod tests {
     use super::*;
     use crate::api::{HttpByteStream, HttpConfig, HttpEgressError};
-    use swe_observ_metrics::create_local_metrics_backend;
+    use swe_observ_metrics::MetricsSvcFactory;
 
     fn provider() -> Arc<dyn MetricsProvider> {
-        Arc::new(create_local_metrics_backend())
+        Arc::new(MetricsSvcFactory.create_local_metrics_backend())
     }
 
     struct MetricsNoopEgress;

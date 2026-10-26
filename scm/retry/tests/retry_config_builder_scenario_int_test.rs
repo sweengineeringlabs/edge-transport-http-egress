@@ -3,6 +3,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::Loader as _;
 use edge_transport_http_egress_retry::{HttpRetrySvc, Processor};
 
 /// @covers: new_config_builder

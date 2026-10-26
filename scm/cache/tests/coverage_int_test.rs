@@ -4,6 +4,7 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, Loader as _};
 use edge_transport_http_egress_cache::{CacheConfig, HttpCacheSvcProcessor};
 
 // ── create_config_builder (rule 221) ─────────────────────────────────────────

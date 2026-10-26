@@ -16,7 +16,7 @@ use crate::api::error::HttpEgressError;
 ///
 /// # WebSocket
 /// Completes the WebSocket handshake and returns a full-duplex
-/// [`WsChannel`](crate::api::types::ws::WsChannel). The caller may send and
+/// [`WsChannel`](crate::api::WsChannel). The caller may send and
 /// receive frames concurrently; the connection stays open until the channel
 /// is dropped.
 #[async_trait]
@@ -32,7 +32,7 @@ pub trait HttpStream: Send + Sync {
 
     /// Open a WebSocket connection to `request.url`.
     ///
-    /// Returns a [`WsChannel`](crate::api::types::ws::WsChannel) after the
+    /// Returns a [`WsChannel`](crate::api::WsChannel) after the
     /// handshake completes.
     async fn connect_websocket(
         &self,

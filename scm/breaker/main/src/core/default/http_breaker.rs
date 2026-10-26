@@ -9,6 +9,7 @@ use crate::api::{
     BreakerConfig, BreakerError, BreakerLayerBreakerMetrics, BreakerMetrics, DescribeRequest,
     DescribeResponse, FailureThresholdRequest, HttpBreakerSvcProcessor, Processor,
 };
+use configbuilder::ConfigBuilder;
 
 impl Processor for HttpBreakerSvcProcessor {
     fn describe(&self, _request: DescribeRequest) -> Result<DescribeResponse, BreakerError> {
@@ -33,8 +34,8 @@ impl HttpBreakerSvcProcessor {
     }
 
     /// Return a config builder pre-seeded with this crate's name and version.
-    pub fn create_config_builder() -> swe_edge_configbuilder::ConfigBuilderImpl {
-        let mut b = swe_edge_configbuilder::ConfigBuilderImpl::new();
+    pub fn create_config_builder() -> configbuilder::ConfigBuilderImpl {
+        let mut b = configbuilder::ConfigLoaderFactory::create_config_builder();
         b = b.with_name(env!("CARGO_PKG_NAME"));
         b = b.with_version(env!("CARGO_PKG_VERSION"));
         b

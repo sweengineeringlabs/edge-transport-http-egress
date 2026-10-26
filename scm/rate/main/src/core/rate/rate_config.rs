@@ -13,7 +13,7 @@ impl Default for RateConfig {
     }
 }
 
-impl swe_edge_configbuilder::ConfigSection for RateConfig {
+impl configbuilder::ConfigSection for RateConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "rate"
@@ -22,15 +22,15 @@ impl swe_edge_configbuilder::ConfigSection for RateConfig {
 
 /// Backend-owned opt-in contract (ADR-006): presence of the `[rate]` section
 /// activates client-side rate limiting; absence leaves it off. Additive
-/// alongside [`swe_edge_configbuilder::ConfigSection`].
-impl swe_edge_configbuilder::OptionalSection for RateConfig {
+/// alongside [`configbuilder::ConfigSection`].
+impl configbuilder::OptionalSection for RateConfig {
     fn section_name() -> &'static str {
         // @allow: no_stub_fn_bodies
         "rate"
     }
 
-    fn metadata() -> swe_edge_configbuilder::FeatureMetadata {
-        swe_edge_configbuilder::FeatureMetadata {
+    fn metadata() -> configbuilder::FeatureMetadata {
+        configbuilder::FeatureMetadata {
             description: "client-side request rate limiting",
             owner: "platform-team",
             deprecated_since: None,

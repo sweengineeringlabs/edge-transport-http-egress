@@ -50,7 +50,7 @@ mod tests {
     // Deliberately not backed by any of the 5 concrete concern crates —
     // proves ResilientLayers is object-safe and satisfiable using *only*
     // this crate's own dependency graph (reqwest_middleware +
-    // swe-edge-configbuilder + cassette's Config DTO), matching the
+    // configbuilder + cassette's Config DTO), matching the
     // standalone-double pattern used for every other zero-implementation
     // port in this org (e.g. swe-edge-bootstrap-runtime's RuntimeManager).
     struct NoopResilientLayers;
@@ -84,7 +84,7 @@ mod tests {
     #[test]
     fn test_resilient_layers_double_is_object_safe_and_runs_standalone() {
         let layers: Arc<dyn ResilientLayers> = Arc::new(NoopResilientLayers);
-        let loader = match swe_edge_configbuilder::ConfigLoaderFactory::create_loader() {
+        let loader = match configbuilder::ConfigLoaderFactory::create_loader() {
             Ok(l) => l,
             Err(e) => panic!("create_loader must succeed with no config dirs configured: {e}"),
         };
