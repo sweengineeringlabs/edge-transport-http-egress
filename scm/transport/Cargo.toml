@@ -29,7 +29,7 @@ path = "main/src/lib.rs"
 websocket = ["dep:tokio-tungstenite"]
 
 [dependencies]
-edge-security-runtime = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
+edge-security-runtime = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.41" }
 serde                = { version = "1.0", features = ["derive"] }
 serde_json           = "1.0"
 thiserror            = "2"
@@ -53,14 +53,6 @@ tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-ut
 hyper               = { version = "1", features = ["http1", "server"] }
 hyper-util          = { version = "0.1", features = ["tokio"] }
 http-body-util      = "0.1"
-bytes               = "1"
-serde_json          = "1.0"
-http                    = "1"
-reqwest                 = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
-reqwest-middleware      = { version = "0.4", features = ["json", "multipart"] }
-edge-security-runtime            = { git = "https://github.com/sweengineeringlabs/edge-security.git", tag = "v0.3.22" }
-async-trait              = "0.1"
-futures                  = "0.3"
 tokio-tungstenite        = { version = "0.26", features = ["rustls-tls-native-roots"] }
 
 [lints.rust]

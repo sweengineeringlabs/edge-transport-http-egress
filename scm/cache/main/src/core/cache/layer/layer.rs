@@ -116,13 +116,14 @@ impl MiddlewareHttpCache {
             if cc.contains("no-store") {
                 return None;
             }
+            if self.config.respect_cache_control
+                && cc.contains("private")
+                && !self.config.cache_private
+            {
+                return None;
+            }
             if self.config.respect_cache_control {
-                if cc.contains("private") && !self.config.cache_private {
-                    return None;
-                }
-                if let Some(max_age) = CacheEntryHelper::extract_max_age(&cc) {
-                    ttl = Some(Duration::from_secs(max_age));
-                }
+                ttl = CacheEntryHelper::extract_max_age(&cc).map(Duration::from_secs);
                 // SWR is independent of respect_cache_control
                 // for TTL, but conceptually SWR is itself a
                 // Cache-Control directive — only honor it when
@@ -403,13 +404,45 @@ impl MiddlewareHttpCache {
         MiddlewareHttpCache::upsert_variant(&self.store, key, refreshed.clone()).await;
         refreshed
     }
+
+    async fn revalidate_with_etag(
+        &self,
+        mut req: reqwest::Request,
+        ext: &mut http::Extensions,
+        next: reqwest_middleware::Next<'_>,
+        entry: CachedEntry,
+        key: String,
+        snapshot: &RequestSnapshot,
+    ) -> reqwest_middleware::Result<reqwest::Response> {
+        if let Some(value) = entry
+            .etag
+            .as_deref()
+            .and_then(|etag| HeaderValue::from_str(etag).ok())
+        {
+            req.headers_mut().insert(IF_NONE_MATCH, value);
+        }
+
+        let response = next.run(req, ext).await?;
+        if response.status().as_u16() == 304 {
+            let refreshed = self.refresh_on_304(entry, &response, key).await;
+            return MiddlewareHttpCache::reconstruct(&refreshed).map_err(|e| {
+                reqwest_middleware::Error::Middleware(anyhow::anyhow!(
+                    "edge_transport_http_egress_cache 304 reconstruct: {e}"
+                ))
+            });
+        }
+
+        self.buffer_and_store(response, key, snapshot)
+            .await
+            .map(|(response, _)| response)
+    }
 }
 
 #[async_trait]
 impl reqwest_middleware::Middleware for MiddlewareHttpCache {
     async fn handle(
         &self,
-        mut req: reqwest::Request,
+        req: reqwest::Request,
         ext: &mut http::Extensions,
         next: reqwest_middleware::Next<'_>,
     ) -> reqwest_middleware::Result<reqwest::Response> {
@@ -455,25 +488,10 @@ impl reqwest_middleware::Middleware for MiddlewareHttpCache {
             // and is also used by tests.
             debug_assert!(CacheEntryHelper::should_revalidate(&entry, now));
             // Revalidate if we have an ETag.
-            if let Some(etag) = entry.etag.clone() {
-                if let Ok(value) = HeaderValue::from_str(&etag) {
-                    req.headers_mut().insert(IF_NONE_MATCH, value);
-                }
-                let response = next.run(req, ext).await?;
-                if response.status().as_u16() == 304 {
-                    let refreshed = self.refresh_on_304(entry, &response, key).await;
-                    return MiddlewareHttpCache::reconstruct(&refreshed).map_err(|e| {
-                        reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                            "edge_transport_http_egress_cache 304 reconstruct: {e}"
-                        ))
-                    });
-                }
-                // Non-304 — store as new variant (replacing the
-                // stale one at the matching Vary slot).
+            if entry.etag.is_some() {
                 return self
-                    .buffer_and_store(response, key, &snapshot)
-                    .await
-                    .map(|(r, _)| r);
+                    .revalidate_with_etag(req, ext, next, entry, key, &snapshot)
+                    .await;
             }
             // No ETag — fall through to a plain refetch (the
             // previous-variant slot will be replaced by

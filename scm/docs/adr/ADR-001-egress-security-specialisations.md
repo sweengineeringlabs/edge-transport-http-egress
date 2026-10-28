@@ -1,34 +1,26 @@
-# ADR-001: Egress HTTP Security — Local Contract
+# ADR-001: Egress HTTP security ownership
 
-**Status:** Accepted  
-**Date:** 2026-06-12  
-**Governing ADR:** [ADR-015](../../../../../docs/3-architecture/adr/ADR-015-security-layer-architecture.md) (rules R1–R7, shared surface, cascade)
+**Status:** Superseded
+**Date:** 2026-06-12
+**Superseded by:** [ADR-002: Security context in outbound HTTP](ADR-002-security-context-propagation.md)
 
----
+## Original decision
 
-## Mandate
+The original decision kept outbound auth, OAuth token refresh, and client TLS specialisations in
+this repository. That ownership was reversed as the shared edge-security crates became compatible
+with the egress transport. The local `auth`, `oauth`, and `tls` crates are no longer workspace
+members.
 
-Attach the correct outbound credential to every HTTP request before it leaves the process. Never verify inbound tokens or perform tenant resolution.
+## Current ownership
 
----
+- Edge-security owns credential resolution, auth strategies, OAuth, and security policy.
+- The consuming composition root assembles those policies with the HTTP client and resilience
+  middleware.
+- This repository owns the outbound HTTP contract, the reqwest-backed transport, and
+  `HttpSecurityContext`, which carries `edge_security_runtime::SecurityContext` through
+  `HttpEgress::send_with_context`.
+- The bare transport does not derive authorization headers or interpret identity claims.
 
-## What Lives Here
-
-| Item | Crate | Why not shared |
-|------|-------|---------------|
-| `AuthConfig` | auth | Outbound strategy selector (None/Bearer/Basic/Header/AwsSigV4) |
-| `AuthStrategy` impls (×5) | auth | Mutate `reqwest::Request`; no ingress analogue |
-| `EnvCredentialResolver` | auth | Implements shared `CredentialResolver` via process env |
-| `AuthError` | auth | Auth strategy + credential resolution failures |
-| `OAuthTokenSource` | oauth | Token refresh for outbound calls; no ingress analogue |
-| `OAuthMiddleware` | oauth | Injects token into `reqwest` requests |
-| `OAuthError` | oauth | Token refresh failures |
-| `ClientTlsConfig` | tls | Client mTLS identity (Pkcs12/Pem/None) for `reqwest::ClientBuilder` |
-
-## What Is Re-exported from Shared
-
-| Re-export | Source |
-|-----------|--------|
-| `CredentialResolver` | `swe_edge_security::CredentialResolver` |
-| `CredentialSource` | `swe_edge_security::CredentialSource` |
-| `TlsError` (alias) | `swe_edge_security::TlsConfigError` |
+See [ADR-002](ADR-002-security-context-propagation.md) for the current context contract and
+[ADR-005](ADR-005-retry-breaker-composition-moves-out-of-transport.md) / [ADR-006](ADR-006-resilient-splits-into-port-adapter-scoped-to-order-coupled-concerns.md)
+for middleware ownership.

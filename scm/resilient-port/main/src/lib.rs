@@ -11,9 +11,9 @@
 mod api;
 
 pub use crate::api::{
-    ApplyDefaultsRequest, ApplyFromConfigRequest, ResilientError, ResilientLayers,
+    ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
 };
-// Re-exported so consumers can construct an `ApplyDefaultsRequest.cassette`
+// Re-exported so consumers can construct a `ResilientDefaultsRequest.cassette`
 // value without taking their own direct dependency on the cassette crate —
 // `transport` relies on this to stay free of any of the five concern
 // crates directly (see ADR-006).

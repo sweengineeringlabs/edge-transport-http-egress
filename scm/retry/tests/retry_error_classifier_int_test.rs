@@ -1,59 +1,61 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for the retry error classifier behavior.
-//!
-//! Rule 120: `src/api/retry/layer/retry_error_classifier.rs` requires a
-//! corresponding test file.
-//!
-//! The `RetryErrorClassifier` trait is a marker in api/ and the concrete impl
-//! is `pub(crate)` in core/. We test the error-classification behavior through
-//! the public retry API: a middleware-level error must not be retried; the retry
-//! layer must respect that policy.
+//! Regression tests for retry behavior with middleware errors.
 
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+
+use async_trait::async_trait;
 use edge_transport_http_egress_retry::{DecorateRequest, HttpRetrySvc, Processor, RetryConfig};
 
-/// @covers: RetryErrorClassifier (via RetryLayer)
-/// A `RetryLayer` built with default config must succeed — confirming the
-/// error classifier is wired in without panicking.
-#[test]
-fn retry_struct_retry_error_classifier_layer_builds_without_panic_int_test() {
-    let cfg = RetryConfig::default();
-    let layer = HttpRetrySvc
-        .decorate(DecorateRequest { config: cfg })
-        .expect("RetryLayer must build");
-    // Payload assertion: the classifier-backed layer carries the default policy.
-    assert!(
-        format!("{layer:?}").contains("max_retries: 3"),
-        "layer must embed the default retry policy"
-    );
-    // Sibling negative: an invalid retry policy is rejected by validate().
-    let bad = RetryConfig {
-        multiplier: -2.0,
-        ..RetryConfig::default()
-    };
-    assert!(
-        bad.validate().is_err(),
-        "negative multiplier must fail validate()"
-    );
+struct FailingMiddleware {
+    calls: Arc<AtomicUsize>,
 }
 
-/// @covers: RetryErrorClassifier (classifier is Send+Sync via RetryLayer)
-/// The retry layer must be `Send + Sync` — a requirement satisfied only if
-/// the embedded classifier is also `Send + Sync`.
-#[test]
-fn retry_struct_retry_error_classifier_layer_is_send_and_sync_int_test() {
-    // Genuine runtime proof of Send: move the classifier-backed layer into
-    // another thread and read it back.
-    let layer = HttpRetrySvc
+#[async_trait]
+impl reqwest_middleware::Middleware for FailingMiddleware {
+    async fn handle(
+        &self,
+        _req: reqwest::Request,
+        _ext: &mut http::Extensions,
+        _next: reqwest_middleware::Next<'_>,
+    ) -> reqwest_middleware::Result<reqwest::Response> {
+        self.calls.fetch_add(1, Ordering::SeqCst);
+        Err(reqwest_middleware::Error::middleware(
+            std::io::Error::other("synthetic downstream middleware failure"),
+        ))
+    }
+}
+
+/// Middleware/configuration errors are not transient transport failures and
+/// must not trigger another attempt, even for a retryable method.
+#[tokio::test]
+async fn middleware_error_is_returned_without_retrying() {
+    let retry = HttpRetrySvc
         .decorate(DecorateRequest {
-            config: RetryConfig::default(),
+            config: RetryConfig {
+                max_retries: 3,
+                initial_interval_ms: 0,
+                max_interval_ms: 0,
+                retryable_methods: vec!["GET".into()],
+                ..RetryConfig::default()
+            },
         })
-        .expect("build")
+        .expect("valid retry config")
         .layer;
-    let dbg = std::thread::spawn(move || format!("{layer:?}"))
-        .join()
-        .expect("thread must not panic");
-    assert!(
-        dbg.contains("RetryLayer"),
-        "layer must survive a thread move; got: {dbg}"
-    );
+    let calls = Arc::new(AtomicUsize::new(0));
+    let client = reqwest_middleware::ClientBuilder::new(reqwest::Client::new())
+        .with(retry)
+        .with_arc(Arc::new(FailingMiddleware {
+            calls: Arc::clone(&calls),
+        }))
+        .build();
+
+    let error = client
+        .get("http://example.invalid/")
+        .send()
+        .await
+        .expect_err("downstream middleware returns an error");
+
+    assert!(matches!(error, reqwest_middleware::Error::Middleware(_)));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
 }

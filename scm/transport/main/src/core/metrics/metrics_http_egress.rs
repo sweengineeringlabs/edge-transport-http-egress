@@ -6,7 +6,7 @@ use swe_observ_metrics::MetricsProvider;
 
 use crate::api::{
     ConfigRequest, ConfigResponse, HealthCheckRequest, HttpEgress, HttpEgressResult, HttpRequest,
-    HttpResponse, HttpStreamResponse,
+    HttpResponse, HttpSecurityContext, HttpStreamResponse,
 };
 
 /// Wraps any [`HttpEgress`]; records per-call latency, request count, and
@@ -24,10 +24,14 @@ impl MetricsHttpEgress {
 
 #[async_trait]
 impl HttpEgress for MetricsHttpEgress {
-    async fn send(&self, request: HttpRequest) -> HttpEgressResult<HttpResponse> {
+    async fn send_with_context(
+        &self,
+        request: HttpRequest,
+        ctx: HttpSecurityContext,
+    ) -> HttpEgressResult<HttpResponse> {
         let method = request.method.to_string();
         let start = Instant::now();
-        let result = self.inner.send(request).await;
+        let result = self.inner.send_with_context(request, ctx).await;
         let labels = &[("method", method.as_str())];
         self.provider
             .record_counter("edge_egress_requests_total", 1.0, labels);
@@ -84,7 +88,11 @@ mod tests {
     struct MetricsNoopEgress;
     #[async_trait]
     impl HttpEgress for MetricsNoopEgress {
-        async fn send(&self, _: HttpRequest) -> HttpEgressResult<HttpResponse> {
+        async fn send_with_context(
+            &self,
+            _: HttpRequest,
+            _: HttpSecurityContext,
+        ) -> HttpEgressResult<HttpResponse> {
             Ok(HttpResponse {
                 status: 200,
                 headers: Default::default(),
@@ -153,7 +161,11 @@ mod tests {
         struct MetricsFailEgress;
         #[async_trait]
         impl HttpEgress for MetricsFailEgress {
-            async fn send(&self, _: HttpRequest) -> HttpEgressResult<HttpResponse> {
+            async fn send_with_context(
+                &self,
+                _: HttpRequest,
+                _: HttpSecurityContext,
+            ) -> HttpEgressResult<HttpResponse> {
                 Err(HttpEgressError::ConnectionFailed("refused".into()))
             }
             async fn send_stream(&self, _: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {

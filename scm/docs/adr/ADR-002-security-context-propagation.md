@@ -1,61 +1,42 @@
-# ADR-002: Security Context Propagation — egress/http credential resolver + outbound context
+# ADR-002: Security context in outbound HTTP
 
-**Status:** Accepted  
-**Date:** 2026-06-12  
-**Governing ADR:** [ADR-017](https://github.com/sweengineeringlabs/edge/blob/main/docs/3-architecture/adr/ADR-017-security-context-propagation.md) — Security Context Propagation Pipeline  
-**See also:** [ADR-001](ADR-001-egress-security-specialisations.md) — egress HTTP security specialisations
+**Status:** Accepted
+**Date:** 2026-06-12
+**Supersedes:** The earlier local `CredentialResolver` and `HttpOutbound` proposal in this ADR
+**Related:** [ADR-001](ADR-001-egress-security-specialisations.md), [ADR-005](ADR-005-retry-breaker-composition-moves-out-of-transport.md), [ADR-006](ADR-006-resilient-splits-into-port-adapter-scoped-to-order-coupled-concerns.md)
 
----
+## Decision
 
-## Mandate
+The outbound HTTP contract carries the caller's `SecurityContext` through
+`HttpEgress::send_with_context`. The no-context convenience method `send` delegates to
+`send_with_context` with an unauthenticated context. A local `HttpSecurityContext` newtype keeps the
+foreign runtime type out of the transport contract's method signature while retaining lossless
+conversion to and from `edge_security_runtime::SecurityContext`.
 
-Update `CredentialResolver` implementations to accept `SecurityContext`. Add `send_with_context` to `HttpOutbound` as the new primary method; `send` becomes a shim.
+`send_with_context` is the required operation for `HttpEgress` implementors. Decorators such as the
+metrics wrapper must forward the supplied context to the wrapped egress. The bare reqwest transport
+does not interpret identity, claims, tokens, or security policy; authentication and context-derived
+headers are applied by the consuming composition root and its middleware.
 
----
+## Ownership
 
-## `CredentialResolver` change (breaking)
+Credential resolution and auth strategies are owned by edge-security. The local egress auth crate
+and its `CredentialResolver` were removed when auth migrated to edge-security's bearer crate
+(commit `9c9c8b1`). This repository owns only the outbound HTTP contract and the context value it
+accepts. It must not recreate credential resolution or auth policy here.
 
-```rust
-// Before
-fn resolve(&self, source: &CredentialSource) -> Result<SecretString, SecurityError>;
+## Compatibility
 
-// After
-fn resolve(&self, source: &CredentialSource, ctx: &SecurityContext) -> Result<SecretString, SecurityError>;
-```
+`HttpEgress::send_with_context` is the primary trait method. `send` remains a convenience shim that
+supplies an unauthenticated context. Implementations that need context-sensitive behavior override
+`send_with_context`; decorators preserve the same context when calling their inner implementation.
 
-**Affected implementations:** `DefaultHttpAuth`, `EnvCredentialResolver`.
+The default reqwest transport continues to send the caller's `HttpRequest` as supplied. It does not
+derive authorization headers from context fields. This keeps identity propagation separate from
+security policy and avoids inventing a header mapping in the transport layer.
 
-Until ADR-018 (per-tenant credential selection) lands, add `let _ = ctx;` — no behaviour change, but the signature is future-ready.
+## Verification
 
----
-
-## `HttpOutbound` change (additive)
-
-```rust
-pub trait HttpOutbound: Send + Sync {
-    async fn send(&self, req: HttpRequest) -> Result<HttpResponse, EgressError> {
-        self.send_with_context(req, &SecurityContext::unauthenticated()).await
-    }
-    async fn send_with_context(
-        &self,
-        req: HttpRequest,
-        ctx: &SecurityContext,
-    ) -> Result<HttpResponse, EgressError>;
-}
-```
-
-All existing `HttpOutbound` implementations override only `send_with_context`. The `send()` shim is inherited for free — no call-site migration required.
-
----
-
-## Dependency change
-
-```toml
-edge-application = { ..., features = ["security"] }
-```
-
----
-
-## Cascade position
-
-Step **6 of 11**. Both the `CredentialResolver` change and `send_with_context` addition ship in the same PR. Blocked on: swe-edge-security step 5 (CredentialResolver trait breaking change). Unblocks: bootstrap (step 11).
+Tests cover context construction and type identity, context-aware HTTP requests, error behavior,
+and the unauthenticated `send` path. The dependency must resolve the same immutable
+`edge-security-runtime` tag used by the consuming application.

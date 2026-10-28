@@ -8,3 +8,11 @@
 /// via [`HttpSecurityContext::from`] (or `.into()`) from an existing
 /// `edge_security_runtime::SecurityContext`.
 pub struct HttpSecurityContext(pub(crate) edge_security_runtime::SecurityContext);
+
+impl HttpSecurityContext {
+    /// Create an unauthenticated context for callers using
+    /// [`HttpEgress::send`](crate::api::traits::HttpEgress::send).
+    pub fn unauthenticated() -> Self {
+        Self(edge_security_runtime::SecurityContext::unauthenticated())
+    }
+}

@@ -13,11 +13,12 @@ pub use crate::api::{
     AlwaysValidConfig, ApplicationConfigBuilder, AssemblyFailure, ConfigRequest, ConfigResponse,
     ConnectWebsocketRequest, ConnectWebsocketResponse, FormPart, GetRequest, HealthCheckRequest,
     HttpAuth, HttpBody, HttpByteStream, HttpConfig, HttpConfigBuilder, HttpConfigValidator,
-    HttpEgress, HttpEgressBuildError, HttpEgressError, HttpEgressObject, HttpEgressResult,
-    HttpMethod, HttpRequest, HttpRequestBuilder, HttpResponse, HttpSecurityContext, HttpStream,
-    HttpStreamResponse, HttpTransportSvc, JsonValue, MetricsHttpEgress, SseEvent, SseStream,
-    SubscribeSseRequest, SubscribeSseResponse, ValidatableHttpConfig, ValidateRequest,
-    ValidationError, Validator, ValidatorObject, WsChannel, WsMessage, WsReceiver, WsSender,
+    HttpEgress, HttpEgressBuildError, HttpEgressError, HttpEgressFuture, HttpEgressObject,
+    HttpEgressResult, HttpMethod, HttpRequest, HttpRequestBuilder, HttpResponse,
+    HttpSecurityContext, HttpStream, HttpStreamResponse, HttpTransportSvc, JsonValue,
+    MetricsHttpEgress, SseEvent, SseStream, SubscribeSseRequest, SubscribeSseResponse,
+    ValidatableHttpConfig, ValidateRequest, ValidationError, Validator, ValidatorObject, WsChannel,
+    WsMessage, WsReceiver, WsSender,
 };
 pub use crate::saf::ValidatorSvcFactory;
 pub use edge_security_runtime::SecurityContext;

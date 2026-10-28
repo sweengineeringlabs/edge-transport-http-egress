@@ -16,7 +16,7 @@ use swe_observ_metrics::MetricsProvider;
 
 use crate::api::{
     ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError, HttpStream,
-    HttpTransportSvc,
+    HttpTransportSvc, ValidatableHttpConfig,
 };
 use crate::core::{DefaultHttpEgress, MetricsHttpEgress};
 
@@ -99,10 +99,12 @@ impl HttpTransportSvc {
     pub fn validate_http_config(config: &HttpConfig) -> Result<(), String> {
         use crate::api::ValidateRequest;
         use crate::api::Validator as _;
-        use crate::core::validator::{DefaultValidator, HttpConfigValidator};
-        DefaultValidator::new(HttpConfigValidator::new(config))
-            .validate(ValidateRequest)
-            .map_err(|e| e.to_string())
+        use crate::core::validator::DefaultValidator;
+        DefaultValidator::new(ValidatableHttpConfig {
+            config: config.clone(),
+        })
+        .validate(ValidateRequest)
+        .map_err(|e| e.to_string())
     }
 
     /// Validate any value that implements the `Validator` trait.

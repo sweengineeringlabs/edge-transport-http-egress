@@ -56,41 +56,39 @@ impl BodyScrubber {
         };
         let mut current = value;
         for seg in segments {
-            match current {
-                serde_json::Value::Object(map) => match map.get_mut(seg) {
-                    Some(next) => current = next,
-                    None => return, // path doesn't exist, no-op
-                },
-                serde_json::Value::Array(arr) => {
-                    // Array descent: segment must parse as usize and
-                    // be in bounds. Non-numeric or OOB → bail.
-                    let idx: usize = match seg.parse() {
-                        Ok(i) => i,
-                        Err(_) => return,
-                    };
-                    match arr.get_mut(idx) {
-                        Some(next) => current = next,
-                        None => return,
-                    }
-                }
-                _ => return, // scalar mid-path, bail
-            }
+            let Some(next) = Self::descend(current, seg) else {
+                return;
+            };
+            current = next;
         }
         match current {
             serde_json::Value::Object(map) => {
                 map.remove(terminal);
             }
-            serde_json::Value::Array(arr) => {
+            serde_json::Value::Array(array) => match terminal.parse::<usize>() {
                 // Terminal array removal: numeric in-bounds removes
                 // the element (array shrinks). Anything else is a
                 // no-op.
-                if let Ok(idx) = terminal.parse::<usize>() {
-                    if idx < arr.len() {
-                        arr.remove(idx);
-                    }
+                Ok(index) if index < array.len() => {
+                    array.remove(index);
                 }
-            }
+                _ => {}
+            },
             _ => {}
+        }
+    }
+
+    fn descend<'a>(
+        value: &'a mut serde_json::Value,
+        segment: &str,
+    ) -> Option<&'a mut serde_json::Value> {
+        match value {
+            serde_json::Value::Object(map) => map.get_mut(segment),
+            serde_json::Value::Array(array) => segment
+                .parse::<usize>()
+                .ok()
+                .and_then(|index| array.get_mut(index)),
+            _ => None,
         }
     }
 }
@@ -125,6 +123,26 @@ mod tests {
         let outer = v.get("outer").unwrap();
         assert!(outer.get("inner").is_none(), "nested key must be removed");
         assert_eq!(outer.get("keep").and_then(|x| x.as_str()), Some("yes"));
+    }
+
+    /// @covers: remove_path
+    #[test]
+    fn test_remove_path_descends_array_and_removes_nested_key() {
+        let mut value = serde_json::json!({"items": [{"secret": "x", "keep": "y"}]});
+        BodyScrubber::remove_path(&mut value, "items.0.secret");
+
+        let item = &value["items"][0];
+        assert!(item.get("secret").is_none());
+        assert_eq!(item.get("keep").and_then(|entry| entry.as_str()), Some("y"));
+    }
+
+    /// @covers: remove_path
+    #[test]
+    fn test_remove_path_removes_array_element() {
+        let mut value = serde_json::json!({"items": ["first", "remove", "last"]});
+        BodyScrubber::remove_path(&mut value, "items.1");
+
+        assert_eq!(value["items"], serde_json::json!(["first", "last"]));
     }
 
     /// @covers: remove_path

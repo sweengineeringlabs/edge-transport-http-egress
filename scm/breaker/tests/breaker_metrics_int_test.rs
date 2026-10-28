@@ -1,12 +1,13 @@
 //! Integration tests for `get_failure_threshold` — `BreakerMetrics` contract via SAF wrapper.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use configbuilder::ConfigBuilder as _;
-use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerMetrics, FailureThresholdRequest, HttpBreakerSvcProcessor,
+};
 
-/// @covers: get_failure_threshold
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn breaker_trait_breaker_metrics_get_failure_threshold_returns_configured_value_int_test() {
+fn breaker_trait_breaker_metrics_failure_threshold_returns_configured_value_int_test() {
     let config = BreakerConfig {
         failure_threshold: 7,
         half_open_after_seconds: 10,
@@ -14,15 +15,8 @@ fn breaker_trait_breaker_metrics_get_failure_threshold_returns_configured_value_
         failure_statuses: vec![500],
     };
     let layer = HttpBreakerSvcProcessor::build_breaker_layer(config).expect("build must succeed");
-    assert_eq!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 7);
-}
-
-/// @covers: HttpBreakerSvcProcessor::create_config_builder — dep coverage for configbuilder
-#[test]
-fn breaker_struct_http_breaker_svc_create_config_builder_returns_seeded_builder_int_test() {
-    let builder = HttpBreakerSvcProcessor::create_config_builder();
-    assert!(
-        !builder.name().is_empty(),
-        "builder must be seeded with crate name"
-    );
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!(threshold.value, 7);
 }

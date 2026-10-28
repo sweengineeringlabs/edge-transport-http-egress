@@ -3,32 +3,41 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use configbuilder::ConfigBuilder as _;
+use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, Loader as _};
 use edge_transport_http_egress_breaker::{
-    BreakerConfig, BreakerLayerBreakerMetrics, DescribeRequest, HttpBreakerSvcProcessor,
-    ProcessorFactory,
+    BreakerConfig, BreakerLayerBreakerMetrics, BreakerMetrics, DescribeRequest,
+    FailureThresholdRequest, HttpBreakerSvcProcessor, ProcessorFactory,
 };
 
 // ---------------------------------------------------------------------------
-// create_config_builder / get_failure_threshold / ProcessorFactory::create
+// create_config_builder / BreakerMetrics / ProcessorFactory::create
 // ---------------------------------------------------------------------------
 
 /// @covers: create_config_builder
 #[test]
-fn test_create_config_builder_seeds_crate_name() {
-    let builder = HttpBreakerSvcProcessor::create_config_builder();
-    assert_eq!(builder.name(), "edge-transport-http-egress-breaker");
+fn test_create_config_builder_loads_shipped_application_config_happy() {
+    let config: BreakerConfig = HttpBreakerSvcProcessor::create_config_builder()
+        .with_config_dir(concat!(env!("CARGO_MANIFEST_DIR"), "/config"))
+        .build_loader()
+        .expect("builder must produce a loader")
+        .load_section("breaker")
+        .expect("shipped breaker configuration must load");
+
+    assert_eq!(config.failure_threshold, 5);
+    assert_eq!(config.half_open_after_seconds, 30);
+    assert_eq!(config.reset_after_successes, 3);
+    assert_eq!(config.failure_statuses, vec![500, 502, 503, 504]);
 }
 
-/// @covers: get_failure_threshold
+/// @covers: create_config_builder
 #[test]
-fn test_get_failure_threshold_reads_configured_value() {
-    let cfg = BreakerConfig {
-        failure_threshold: 9,
-        ..BreakerConfig::default()
-    };
-    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build ok");
-    assert_eq!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 9);
+fn test_create_config_builder_rejects_missing_application_config_error() {
+    let loader = HttpBreakerSvcProcessor::create_config_builder()
+        .build_loader()
+        .expect("builder must produce a loader");
+    let result: Result<BreakerConfig, _> = loader.load_section("breaker");
+    let error = result.expect_err("missing configuration must not silently use defaults");
+    assert!(!error.to_string().is_empty());
 }
 
 /// @covers: create
@@ -84,4 +93,17 @@ async fn test_arc_breaker_layer_is_usable_from_another_thread() {
         dbg_on_other_thread.contains("BreakerLayerBreakerMetrics"),
         "Arc-shared layer used on another thread must produce real Debug output: {dbg_on_other_thread}"
     );
+}
+/// @covers: BreakerMetrics::failure_threshold
+#[test]
+fn test_failure_threshold_reads_configured_value() {
+    let cfg = BreakerConfig {
+        failure_threshold: 9,
+        ..BreakerConfig::default()
+    };
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build ok");
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!(threshold.value, 9);
 }

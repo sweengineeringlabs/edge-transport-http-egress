@@ -14,7 +14,6 @@ use edge_transport_retry::{BackoffScheduler, DefaultJitterRng};
 
 use crate::api::RetryConfig;
 use crate::api::RetryLayer;
-use crate::core::error_classifier::RetryErrorClassifier;
 
 impl RetryLayer {
     /// Construct from a resolved config.
@@ -46,6 +45,17 @@ impl RetryLayer {
     /// Is this status eligible for retry per config?
     fn status_retryable(&self, status: reqwest::StatusCode) -> bool {
         self.config.retryable_statuses.contains(&status.as_u16())
+    }
+
+    /// Retry timeouts, connection failures, and request-body failures, but
+    /// never retry middleware/configuration errors or client-side builders.
+    fn is_transient_error(error: &reqwest_middleware::Error) -> bool {
+        match error {
+            reqwest_middleware::Error::Reqwest(inner) => {
+                inner.is_timeout() || inner.is_connect() || inner.is_request()
+            }
+            reqwest_middleware::Error::Middleware(_) => false,
+        }
     }
 }
 
@@ -110,7 +120,7 @@ impl reqwest_middleware::Middleware for RetryLayer {
 
             let retry = match &result {
                 Ok(resp) => self.status_retryable(resp.status()),
-                Err(e) => RetryErrorClassifier::is_transient(e),
+                Err(error) => Self::is_transient_error(error),
             };
 
             // Last attempt or non-retryable — return immediately.
@@ -258,6 +268,26 @@ mod tests {
     fn test_should_not_retry_transport_error_when_not_transient() {
         let l = RetryLayer::new(test_config());
         assert!(!l.should_retry(&Err(false)));
+    }
+
+    /// @covers: is_transient_error
+    #[test]
+    fn test_is_transient_error_rejects_middleware_errors() {
+        let error = reqwest_middleware::Error::middleware(std::io::Error::other("config error"));
+        assert!(!RetryLayer::is_transient_error(&error));
+    }
+
+    /// @covers: is_transient_error
+    #[tokio::test]
+    async fn test_is_transient_error_accepts_connection_failures() {
+        let error = reqwest::Client::new()
+            .get("http://127.0.0.1:0/")
+            .send()
+            .await
+            .expect_err("port zero must not have a listening HTTP service");
+        assert!(error.is_connect() || error.is_timeout());
+        let error: reqwest_middleware::Error = error.into();
+        assert!(RetryLayer::is_transient_error(&error));
     }
 
     /// @covers: handle

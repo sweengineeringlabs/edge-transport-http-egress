@@ -1,4 +1,4 @@
-//! `DefaultResilientLayers::preflight` — dry-run visibility into which of
+//! `DefaultResilientLayerComposer::preflight` — dry-run visibility into which of
 //! the five composed concerns would activate, without building any of
 //! them. Moved here from `transport`'s `saf/transport_svc.rs::preflight`,
 //! since it inspects each concern's own config type directly (the same
@@ -10,9 +10,9 @@ use configbuilder::{
     ConfigError, FeatureRegistry, FeatureRegistryOps as _, FeatureSummary, SectionLoaderImpl,
 };
 
-use crate::core::DefaultResilientLayers;
+use crate::core::DefaultResilientLayerComposer;
 
-impl DefaultResilientLayers {
+impl DefaultResilientLayerComposer {
     /// Load every optional `[section]` this crate composes into a
     /// [`FeatureRegistry`] and return a [`FeatureSummary`] of what would
     /// activate — without building any middleware. Log this at startup so

@@ -33,3 +33,12 @@ fn test_http_config_struct_default_max_response_bytes_is_ten_mib() {
         Some(10 * 1024 * 1024)
     );
 }
+
+#[test]
+fn test_http_config_rejects_unsupported_retry_setting() {
+    let result = serde_json::from_str::<HttpConfig>(r#"{"max_retries": 3}"#);
+    assert!(
+        result.is_err(),
+        "transport must reject the removed no-op retry setting"
+    );
+}

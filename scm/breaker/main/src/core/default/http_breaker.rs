@@ -6,8 +6,8 @@
 //! matching the `Processor` contract declared in `api/`.
 
 use crate::api::{
-    BreakerConfig, BreakerError, BreakerLayerBreakerMetrics, BreakerMetrics, DescribeRequest,
-    DescribeResponse, FailureThresholdRequest, HttpBreakerSvcProcessor, Processor,
+    BreakerConfig, BreakerError, BreakerLayerBreakerMetrics, DescribeRequest, DescribeResponse,
+    HttpBreakerSvcProcessor, Processor,
 };
 use configbuilder::ConfigBuilder;
 
@@ -20,19 +20,6 @@ impl Processor for HttpBreakerSvcProcessor {
 }
 
 impl HttpBreakerSvcProcessor {
-    /// Returns the failure threshold configured on a [`BreakerLayerBreakerMetrics`].
-    #[expect(
-        clippy::expect_used,
-        reason = "BreakerLayerBreakerMetrics's BreakerMetrics impl never returns Err — the Result \
-                  shape is a structural api/ contract requirement, not a real failure mode"
-    )]
-    pub fn get_failure_threshold(layer: &BreakerLayerBreakerMetrics) -> u32 {
-        layer
-            .failure_threshold(FailureThresholdRequest)
-            .expect("BreakerLayerBreakerMetrics::failure_threshold is infallible")
-            .value
-    }
-
     /// Return a config builder pre-seeded with this crate's name and version.
     pub fn create_config_builder() -> configbuilder::ConfigBuilderImpl {
         let mut b = configbuilder::ConfigLoaderFactory::create_config_builder();
@@ -53,6 +40,7 @@ impl HttpBreakerSvcProcessor {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::{BreakerMetrics, FailureThresholdRequest};
 
     /// @covers: describe
     #[test]
@@ -63,22 +51,26 @@ mod tests {
         assert_eq!(resp.value, "http-breaker");
     }
 
-    /// @covers: get_failure_threshold
+    /// @covers: create_config_builder
     #[test]
-    fn test_get_failure_threshold_reads_configured_value_inline() {
+    fn test_create_config_builder_seeds_name_and_version_inline() {
+        let builder = HttpBreakerSvcProcessor::create_config_builder();
+        assert_eq!(builder.name(), env!("CARGO_PKG_NAME"));
+        assert_eq!(builder.version(), env!("CARGO_PKG_VERSION"));
+    }
+
+    /// @covers: build_breaker_layer
+    #[test]
+    fn test_failure_threshold_reads_configured_value_inline() {
         let cfg = BreakerConfig {
             failure_threshold: 9,
             ..BreakerConfig::default()
         };
         let layer = HttpBreakerSvcProcessor::build_breaker_layer(cfg).expect("build ok");
-        assert_eq!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 9);
-    }
-
-    /// @covers: create_config_builder
-    #[test]
-    fn test_create_config_builder_seeds_crate_name_inline() {
-        let builder = HttpBreakerSvcProcessor::create_config_builder();
-        assert_eq!(builder.name(), env!("CARGO_PKG_NAME"));
+        let threshold = layer
+            .failure_threshold(FailureThresholdRequest)
+            .expect("reading the configured threshold must succeed");
+        assert_eq!(threshold.value, 9);
     }
 
     /// @covers: build_breaker_layer

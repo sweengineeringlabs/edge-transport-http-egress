@@ -1,5 +1,5 @@
-//! `DefaultResilientLayers` — the real implementation of
-//! [`edge_transport_http_egress_resilient_port::ResilientLayers`].
+//! `DefaultResilientLayerComposer` — the real implementation of
+//! [`edge_transport_http_egress_resilient_port::ResilientLayerComposer`].
 //!
 //! Lifted from `transport`'s `saf/transport_svc.rs` (`with_optional_layers`/
 //! `build_default_egress`), unchanged internally — same config-section-driven
@@ -10,21 +10,21 @@ use configbuilder::{FeatureState, OptionalSection as _};
 use reqwest_middleware::ClientBuilder;
 
 use edge_transport_http_egress_resilient_port::{
-    ApplyDefaultsRequest, ApplyFromConfigRequest, ResilientError, ResilientLayers,
+    ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
 };
 
-/// The only implementor of [`ResilientLayers`] — a zero-field marker type,
+/// The only implementor of [`ResilientLayerComposer`] — a zero-field marker type,
 /// matching the `HttpRetrySvc`/`HttpBreakerSvcProcessor`-style unit-struct
 /// convention already used by every layer crate this composes.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultResilientLayers;
+pub struct DefaultResilientLayerComposer;
 
-impl ResilientLayers for DefaultResilientLayers {
+impl ResilientLayerComposer for DefaultResilientLayerComposer {
     fn apply_from_config(
         &self,
-        request: ApplyFromConfigRequest<'_>,
+        request: ResilientConfigRequest<'_>,
     ) -> Result<ClientBuilder, ResilientError> {
-        let ApplyFromConfigRequest {
+        let ResilientConfigRequest {
             mut builder,
             loader,
         } = request;
@@ -94,9 +94,9 @@ impl ResilientLayers for DefaultResilientLayers {
 
     fn apply_defaults(
         &self,
-        request: ApplyDefaultsRequest,
+        request: ResilientDefaultsRequest,
     ) -> Result<ClientBuilder, ResilientError> {
-        let ApplyDefaultsRequest {
+        let ResilientDefaultsRequest {
             mut builder,
             cassette,
             cassette_name,

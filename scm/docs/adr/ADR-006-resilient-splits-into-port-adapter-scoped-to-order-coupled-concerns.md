@@ -145,7 +145,7 @@ combining functions "can't stay in `transport`."
 **They stayed.** `default_http_egress()`, `default_http_egress_with_config()`,
 `http_egress_from_config*`, and `plain_http_egress_with_oauth` remain in
 `transport/main/src/saf/transport_svc.rs`, now delegating their retry/rate/breaker/cache/cassette
-assembly to `resilient::DefaultResilientLayers` but still owning the final `DefaultHttpEgress` wrap.
+assembly to `resilient::DefaultResilientLayerComposer` but still owning the final `DefaultHttpEgress` wrap.
 Consequently `transport`'s construction surface is `plain_http_egress` **plus** those convenience
 constructors — not `plain_http_egress` alone. The ADR-005 mandate that `transport` gain zero
 knowledge of the composed concerns is satisfied at the Cargo/feature level (no retry/rate/breaker/

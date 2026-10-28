@@ -39,10 +39,7 @@ moka = { version = "0.12", features = ["future"] }
 tracing = { version = "0.1", default-features = false, optional = true }
 
 [dev-dependencies]
-reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
-moka = { version = "0.12", features = ["future"] }
-configbuilder = "0.8"
 
 [features]
 default = []
