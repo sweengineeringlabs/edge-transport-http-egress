@@ -8,7 +8,7 @@ SCM_DIR="$REPO_ROOT/scm"
 echo "pre-commit ── $(basename $REPO_ROOT) ──"
 cd "$SCM_DIR"
 
-PACKAGES="edge-transport-http-egress-cache edge-transport-http-egress-rate edge-transport-http-egress-retry \
+PACKAGES="edge-transport-http-egress-cache edge-transport-http-egress-rate-api edge-transport-http-egress-rate-std edge-transport-http-egress-retry \
           edge-transport-http-egress-breaker-api edge-transport-http-egress-breaker-std edge-transport-http-egress-cassette \
           edge-transport-http-egress-resilient edge-transport-http-egress-resilient-port \
           edge-transport-http-egress-transport"
@@ -47,7 +47,10 @@ echo "  3/4 arch audit..."
 KNOWN_TOOL_ERRORS="test_coverage_threshold test_mutation_score"  # handlers not registered in arch 0.3.56
 baseline_for() {
   case "$1" in
-    cache|rate|cassette) echo "config_file_to_builder_naming" ;;
+    cache|cassette) echo "config_file_to_builder_naming" ;;
+    # rate-api / rate-std: the same conflicts and pre-existing finding as breaker-api / breaker-std below.
+    rate-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names config_file_to_builder_naming" ;;
+    rate-std) echo "pub_types_in_api_only api_layer_mirrors_core_domains port_no_adapter_dep" ;;
     # -api: config_methods_pub_crate, package_name_no_sea_suffix and boundary_no_antipattern_names conflict
     #   with issue #30 (the package must be named -api and BreakerConfig::from_config must stay public);
     #   config_file_to_builder_naming is the configbuilder 0.8 OptionalSection gap described above.
@@ -63,7 +66,7 @@ baseline_for() {
     *) echo "" ;;
   esac
 }
-for pkg_dir in cache rate retry breaker-api breaker-std cassette resilient resilient-port transport; do
+for pkg_dir in cache rate-api rate-std retry breaker-api breaker-std cassette resilient resilient-port transport; do
   AUDIT_OUTPUT="$(cd "$SCM_DIR/$pkg_dir" && arch audit --rs 2>&1)" && AUDIT_STATUS=0 || AUDIT_STATUS=$?
   echo "$AUDIT_OUTPUT"
   if [ "$AUDIT_STATUS" -ne 0 ]; then

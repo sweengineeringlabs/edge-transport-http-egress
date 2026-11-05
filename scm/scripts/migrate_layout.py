@@ -239,13 +239,23 @@ def rewrite_test(text: str, mapping: dict, extra: dict, name: str = "") -> tuple
         return "\n".join(out)
 
     text = pat.sub(fix_import, text)
+    # value-position uses of a now-private unit struct (comment lines are left alone)
+    rules = [(re.compile(a), b) for a, b in mapping.get("line_rules", [])]
+    lines = text.split("\n")
+    for i, line in enumerate(lines):
+        if line.lstrip().startswith("//"):
+            continue
+        for rx, repl in rules:
+            line = rx.sub(repl, line)
+        lines[i] = line
+    text = "\n".join(lines)
     # fully qualified uses of the old crate
     for name in std_names:
         text = text.replace(f"{extra['old_lib']}::{name}", f"{extra['std_lib']}::{name}")
     text = text.replace(f"{extra['old_lib']}::", f"{extra['api_lib']}::")
     side = mapping.get("test_side", {}).get(name) or ("std" if extra["std_lib"] in text else "api")
     # the arch rule test_fn_prefixes wants the first segment to be the package's role, not the old theme
-    text = re.sub(rf"fn {re.escape(extra['theme'])}_((?:enum|struct|type|trait)_)", rf"fn {side}_", text)
+    text = re.sub(rf"\bfn {re.escape(extra['theme'])}_((?:enum|struct|type|trait)_)", rf"fn {side}_\1", text)
     return text, side
 
 
@@ -284,6 +294,38 @@ def apply_plan(theme: str, mapping: dict, plan: Plan, extra: dict) -> None:
             if old_text not in text:
                 fail(f"text rule for {rel}: {old_text!r} not found")
             text = text.replace(old_text, new_text)
+        target.write_text(text, encoding="utf-8")
+    # per-file regex rules, in order (renames of private types, import rewrites)
+    for rel, rules in mapping.get("regex_rules", {}).items():
+        target = (api_dir if rel.startswith("api/") else std_dir) / rel.split("/", 1)[1]
+        text = target.read_text(encoding="utf-8")
+        for pattern, repl in rules:
+            new_text, count = re.subn(pattern, repl, text)
+            if count == 0:
+                fail(f"regex rule for {rel}: {pattern!r} matched nothing")
+            text = new_text
+        target.write_text(text, encoding="utf-8")
+    # the config builder keeps the pre-split application name: configbuilder joins it onto its config
+    # search directories, so seeding the -std package name would move where configuration is found
+    spec = mapping.get("config_application_name")
+    if spec:
+        target = std_dir / spec["file"]
+        text = target.read_text(encoding="utf-8")
+        doc = (
+            "    /// The application name the config builder is seeded with. configbuilder uses it as a directory\n"
+            "    /// segment when it searches for configuration, so it stays the name of the package this\n"
+            "    /// middleware had before the `-api`/`-std` split; seeding the `-std` package name would change\n"
+            "    /// where existing deployments' configuration is found.\n"
+            f"    const CONFIG_APPLICATION_NAME: &'static str = \"{spec['name']}\";\n\n"
+        )
+        for old_text, new_text in (
+            (spec["impl"], spec["impl"] + doc),
+            ('b = b.with_name(env!("CARGO_PKG_NAME"));', "b = b.with_name(Self::CONFIG_APPLICATION_NAME);"),
+            ('assert_eq!(builder.name(), env!("CARGO_PKG_NAME"));', f'assert_eq!(builder.name(), "{spec["name"]}");'),
+        ):
+            if old_text not in text:
+                fail(f"config_application_name: {old_text!r} not found in {target}")
+            text = text.replace(old_text, new_text, 1)
         target.write_text(text, encoding="utf-8")
     # 5. templates and copies
     for src, dest in plan.copies:

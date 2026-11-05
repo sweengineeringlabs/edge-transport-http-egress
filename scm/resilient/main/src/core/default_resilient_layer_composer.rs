@@ -46,12 +46,15 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             );
         }
         if let FeatureState::Enabled(rate_cfg) =
-            edge_transport_http_egress_rate::RateConfig::load_optional(loader)
+            edge_transport_http_egress_rate_api::RateConfig::load_optional(loader)
                 .map_err(|e| ResilientError::Config(e.to_string()))?
         {
-            builder = builder.with(
-                edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(rate_cfg)
-                    .map_err(|e| ResilientError::Rate(e.to_string()))?,
+            builder = builder.with_arc(
+                edge_transport_http_egress_rate_api::RateFactory::build_rate_layer(
+                    &edge_transport_http_egress_rate_std::StdRateFactory,
+                    rate_cfg,
+                )
+                .map_err(|e| ResilientError::Rate(e.to_string()))?,
             );
         }
         if let FeatureState::Enabled(breaker_cfg) =
@@ -114,8 +117,9 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             }
             .layer,
         );
-        builder = builder.with(
-            edge_transport_http_egress_rate::HttpRateSvcProcessor::build_rate_layer(
+        builder = builder.with_arc(
+            edge_transport_http_egress_rate_api::RateFactory::build_rate_layer(
+                &edge_transport_http_egress_rate_std::StdRateFactory,
                 Default::default(),
             )
             .map_err(|e| ResilientError::Rate(e.to_string()))?,

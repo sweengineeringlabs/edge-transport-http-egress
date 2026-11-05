@@ -1,0 +1,50 @@
+[package]
+name = "edge-transport-http-egress-rate-std"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Standard rate-limit middleware: a per-host token-bucket limiter for reqwest-middleware clients"
+keywords = ["http", "rate-limit", "reqwest", "middleware", "swe"]
+categories = ["web-programming::http-client"]
+
+[package.metadata.struct-engine]
+application_type = "lib"
+service_type = "processor"
+
+[package.metadata.arch]
+application_type = "lib"
+service_type = "processor"
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+edge-transport-http-egress-rate-api = { path = "../rate-api" }
+reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+http = "1"
+configbuilder = "0.8"
+async-trait = "0.1"
+tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
+moka = { version = "0.12", features = ["future"] }
+# Declared before the split and read by no code; kept so a consumer that enables it still resolves.
+tracing = { version = "0.1", default-features = false, optional = true }
+
+[dev-dependencies]
+tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
+
+[features]
+default = []
+# Inert: no code is gated on it (kept for consumers that enable it).
+tracing = ["dep:tracing"]
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"

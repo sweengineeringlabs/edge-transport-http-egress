@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BreakerConfig` keeps its schema, `Default`, `from_config`, section registration and conversion to the shared policy config; they now live in the contract package.
 - Migration: replace `HttpBreakerSvcProcessor::build_breaker_layer(cfg)` with `StdBreakerFactory.build_breaker_layer(cfg)` (import `BreakerFactory`), `ProcessorFactory::create()` with `StdBreakerFactory.create_processor()`, `ValidatorFactory::create()` with `StdBreakerFactory.create_validator()`, and drop `BreakerMetricsFactory::from_layer(layer)` (the layer is already a `BreakerMetrics`).
 
+### Fixed
+
+- `StdBreakerFactory::create_config_builder` seeds the config builder with the application name `edge-transport-http-egress-breaker`, the name of the pre-split package, not the `-std` package name. configbuilder uses the name as a directory segment when it searches for configuration, so the first split commit (which seeded `edge-transport-http-egress-breaker-std`) would have moved where existing deployments' configuration is found.
+
 ### Added
 
 - Tests for `BreakerConfig`'s conversion into the policy config and for every `StdBreakerFactory` construction path, and an example that parses a breaker configuration.
