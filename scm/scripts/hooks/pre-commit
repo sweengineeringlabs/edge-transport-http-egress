@@ -29,8 +29,56 @@ done
 echo "  3/4 arch audit..."
 # arch audit operates on the current directory, so each member is audited
 # from its own crate root — same reasoning as the clippy loop above.
+#
+# Baseline ratchet (issue #20). With arch 0.3.56 every member has findings that
+# predate this gate (recorded 2026-11-05; none was introduced by the change that
+# recorded it). The gate blocks any [FAIL] rule that is NOT in the member's
+# baseline, and any [ERROR] other than the two known tool-internal ones, so a
+# new violation of a rule the member does not already fail still stops the
+# commit. Limits: a baselined rule is accepted member-wide, so a second offender
+# of an already-failing rule is not caught; and the baseline is a record, not an
+# endorsement — burn it down under #20, deleting entries as they are fixed.
+#   - config_file_to_builder_naming: config/application.toml has no
+#     <Name>ConfigBuilder because the configbuilder 0.8 migration replaced the
+#     hand-written builders with the OptionalSection contract, which this arch
+#     build does not recognise.
+#   - the remaining entries are SEA layout/contract findings in members that
+#     predate the rule set and are unfixed.
+KNOWN_TOOL_ERRORS="test_coverage_threshold test_mutation_score"  # handlers not registered in arch 0.3.56
+baseline_for() {
+  case "$1" in
+    cache|rate|breaker|cassette) echo "config_file_to_builder_naming" ;;
+    retry) echo "service_type_has_validator api_traits_require_connectivity port_no_adapter_dep deps_have_integration_tests" ;;
+    resilient) echo "pub_types_in_api_only port_no_adapter_dep examples_dir_lib security_dependency_audit_configured deps_have_integration_tests sea_layer_test_coverage" ;;
+    resilient-port) echo "service_type_has_validator no_foreign_type api_response_type_named core_implements_api_traits port_no_adapter_dep saf_trait_svc_correspondence examples_dir_lib security_dependency_audit_configured saf_file_organization_matches_api test_fn_prefixes api_impl_public_tests_external" ;;
+    transport) echo "service_type_has_validator no_orphan_types field_type_purity api_no_inherent_impl trait_must_be_object_safe api_method_returns_result api_traits_require_connectivity port_no_adapter_dep saf_trait_svc_correspondence saf_file_organization_matches_api api_impl_public_tests_external sea_layer_test_coverage" ;;
+    *) echo "" ;;
+  esac
+}
 for pkg_dir in cache rate retry breaker cassette resilient resilient-port transport; do
-  (cd "$SCM_DIR/$pkg_dir" && arch audit --rs)
+  AUDIT_OUTPUT="$(cd "$SCM_DIR/$pkg_dir" && arch audit --rs 2>&1)" && AUDIT_STATUS=0 || AUDIT_STATUS=$?
+  echo "$AUDIT_OUTPUT"
+  if [ "$AUDIT_STATUS" -ne 0 ]; then
+    BASELINE="$(baseline_for "$pkg_dir")"
+    FAILED_RULES="$(echo "$AUDIT_OUTPUT" | sed -n -E 's/^[[:space:]]*\[FAIL\] ([A-Za-z0-9_]+):.*/\1/p')"
+    ERRORED_RULES="$(echo "$AUDIT_OUTPUT" | sed -n -E 's/^[[:space:]]*\[ERROR\] ([A-Za-z0-9_]+):.*/\1/p')"
+    if [ -z "$FAILED_RULES$ERRORED_RULES" ]; then
+      echo "arch audit failed in $pkg_dir with no [FAIL]/[ERROR] lines — see above."
+      exit "$AUDIT_STATUS"
+    fi
+    UNEXPECTED=""
+    for RULE in $FAILED_RULES; do
+      case " $BASELINE " in *" $RULE "*) ;; *) UNEXPECTED="$UNEXPECTED $RULE" ;; esac
+    done
+    for RULE in $ERRORED_RULES; do
+      case " $KNOWN_TOOL_ERRORS " in *" $RULE "*) ;; *) UNEXPECTED="$UNEXPECTED $RULE(error)" ;; esac
+    done
+    if [ -n "$UNEXPECTED" ]; then
+      echo "arch audit: new findings in $pkg_dir, not in the baseline:$UNEXPECTED — see above."
+      exit "$AUDIT_STATUS"
+    fi
+    echo "  ($pkg_dir: baselined findings only — not blocking)"
+  fi
 done
 
 echo "  4/4 cargo audit..."
