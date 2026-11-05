@@ -1,0 +1,54 @@
+[package]
+name = "edge-transport-http-egress-retry-std"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Standard retry middleware: idempotent-method exponential backoff for reqwest-middleware clients"
+keywords = ["http", "retry", "reqwest", "middleware", "swe"]
+categories = ["web-programming::http-client"]
+
+[package.metadata.struct-engine]
+application_type = "lib"
+service_type = "processor"
+
+[package.metadata.arch]
+application_type = "lib"
+service_type = "processor"
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+edge-transport-http-egress-retry-api = { path = "../retry-api" }
+edge-transport-retry        = { git = "https://github.com/sweengineeringlabs/edge-transport-retry.git", tag = "v0.1.0" }
+reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+http = "1"
+async-trait = "0.1"
+tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
+# Declared before the split and read by no code; kept so a consumer that enables it still resolves.
+tracing = { version = "0.1", default-features = false, optional = true }
+
+[dev-dependencies]
+configbuilder = "0.8"
+tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
+bytes               = "1"
+hyper               = { version = "1", features = ["http1", "server"] }
+hyper-util          = { version = "0.1", features = ["tokio"] }
+http-body-util      = "0.1"
+
+[features]
+default = []
+# Inert: no code is gated on it (kept for consumers that enable it).
+tracing = ["dep:tracing"]
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
