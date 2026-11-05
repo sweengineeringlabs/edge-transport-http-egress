@@ -4,8 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
 ### Changed
 
+- Fetch `swe-observability-metrics` (v0.2.11) over HTTPS instead of SSH, so consumers and CI without an SSH key can resolve the dependency graph.
 - Updated `edge-security-runtime` from tag `v0.3.22` to `v0.3.41`, matching the security release used by `edge-application` and avoiding two resolved versions of the shared `SecurityContext` types.
 - Removed identical test-dependency declarations already provided by the production dependency table; retained test-only dependencies and websocket test support.
 - `HttpConfig` now rejects unknown fields, preventing configuration values with no transport behavior from being silently accepted.
