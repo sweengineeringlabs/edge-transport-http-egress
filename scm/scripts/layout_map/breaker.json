@@ -84,7 +84,7 @@
     ],
     [
       "BreakerMetricsFactory::from_layer\\((\\w+)\\)",
-      "\u0001"
+      "\\1"
     ],
     [
       ": BreakerLayerBreakerMetrics\\b",
@@ -96,7 +96,7 @@
     ],
     [
       "\\.with\\((\\w*layer\\w*)\\)",
-      ".with_arc(\u0001)"
+      ".with_arc(\\1)"
     ]
   ],
   "delete": [
@@ -110,5 +110,11 @@
   ],
   "test_side": {
     "shared_breaker_dependencies_int_test.rs": "std"
-  }
+  },
+  "line_rules": [
+    [
+      "\\bHttpBreakerSvcProcessor\\b(?!::)",
+      "StdBreakerFactory.create_processor()"
+    ]
+  ]
 }
