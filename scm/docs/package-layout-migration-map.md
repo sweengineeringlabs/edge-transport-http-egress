@@ -165,3 +165,20 @@ Transport's `HttpEgress` trait itself uses local request/response types, but `Ht
 - Classify every dependency as API, standard implementation, or provider-specific using its actual role and feature use.
 - Verify any consumers not covered by the `edge-application`, `edge-security`, or `edge-llm-a2a` checks, especially after package naming changes.
 - Record the final file/factory/test/example move map before applying the migration script.
+
+## Migration Progress and Decisions (issue #30)
+
+Packages are migrated one at a time with `scm/scripts/migrate_layout.py <theme>` (read-only plan by default, `--apply` to execute) from a reviewed mapping in `scm/scripts/layout_map/<theme>.json` plus a template tree. Each package is verified (tests, clippy, rustdoc, audit) and merged to `dev` before the next; nothing is tagged or promoted to `main` until the last package lands.
+
+Decisions that apply to every package:
+
+- **Concrete implementation types become crate-private.** Consumers get a factory trait and, where a middleware layer is returned, an object-safe layer trait in the `-api` package. This is a breaking change, documented in each package changelog.
+- **`reqwest_middleware::Middleware` is allowed in an `-api` package** as a supertrait of the layer trait. It is a trait, not an implementation; the composition root attaches layers through it. No `reqwest-middleware` implementation type is used in an `-api` package.
+- **Config schema, `Default`, TOML parsing, section registration and conversions stay in `-api`**, because an inherent or trait impl must live in the crate that defines the type. `toml` and `configbuilder` are therefore `-api` dependencies.
+- **Edit-by-hand residue is reviewed in the same commit** as the generated move; the script does not guess.
+- **Pre-existing finding, not fixed here:** the `tracing` Cargo feature of each middleware package gates no code. It is kept (as an inert feature) in `-std` so existing consumers still resolve.
+
+| Package | Status |
+|---|---|
+| breaker | Split into `breaker-api` and `breaker-std`; `resilient` updated. |
+| cache, rate, retry, cassette, transport, resilient-port, resilient | Not started. |

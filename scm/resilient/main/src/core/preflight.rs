@@ -27,7 +27,7 @@ impl DefaultResilientLayerComposer {
         let mut registry = FeatureRegistry::new();
         registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
         registry.load::<edge_transport_http_egress_rate::RateConfig>(loader)?;
-        registry.load::<edge_transport_http_egress_breaker::BreakerConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_breaker_api::BreakerConfig>(loader)?;
         registry.load::<edge_transport_http_egress_cache::CacheConfig>(loader)?;
         registry.load::<edge_transport_http_egress_cassette::CassetteConfig>(loader)?;
         Ok(registry.summary())
