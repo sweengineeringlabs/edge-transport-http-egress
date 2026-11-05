@@ -28,7 +28,7 @@ impl DefaultResilientLayerComposer {
         registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
         registry.load::<edge_transport_http_egress_rate_api::RateConfig>(loader)?;
         registry.load::<edge_transport_http_egress_breaker_api::BreakerConfig>(loader)?;
-        registry.load::<edge_transport_http_egress_cache::CacheConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_cache_api::CacheConfig>(loader)?;
         registry.load::<edge_transport_http_egress_cassette::CassetteConfig>(loader)?;
         Ok(registry.summary())
     }

@@ -214,7 +214,7 @@ def split_names(group: str) -> list[str]:
     return [n.strip() for n in group.replace("\n", " ").split(",") if n.strip()]
 
 
-def rewrite_test(text: str, mapping: dict, extra: dict, name: str = "") -> tuple[str, str]:
+def rewrite_test(text: str, mapping: dict, extra: dict, filename: str = "") -> tuple[str, str]:
     """Rewrite one test file; return (new text, 'api' or 'std')."""
     std_names = set(mapping["std_names"])
     drop_names = set(mapping.get("drop_names", []))
@@ -253,7 +253,7 @@ def rewrite_test(text: str, mapping: dict, extra: dict, name: str = "") -> tuple
     for name in std_names:
         text = text.replace(f"{extra['old_lib']}::{name}", f"{extra['std_lib']}::{name}")
     text = text.replace(f"{extra['old_lib']}::", f"{extra['api_lib']}::")
-    side = mapping.get("test_side", {}).get(name) or ("std" if extra["std_lib"] in text else "api")
+    side = mapping.get("test_side", {}).get(filename) or ("std" if extra["std_lib"] in text else "api")
     # the arch rule test_fn_prefixes wants the first segment to be the package's role, not the old theme
     text = re.sub(rf"\bfn {re.escape(extra['theme'])}_((?:enum|struct|type|trait)_)", rf"fn {side}_\1", text)
     return text, side

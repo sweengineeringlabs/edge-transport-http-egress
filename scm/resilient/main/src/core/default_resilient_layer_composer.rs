@@ -70,11 +70,12 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             );
         }
         if let FeatureState::Enabled(cache_cfg) =
-            edge_transport_http_egress_cache::CacheConfig::load_optional(loader)
+            edge_transport_http_egress_cache_api::CacheConfig::load_optional(loader)
                 .map_err(|e| ResilientError::Config(e.to_string()))?
         {
-            builder = builder.with(
-                edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
+            builder = builder.with_arc(
+                edge_transport_http_egress_cache_api::CacheFactory::build_cache_layer(
+                    &edge_transport_http_egress_cache_std::StdCacheFactory,
                     cache_cfg,
                 )
                 .map_err(|e| ResilientError::Cache(e.to_string()))?,
@@ -131,8 +132,9 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             )
             .map_err(|e| ResilientError::Breaker(e.to_string()))?,
         );
-        builder = builder.with(
-            edge_transport_http_egress_cache::HttpCacheSvcProcessor::build_cache_layer(
+        builder = builder.with_arc(
+            edge_transport_http_egress_cache_api::CacheFactory::build_cache_layer(
+                &edge_transport_http_egress_cache_std::StdCacheFactory,
                 Default::default(),
             )
             .map_err(|e| ResilientError::Cache(e.to_string()))?,
