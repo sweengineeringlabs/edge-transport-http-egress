@@ -22,7 +22,8 @@ service_type = "adapter"
 path = "main/src/lib.rs"
 
 [dependencies]
-edge-transport-http-egress-breaker = { path = "../breaker" }
+edge-transport-http-egress-breaker-api = { path = "../breaker-api" }
+edge-transport-http-egress-breaker-std = { path = "../breaker-std" }
 edge-transport-http-egress-cache = { path = "../cache" }
 edge-transport-http-egress-cassette = { path = "../cassette" }
 edge-transport-http-egress-rate = { path = "../rate" }

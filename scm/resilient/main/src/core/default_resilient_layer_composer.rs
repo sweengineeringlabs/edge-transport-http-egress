@@ -55,11 +55,12 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             );
         }
         if let FeatureState::Enabled(breaker_cfg) =
-            edge_transport_http_egress_breaker::BreakerConfig::load_optional(loader)
+            edge_transport_http_egress_breaker_api::BreakerConfig::load_optional(loader)
                 .map_err(|e| ResilientError::Config(e.to_string()))?
         {
-            builder = builder.with(
-                edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
+            builder = builder.with_arc(
+                edge_transport_http_egress_breaker_api::BreakerFactory::build_breaker_layer(
+                    &edge_transport_http_egress_breaker_std::StdBreakerFactory,
                     breaker_cfg,
                 )
                 .map_err(|e| ResilientError::Breaker(e.to_string()))?,
@@ -119,8 +120,9 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             )
             .map_err(|e| ResilientError::Rate(e.to_string()))?,
         );
-        builder = builder.with(
-            edge_transport_http_egress_breaker::HttpBreakerSvcProcessor::build_breaker_layer(
+        builder = builder.with_arc(
+            edge_transport_http_egress_breaker_api::BreakerFactory::build_breaker_layer(
+                &edge_transport_http_egress_breaker_std::StdBreakerFactory,
                 Default::default(),
             )
             .map_err(|e| ResilientError::Breaker(e.to_string()))?,
