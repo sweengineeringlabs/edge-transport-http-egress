@@ -2,16 +2,18 @@
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_transport::{
-    ConnectWebsocketRequest, HttpConfig, HttpEgressError, HttpTransportSvc,
-};
+use edge_transport_http_egress_transport::{ConnectWebsocketRequest, HttpConfig, HttpTransportSvc};
 
 /// Without the `websocket` feature flag (this crate's default test build),
 /// `connect_websocket` never yields a `ConnectWebsocketResponse` — it must
 /// fail with the documented feature-gate error, not silently return an
-/// empty/placeholder channel.
+/// empty/placeholder channel. Compiled only when the feature is off: with it on,
+/// `connect_websocket` really connects.
+#[cfg(not(feature = "websocket"))]
 #[tokio::test]
 async fn test_connect_websocket_response_without_feature_returns_feature_gate_error_happy() {
+    use edge_transport_http_egress_transport::HttpEgressError;
+
     let stream = HttpTransportSvc::plain_http_stream(HttpConfig::default()).expect("ok");
     let result = stream
         .connect_websocket(ConnectWebsocketRequest {

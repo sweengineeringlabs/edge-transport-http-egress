@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
 ### Changed (breaking)
 - `RetryConfig` gained a new field `jitter_factor: f64` (`#[serde(default)]`, defaults to `0.0` so
   existing TOML configs keep producing byte-identical backoff durations to today's un-jittered
