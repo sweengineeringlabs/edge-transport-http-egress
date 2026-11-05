@@ -10,7 +10,8 @@ members  = [
   "rate-std",
   "resilient",
   "resilient-port",
-  "retry",
+  "retry-api",
+  "retry-std",
   "transport",
 ]
 

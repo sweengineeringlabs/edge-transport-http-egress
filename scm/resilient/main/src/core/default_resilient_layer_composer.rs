@@ -30,14 +30,15 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
         } = request;
 
         if let FeatureState::Enabled(retry_cfg) =
-            edge_transport_http_egress_retry::RetryConfig::load_optional(loader)
+            edge_transport_http_egress_retry_api::RetryConfig::load_optional(loader)
                 .map_err(|e| ResilientError::Config(e.to_string()))?
         {
-            builder = builder.with(
+            builder = builder.with_arc(
                 {
-                    use edge_transport_http_egress_retry::Processor as _;
-                    edge_transport_http_egress_retry::HttpRetrySvc
-                        .decorate(edge_transport_http_egress_retry::DecorateRequest {
+                    use edge_transport_http_egress_retry_api::RetryFactory as _;
+                    edge_transport_http_egress_retry_std::StdRetryFactory
+                        .create_processor()
+                        .decorate(edge_transport_http_egress_retry_api::DecorateRequest {
                             config: retry_cfg,
                         })
                         .map_err(|e| ResilientError::Retry(e.to_string()))?
@@ -107,11 +108,12 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             cassette_name,
         } = request;
 
-        builder = builder.with(
+        builder = builder.with_arc(
             {
-                use edge_transport_http_egress_retry::Processor as _;
-                edge_transport_http_egress_retry::HttpRetrySvc
-                    .decorate(edge_transport_http_egress_retry::DecorateRequest {
+                use edge_transport_http_egress_retry_api::RetryFactory as _;
+                edge_transport_http_egress_retry_std::StdRetryFactory
+                    .create_processor()
+                    .decorate(edge_transport_http_egress_retry_api::DecorateRequest {
                         config: Default::default(),
                     })
                     .map_err(|e| ResilientError::Retry(e.to_string()))?

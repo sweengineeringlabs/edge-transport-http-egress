@@ -30,7 +30,8 @@ edge-transport-http-egress-cassette = { path = "../cassette" }
 edge-transport-http-egress-rate-api = { path = "../rate-api" }
 edge-transport-http-egress-rate-std = { path = "../rate-std" }
 edge-transport-http-egress-resilient-port = { path = "../resilient-port" }
-edge-transport-http-egress-retry = { path = "../retry" }
+edge-transport-http-egress-retry-api = { path = "../retry-api" }
+edge-transport-http-egress-retry-std = { path = "../retry-std" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 configbuilder = "0.8"
 

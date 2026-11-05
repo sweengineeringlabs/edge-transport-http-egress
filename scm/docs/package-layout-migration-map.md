@@ -184,4 +184,5 @@ Decisions that apply to every package:
 | breaker | Split into `breaker-api` and `breaker-std`; `resilient` updated. |
 | rate | Split into `rate-api` and `rate-std`; `resilient` updated. |
 | cache | Split into `cache-api` and `cache-std`; `resilient` updated. |
-| retry, cassette, transport, resilient-port, resilient | Not started. |
+| retry | Split into `retry-api` and `retry-std`; `resilient` updated. |
+| cassette, transport, resilient-port, resilient | Not started. |

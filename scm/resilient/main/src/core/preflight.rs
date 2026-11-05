@@ -25,7 +25,7 @@ impl DefaultResilientLayerComposer {
     /// validate.
     pub fn preflight(loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError> {
         let mut registry = FeatureRegistry::new();
-        registry.load::<edge_transport_http_egress_retry::RetryConfig>(loader)?;
+        registry.load::<edge_transport_http_egress_retry_api::RetryConfig>(loader)?;
         registry.load::<edge_transport_http_egress_rate_api::RateConfig>(loader)?;
         registry.load::<edge_transport_http_egress_breaker_api::BreakerConfig>(loader)?;
         registry.load::<edge_transport_http_egress_cache_api::CacheConfig>(loader)?;
