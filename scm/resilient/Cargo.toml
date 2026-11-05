@@ -24,7 +24,8 @@ path = "main/src/lib.rs"
 [dependencies]
 edge-transport-http-egress-breaker-api = { path = "../breaker-api" }
 edge-transport-http-egress-breaker-std = { path = "../breaker-std" }
-edge-transport-http-egress-cache = { path = "../cache" }
+edge-transport-http-egress-cache-api = { path = "../cache-api" }
+edge-transport-http-egress-cache-std = { path = "../cache-std" }
 edge-transport-http-egress-cassette = { path = "../cassette" }
 edge-transport-http-egress-rate-api = { path = "../rate-api" }
 edge-transport-http-egress-rate-std = { path = "../rate-std" }

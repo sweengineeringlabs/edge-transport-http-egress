@@ -3,7 +3,8 @@ resolver = "2"
 members  = [
   "breaker-api",
   "breaker-std",
-  "cache",
+  "cache-api",
+  "cache-std",
   "cassette",
   "rate-api",
   "rate-std",
