@@ -60,11 +60,6 @@ impl BreakerLayerBreakerMetrics {
 
 #[async_trait]
 impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
-    #[expect(
-        clippy::expect_used,
-        reason = "HostBreaker's CircuitBreakerNode/HostBreaker impls never return Err — the \
-                  Result shape is a structural api/ contract requirement, not a real failure mode"
-    )]
     async fn handle(
         &self,
         req: reqwest::Request,
@@ -95,7 +90,9 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
                     consecutive_successes: n.consecutive_successes,
                     config: (*self.config).clone().into(),
                 })
-                .expect("BreakerTransition::admit is infallible");
+                .map_err(|error| {
+                    reqwest_middleware::Error::Middleware(anyhow::Error::new(error))
+                })?;
             n.state = resp.state;
             n.consecutive_failures = resp.consecutive_failures;
             n.consecutive_successes = resp.consecutive_successes;
@@ -125,7 +122,9 @@ impl reqwest_middleware::Middleware for BreakerLayerBreakerMetrics {
                             config: (*self.config).clone().into(),
                             outcome,
                         })
-                        .expect("BreakerTransition::record is infallible");
+                        .map_err(|error| {
+                            reqwest_middleware::Error::Middleware(anyhow::Error::new(error))
+                        })?;
                     n.state = resp.state;
                     n.consecutive_failures = resp.consecutive_failures;
                     n.consecutive_successes = resp.consecutive_successes;

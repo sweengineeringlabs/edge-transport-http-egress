@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use bytes::Bytes;
-use futures::StreamExt as _;
+use futures::{Stream, StreamExt as _};
 use reqwest_middleware::ClientWithMiddleware;
 
 #[cfg(feature = "websocket")]
@@ -22,6 +22,40 @@ pub(crate) struct DefaultHttpEgress {
 impl DefaultHttpEgress {
     pub(crate) fn new(client: ClientWithMiddleware, config: HttpConfig) -> Self {
         Self { client, config }
+    }
+
+    fn apply_body(
+        builder: reqwest_middleware::RequestBuilder,
+        body: HttpBody,
+    ) -> HttpEgressResult<reqwest_middleware::RequestBuilder> {
+        Ok(match body {
+            HttpBody::Json(value) => builder.json(&value.into_inner()),
+            HttpBody::Raw(bytes) => builder.body(bytes),
+            HttpBody::Form(form) => {
+                let pairs: Vec<(String, String)> = form.into_iter().collect();
+                builder.form(&pairs)
+            }
+            HttpBody::Multipart(parts) => builder.multipart(Self::multipart_form(parts)?),
+        })
+    }
+
+    fn multipart_form(
+        parts: Vec<crate::api::FormPart>,
+    ) -> HttpEgressResult<reqwest::multipart::Form> {
+        let mut form = reqwest::multipart::Form::new();
+        for part in parts {
+            let mut multipart = reqwest::multipart::Part::bytes(part.data);
+            if let Some(filename) = part.filename {
+                multipart = multipart.file_name(filename);
+            }
+            if let Some(content_type) = part.content_type {
+                multipart = multipart
+                    .mime_str(&content_type)
+                    .map_err(|error| HttpEgressError::InvalidRequest(error.to_string()))?;
+            }
+            form = form.part(part.name, multipart);
+        }
+        Ok(form)
     }
 
     /// Build a reqwest-middleware request builder from an [`HttpRequest`].
@@ -52,30 +86,7 @@ impl DefaultHttpEgress {
         }
 
         if let Some(body) = request.body {
-            builder = match body {
-                HttpBody::Json(v) => builder.json(&v.into_inner()),
-                HttpBody::Raw(b) => builder.body(b),
-                HttpBody::Form(f) => {
-                    let pairs: Vec<(String, String)> = f.into_iter().collect();
-                    builder.form(&pairs)
-                }
-                HttpBody::Multipart(parts) => {
-                    let mut form = reqwest::multipart::Form::new();
-                    for part in parts {
-                        let mut mp = reqwest::multipart::Part::bytes(part.data);
-                        if let Some(filename) = part.filename {
-                            mp = mp.file_name(filename);
-                        }
-                        if let Some(ct) = part.content_type {
-                            mp = mp
-                                .mime_str(&ct)
-                                .map_err(|e| HttpEgressError::InvalidRequest(e.to_string()))?;
-                        }
-                        form = form.part(part.name, mp);
-                    }
-                    builder.multipart(form)
-                }
-            };
+            builder = Self::apply_body(builder, body)?;
         }
 
         if let Some(timeout) = request.timeout {
@@ -108,11 +119,115 @@ impl DefaultHttpEgress {
             _ => url.to_string(),
         }
     }
+
+    fn ensure_content_length_within_limit(
+        content_length: Option<u64>,
+        max_response_bytes: Option<usize>,
+    ) -> HttpEgressResult<()> {
+        if let (Some(max), Some(length)) = (max_response_bytes, content_length) {
+            let exceeds_limit = usize::try_from(length).map_or(true, |length| length > max);
+            if exceeds_limit {
+                return Err(HttpEgressError::Internal(format!(
+                    "response too large: content-length {length} bytes exceeds limit of {max} bytes"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn ensure_body_within_limit(
+        body_length: usize,
+        max_response_bytes: Option<usize>,
+    ) -> HttpEgressResult<()> {
+        if let Some(max) = max_response_bytes {
+            if body_length > max {
+                return Err(HttpEgressError::Internal(format!(
+                    "response too large: {body_length} bytes exceeds limit of {max} bytes"
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    fn next_body_length(
+        body_length: usize,
+        chunk_length: usize,
+        max_response_bytes: Option<usize>,
+    ) -> HttpEgressResult<usize> {
+        let next_length = body_length.checked_add(chunk_length).ok_or_else(|| {
+            HttpEgressError::Internal("response body length overflowed usize".to_string())
+        })?;
+        Self::ensure_body_within_limit(next_length, max_response_bytes)?;
+        Ok(next_length)
+    }
+
+    fn limit_response_stream<S, E>(
+        body_stream: S,
+        max_response_bytes: Option<usize>,
+    ) -> impl Stream<Item = HttpEgressResult<Vec<u8>>> + Send + 'static
+    where
+        S: Stream<Item = Result<Bytes, E>> + Send + 'static,
+        E: std::fmt::Display + Send + 'static,
+    {
+        body_stream.scan(Some(0usize), move |body_length, chunk| {
+            use futures::future::ready;
+
+            let Some(current_length) = *body_length else {
+                return ready(None);
+            };
+            let item = match chunk {
+                Ok(chunk) => {
+                    match Self::next_body_length(current_length, chunk.len(), max_response_bytes) {
+                        Ok(next_length) => {
+                            *body_length = Some(next_length);
+                            Ok(chunk.to_vec())
+                        }
+                        Err(error) => {
+                            *body_length = None;
+                            Err(error)
+                        }
+                    }
+                }
+                Err(error) => {
+                    *body_length = None;
+                    Err(HttpEgressError::Internal(error.to_string()))
+                }
+            };
+            ready(Some(item))
+        })
+    }
+
+    async fn collect_response_body<S, E>(
+        body_stream: S,
+        max_response_bytes: Option<usize>,
+    ) -> HttpEgressResult<Vec<u8>>
+    where
+        S: Stream<Item = Result<Bytes, E>>,
+        E: std::fmt::Display,
+    {
+        futures::pin_mut!(body_stream);
+        let mut body = Vec::new();
+
+        while let Some(chunk) = body_stream.next().await {
+            let chunk = chunk.map_err(|error| HttpEgressError::Internal(error.to_string()))?;
+            Self::next_body_length(body.len(), chunk.len(), max_response_bytes)?;
+            body.try_reserve_exact(chunk.len()).map_err(|error| {
+                HttpEgressError::Internal(format!("unable to buffer response body: {error}"))
+            })?;
+            body.extend_from_slice(&chunk);
+        }
+
+        Ok(body)
+    }
 }
 
 #[async_trait]
 impl HttpEgress for DefaultHttpEgress {
-    async fn send(&self, request: HttpRequest) -> HttpEgressResult<HttpResponse> {
+    async fn send_with_context(
+        &self,
+        request: HttpRequest,
+        _ctx: crate::api::HttpSecurityContext,
+    ) -> HttpEgressResult<HttpResponse> {
         let max_response_bytes = self.config.max_response_bytes;
         let builder = self.build_request_builder(request)?;
         let response = builder.send().await.map_err(|e| {
@@ -125,15 +240,7 @@ impl HttpEgress for DefaultHttpEgress {
         })?;
 
         // Early rejection on content-length hint (avoids buffering huge bodies).
-        if let Some(max) = max_response_bytes {
-            if let Some(len) = response.content_length() {
-                if len as usize > max {
-                    return Err(HttpEgressError::Internal(format!(
-                        "response too large: content-length {len} bytes exceeds limit of {max} bytes"
-                    )));
-                }
-            }
-        }
+        Self::ensure_content_length_within_limit(response.content_length(), max_response_bytes)?;
 
         let status = response.status().as_u16();
         let headers: HashMap<String, String> = response
@@ -141,20 +248,8 @@ impl HttpEgress for DefaultHttpEgress {
             .iter()
             .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
             .collect();
-        let body_bytes = response
-            .bytes()
-            .await
-            .map_err(|e| HttpEgressError::Internal(e.to_string()))?;
-
-        if let Some(max) = max_response_bytes {
-            if body_bytes.len() > max {
-                return Err(HttpEgressError::Internal(format!(
-                    "response too large: {} bytes exceeds limit of {} bytes",
-                    body_bytes.len(),
-                    max
-                )));
-            }
-        }
+        let body_bytes =
+            Self::collect_response_body(response.bytes_stream(), max_response_bytes).await?;
 
         match status {
             401 => {
@@ -193,11 +288,12 @@ impl HttpEgress for DefaultHttpEgress {
         Ok(HttpResponse {
             status,
             headers,
-            body: body_bytes.to_vec(),
+            body: body_bytes,
         })
     }
 
     async fn send_stream(&self, request: HttpRequest) -> HttpEgressResult<HttpStreamResponse> {
+        let max_response_bytes = self.config.max_response_bytes;
         let builder = self.build_request_builder(request)?;
         let response = builder.send().await.map_err(|e| {
             if let reqwest_middleware::Error::Reqwest(ref re) = e {
@@ -208,6 +304,8 @@ impl HttpEgress for DefaultHttpEgress {
             HttpEgressError::ConnectionFailed(e.to_string())
         })?;
 
+        Self::ensure_content_length_within_limit(response.content_length(), max_response_bytes)?;
+
         let status = response.status().as_u16();
         let headers: HashMap<String, String> = response
             .headers()
@@ -215,10 +313,10 @@ impl HttpEgress for DefaultHttpEgress {
             .filter_map(|(k, v)| v.to_str().ok().map(|v| (k.to_string(), v.to_string())))
             .collect();
 
-        let body = HttpByteStream::new(response.bytes_stream().map(|r| {
-            r.map(|b: Bytes| b.to_vec())
-                .map_err(|e| HttpEgressError::Internal(e.to_string()))
-        }));
+        let body = HttpByteStream::new(Self::limit_response_stream(
+            response.bytes_stream(),
+            max_response_bytes,
+        ));
 
         Ok(HttpStreamResponse {
             status,
@@ -277,14 +375,8 @@ impl DefaultHttpEgress {
                 match chunk {
                     Ok(bytes) => {
                         buf.push_str(&String::from_utf8_lossy(&bytes));
-                        while let Some(pos) = buf.find("\n\n") {
-                            let block = buf[..pos].to_string();
-                            buf = buf[pos + 2..].to_string();
-                            if let Some(ev) = DefaultHttpEgress::parse_sse_block(&block) {
-                                if tx.unbounded_send(Ok(ev)).is_err() {
-                                    return;
-                                }
-                            }
+                        if !DefaultHttpEgress::emit_sse_events(&mut buf, &tx) {
+                            return;
                         }
                     }
                     Err(e) => {
@@ -302,6 +394,22 @@ impl DefaultHttpEgress {
         });
 
         rx
+    }
+
+    fn emit_sse_events(
+        buffer: &mut String,
+        sender: &futures::channel::mpsc::UnboundedSender<Result<SseEvent, HttpEgressError>>,
+    ) -> bool {
+        while let Some(pos) = buffer.find("\n\n") {
+            let block = buffer[..pos].to_string();
+            *buffer = buffer[pos + 2..].to_string();
+            if let Some(event) = Self::parse_sse_block(&block) {
+                if sender.unbounded_send(Ok(event)).is_err() {
+                    return false;
+                }
+            }
+        }
+        true
     }
 
     /// Parse a single SSE block (delimited by `\n\n`) into an [`SseEvent`].
@@ -462,6 +570,96 @@ mod tests {
     fn test_new_creates_outbound_with_base_url() {
         let out = make_outbound();
         assert_eq!(out.config.base_url.as_deref(), Some("http://localhost"));
+    }
+
+    /// @covers: collect_response_body
+    #[tokio::test]
+    async fn test_collect_response_body_accepts_exact_limit() {
+        let chunks = futures::stream::iter(vec![
+            Ok::<_, &'static str>(Bytes::from_static(b"abc")),
+            Ok(Bytes::from_static(b"de")),
+        ]);
+
+        let body = DefaultHttpEgress::collect_response_body(chunks, Some(5))
+            .await
+            .unwrap();
+
+        assert_eq!(body, b"abcde");
+    }
+
+    /// @covers: collect_response_body
+    #[tokio::test]
+    async fn test_collect_response_body_rejects_chunked_body_over_limit() {
+        let chunks = futures::stream::iter(vec![
+            Ok::<_, &'static str>(Bytes::from_static(b"abc")),
+            Ok(Bytes::from_static(b"def")),
+        ]);
+
+        let result = DefaultHttpEgress::collect_response_body(chunks, Some(5)).await;
+
+        assert!(matches!(
+            result,
+            Err(HttpEgressError::Internal(ref message)) if message.contains("response too large")
+        ));
+    }
+
+    /// @covers: limit_response_stream
+    #[tokio::test]
+    async fn test_limit_response_stream_errors_at_limit_and_then_terminates() {
+        let chunks = futures::stream::iter(vec![
+            Ok::<_, &'static str>(Bytes::from_static(b"abc")),
+            Ok(Bytes::from_static(b"def")),
+            Ok(Bytes::from_static(b"unread")),
+        ]);
+
+        let items: Vec<_> = DefaultHttpEgress::limit_response_stream(chunks, Some(5))
+            .collect()
+            .await;
+
+        assert_eq!(
+            items.len(),
+            2,
+            "stream must terminate after the limit error"
+        );
+        assert!(matches!(&items[0], Ok(chunk) if chunk.as_slice() == b"abc"));
+        assert!(matches!(
+            &items[1],
+            Err(HttpEgressError::Internal(message)) if message.contains("response too large")
+        ));
+    }
+
+    /// @covers: limit_response_stream
+    #[tokio::test]
+    async fn test_limit_response_stream_accepts_exact_limit() {
+        let chunks = futures::stream::iter(vec![
+            Ok::<_, &'static str>(Bytes::from_static(b"abc")),
+            Ok(Bytes::from_static(b"de")),
+        ]);
+
+        let items: Vec<_> = DefaultHttpEgress::limit_response_stream(chunks, Some(5))
+            .collect()
+            .await;
+
+        assert_eq!(items.len(), 2);
+        assert!(matches!(&items[0], Ok(chunk) if chunk.as_slice() == b"abc"));
+        assert!(matches!(&items[1], Ok(chunk) if chunk.as_slice() == b"de"));
+    }
+
+    /// @covers: limit_response_stream
+    #[tokio::test]
+    async fn test_limit_response_stream_accepts_body_when_unlimited() {
+        let chunks = futures::stream::iter(vec![Ok::<_, &'static str>(Bytes::from_static(
+            b"body larger than a small configured limit",
+        ))]);
+
+        let items: Vec<_> = DefaultHttpEgress::limit_response_stream(chunks, None)
+            .collect()
+            .await;
+
+        assert_eq!(items.len(), 1);
+        assert!(
+            matches!(&items[0], Ok(chunk) if chunk.as_slice() == b"body larger than a small configured limit")
+        );
     }
 
     #[test]

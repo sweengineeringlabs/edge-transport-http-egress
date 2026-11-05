@@ -11,8 +11,9 @@ use edge_transport_http_egress_transport::{
     FormPart, HealthCheckRequest, HttpAuth, HttpBody, HttpConfig, HttpEgressError, HttpMethod,
     HttpRequest, HttpResponse, HttpTransportSvc,
 };
-use http_body_util::Full;
-use hyper::body::Incoming;
+use futures::StreamExt as _;
+use http_body_util::{Full, StreamBody};
+use hyper::body::{Frame, Incoming};
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
 use hyper::{Request, Response};
@@ -45,6 +46,35 @@ where
         }
     });
     // Port is bound; OS backlog handles early client connections.
+    tokio::time::sleep(Duration::from_millis(5)).await;
+    (port, jh)
+}
+
+/// Spawn a one-response HTTP/1 server with unknown-length, chunked body frames.
+async fn spawn_chunked_once(chunks: Vec<Bytes>) -> (u16, tokio::task::JoinHandle<()>) {
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let jh = tokio::spawn(async move {
+        if let Ok((stream, _)) = listener.accept().await {
+            let io = TokioIo::new(stream);
+            let _ = http1::Builder::new()
+                .serve_connection(
+                    io,
+                    service_fn(move |_req: Request<Incoming>| {
+                        let frames = chunks
+                            .clone()
+                            .into_iter()
+                            .map(|bytes| Ok::<_, Infallible>(Frame::data(bytes)));
+                        async move {
+                            Ok::<_, Infallible>(Response::new(StreamBody::new(
+                                futures::stream::iter(frames),
+                            )))
+                        }
+                    }),
+                )
+                .await;
+        }
+    });
     tokio::time::sleep(Duration::from_millis(5)).await;
     (port, jh)
 }
@@ -265,6 +295,51 @@ async fn test_send_rejects_response_when_content_length_exceeds_max_bytes() {
         matches!(result, Err(HttpEgressError::Internal(ref m)) if m.contains("too large")),
         "expected Internal too-large error, got {result:?}"
     );
+}
+
+#[tokio::test]
+async fn test_send_stream_rejects_response_when_content_length_exceeds_max_bytes() {
+    let (port, _jh) =
+        spawn_once(|_req| async { Response::new(Full::new(Bytes::from(vec![b'x'; 150]))) }).await;
+
+    let cfg = HttpConfig {
+        base_url: Some(format!("http://127.0.0.1:{port}")),
+        max_response_bytes: Some(100),
+        ..Default::default()
+    };
+    let client = HttpTransportSvc::plain_http_egress(cfg).unwrap();
+    let result = client.send_stream(HttpRequest::get("/")).await;
+
+    assert!(
+        matches!(result, Err(HttpEgressError::Internal(ref message)) if message.contains("too large")),
+        "expected streamed response to enforce the configured limit, got {result:?}"
+    );
+}
+
+#[tokio::test]
+async fn test_send_stream_stops_chunked_body_at_max_response_bytes() {
+    let (port, jh) =
+        spawn_chunked_once(vec![Bytes::from_static(b"abc"), Bytes::from_static(b"def")]).await;
+    let cfg = HttpConfig {
+        base_url: Some(format!("http://127.0.0.1:{port}")),
+        max_response_bytes: Some(5),
+        ..Default::default()
+    };
+    let client = HttpTransportSvc::plain_http_egress(cfg).unwrap();
+    let response = client
+        .send_stream(HttpRequest::get("/"))
+        .await
+        .expect("headers should arrive before the chunked body is consumed");
+
+    let items: Vec<_> = response.body.collect().await;
+    jh.abort();
+
+    assert_eq!(items.len(), 2, "the stream must stop after its size error");
+    assert!(matches!(&items[0], Ok(chunk) if chunk.as_slice() == b"abc"));
+    assert!(matches!(
+        &items[1],
+        Err(HttpEgressError::Internal(message)) if message.contains("response too large")
+    ));
 }
 
 #[tokio::test]

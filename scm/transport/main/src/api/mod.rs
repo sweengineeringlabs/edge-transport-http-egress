@@ -16,7 +16,7 @@ pub use dto::{
 pub use error::{AssemblyFailure, HttpEgressBuildError, HttpEgressError, ValidationError};
 
 // Re-export public traits at the top level
-pub use traits::{HttpEgress, HttpStream, Validator};
+pub use traits::{HttpEgress, HttpEgressFuture, HttpStream, Validator};
 
 // Re-export public types at the top level
 pub use types::{

@@ -10,7 +10,6 @@ impl Default for HttpConfig {
             base_url: None,
             timeout_secs: 30,
             connect_timeout_secs: 10,
-            max_retries: 3,
             default_headers: HashMap::new(),
             follow_redirects: true,
             max_redirects: 10,

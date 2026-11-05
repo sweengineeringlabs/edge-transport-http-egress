@@ -1,43 +1,56 @@
 //! Coverage tests (rules 221 + 222) — _happy / _error / _edge variants.
-//! Rule 221: get_failure_threshold, create_config_builder, build_breaker_layer
-//!            in breaker_svc.rs.
+//! Rule 221: create_config_builder, build_breaker_layer.
 //! Rule 222: failure_threshold (BreakerMetrics), admit / record (CircuitBreakerNode),
 //!            is_open / is_half_open / is_closed (HostBreaker),
 //!            describe (Processor), validate (BreakerConfig::from_config).
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use edge_transport_http_egress_breaker::{BreakerConfig, HttpBreakerSvcProcessor, Processor};
+use edge_transport_http_egress_breaker::{
+    BreakerConfig, BreakerMetrics, FailureThresholdRequest, HttpBreakerSvcProcessor, Processor,
+};
 
-// ── get_failure_threshold (rule 221) ────────────────────────────────────────
+// ── failure_threshold (rule 222) — three distinct configuration behaviors ──
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn test_get_failure_threshold_returns_configured_value_happy() {
-    let config = BreakerConfig::default();
-    let layer = HttpBreakerSvcProcessor::build_breaker_layer(config.clone()).expect("build ok");
-    let threshold = HttpBreakerSvcProcessor::get_failure_threshold(&layer);
-    assert!(
-        threshold > 0,
-        "failure threshold must be positive: {threshold}"
-    );
+fn test_failure_threshold_custom_value_happy() {
+    let config = BreakerConfig {
+        failure_threshold: 42,
+        ..BreakerConfig::default()
+    };
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(config).expect("build ok");
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!(threshold.value, 42);
 }
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn test_get_failure_threshold_nonzero_for_any_valid_config_error() {
-    // Zero threshold would accept every request — ensure the config never produces 0
-    let layer =
-        HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("build ok");
-    let t = HttpBreakerSvcProcessor::get_failure_threshold(&layer);
-    assert_ne!(t, 0, "failure_threshold must never be 0 for a valid config");
+fn test_failure_threshold_minimum_value_boundary() {
+    let config = BreakerConfig {
+        failure_threshold: 1,
+        ..BreakerConfig::default()
+    };
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(config).expect("build ok");
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!(threshold.value, 1);
 }
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn test_get_failure_threshold_consistent_across_repeated_calls_edge() {
-    let layer =
-        HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("build ok");
-    let a = HttpBreakerSvcProcessor::get_failure_threshold(&layer);
-    let b = HttpBreakerSvcProcessor::get_failure_threshold(&layer);
-    assert_eq!(a, b, "failure_threshold must be deterministic");
+fn test_failure_threshold_repeat_read_edge() {
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("ok");
+    let first = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("first read must succeed");
+    let second = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("second read must succeed");
+    assert_eq!(first, second);
 }
 
 // ── create_config_builder (rule 221) — real coverage lives in
@@ -56,9 +69,11 @@ fn test_build_breaker_layer_returns_layer_with_correct_threshold_error() {
     };
     let layer = HttpBreakerSvcProcessor::build_breaker_layer(config)
         .expect("valid config must not return error");
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
     assert_eq!(
-        HttpBreakerSvcProcessor::get_failure_threshold(&layer),
-        42,
+        threshold.value, 42,
         "layer must carry the caller's failure_threshold, not a default/stub value"
     );
 }
@@ -76,26 +91,50 @@ fn test_build_breaker_layer_idempotent_for_same_config_edge() {
 
 // ── failure_threshold (rule 222: BreakerMetrics trait) ──────────────────────
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
 fn test_failure_threshold_positive_on_default_config_happy() {
     let layer = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("ok");
-    assert!(HttpBreakerSvcProcessor::get_failure_threshold(&layer) > 0);
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert!(threshold.value > 0);
 }
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn test_failure_threshold_not_zero_for_valid_config_error() {
-    let layer = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("ok");
-    assert_ne!(HttpBreakerSvcProcessor::get_failure_threshold(&layer), 0);
+fn test_failure_threshold_not_zero_for_valid_config_edge() {
+    let config = BreakerConfig {
+        failure_threshold: 2,
+        ..BreakerConfig::default()
+    };
+    let layer = HttpBreakerSvcProcessor::build_breaker_layer(config).expect("ok");
+    let threshold = layer
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!(threshold.value, 2);
 }
 
+/// @covers: BreakerMetrics::failure_threshold
 #[test]
-fn test_failure_threshold_same_on_two_equal_configs_edge() {
-    let l1 = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("ok");
-    let l2 = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig::default()).expect("ok");
-    assert_eq!(
-        HttpBreakerSvcProcessor::get_failure_threshold(&l1),
-        HttpBreakerSvcProcessor::get_failure_threshold(&l2)
-    );
+fn test_failure_threshold_keeps_distinct_layer_configs_independent_edge() {
+    let l1 = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig {
+        failure_threshold: 3,
+        ..BreakerConfig::default()
+    })
+    .expect("first layer must build");
+    let l2 = HttpBreakerSvcProcessor::build_breaker_layer(BreakerConfig {
+        failure_threshold: 5,
+        ..BreakerConfig::default()
+    })
+    .expect("second layer must build");
+    let a = l1
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    let b = l2
+        .failure_threshold(FailureThresholdRequest)
+        .expect("reading the configured threshold must succeed");
+    assert_eq!((a.value, b.value), (3, 5));
 }
 
 // ── admit / record (rule 222: CircuitBreakerNode trait) ─────────────────────

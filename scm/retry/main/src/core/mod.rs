@@ -4,7 +4,6 @@
 
 mod application_config_builder;
 mod default_validator;
-mod error_classifier;
 mod http_retry_svc;
 mod layer;
 mod policy;

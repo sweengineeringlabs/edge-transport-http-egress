@@ -1,9 +1,9 @@
 //! Public contract: trait, request DTOs, and error type.
 
-pub mod errors;
-pub mod traits;
-pub mod types;
+mod error;
+mod traits;
+mod types;
 
-pub use errors::ResilientError;
-pub use traits::ResilientLayers;
-pub use types::{ApplyDefaultsRequest, ApplyFromConfigRequest};
+pub use error::ResilientError;
+pub use traits::ResilientLayerComposer;
+pub use types::{ResilientConfigRequest, ResilientDefaultsRequest};

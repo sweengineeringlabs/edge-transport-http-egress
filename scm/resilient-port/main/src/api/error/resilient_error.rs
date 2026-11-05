@@ -1,4 +1,4 @@
-//! `ResilientError` — the structured error taxonomy for [`crate::ResilientLayers`].
+//! Error taxonomy for the resilient composition contract.
 
 use thiserror::Error;
 

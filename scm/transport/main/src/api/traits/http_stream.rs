@@ -1,11 +1,9 @@
 //! HTTP streaming port — SSE consumption and WebSocket connections.
 
-use async_trait::async_trait;
-
+use super::HttpEgressFuture;
 use crate::api::dto::{
     ConnectWebsocketRequest, ConnectWebsocketResponse, SubscribeSseRequest, SubscribeSseResponse,
 };
-use crate::api::error::HttpEgressError;
 
 /// Makes HTTP transport-level streaming connections to external services.
 ///
@@ -19,23 +17,28 @@ use crate::api::error::HttpEgressError;
 /// [`WsChannel`](crate::api::WsChannel). The caller may send and
 /// receive frames concurrently; the connection stays open until the channel
 /// is dropped.
-#[async_trait]
 pub trait HttpStream: Send + Sync {
     /// Subscribe to an SSE feed at `request.url`.
     ///
     /// Returns a lazy stream that yields [`SseEvent`](crate::api::types::sse::SseEvent)
     /// frames as they arrive from the remote service.
-    async fn subscribe_sse(
-        &self,
+    fn subscribe_sse<'life0, 'async_trait>(
+        &'life0 self,
         request: SubscribeSseRequest,
-    ) -> Result<SubscribeSseResponse, HttpEgressError>;
+    ) -> HttpEgressFuture<'async_trait, SubscribeSseResponse>
+    where
+        'life0: 'async_trait,
+        Self: Sync + 'async_trait;
 
     /// Open a WebSocket connection to `request.url`.
     ///
     /// Returns a [`WsChannel`](crate::api::WsChannel) after the
     /// handshake completes.
-    async fn connect_websocket(
-        &self,
+    fn connect_websocket<'life0, 'async_trait>(
+        &'life0 self,
         request: ConnectWebsocketRequest,
-    ) -> Result<ConnectWebsocketResponse, HttpEgressError>;
+    ) -> HttpEgressFuture<'async_trait, ConnectWebsocketResponse>
+    where
+        'life0: 'async_trait,
+        Self: Sync + 'async_trait;
 }

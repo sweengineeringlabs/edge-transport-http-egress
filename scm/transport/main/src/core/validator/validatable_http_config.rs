@@ -1,4 +1,4 @@
-//! `impl Validator for ValidatableHttpConfig` — the declaration lives in `api/`.
+//! The sole HTTP config validation implementation.
 
 use crate::api::{ValidatableHttpConfig, ValidateRequest, ValidationError, Validator};
 
@@ -66,5 +66,35 @@ mod tests {
             },
         };
         assert!(invalid.validate(ValidateRequest).is_err());
+    }
+
+    /// @covers: validate
+    #[test]
+    fn test_validate_error_identifies_zero_timeout_field() {
+        let cfg = ValidatableHttpConfig {
+            config: HttpConfig {
+                timeout_secs: 0,
+                ..HttpConfig::default()
+            },
+        };
+        let err = cfg.validate(ValidateRequest).unwrap_err();
+        assert!(
+            matches!(err, ValidationError::Invalid(ref message) if message.contains("timeout_secs"))
+        );
+    }
+
+    /// @covers: validate
+    #[test]
+    fn test_validate_error_identifies_zero_connect_timeout_field() {
+        let cfg = ValidatableHttpConfig {
+            config: HttpConfig {
+                connect_timeout_secs: 0,
+                ..HttpConfig::default()
+            },
+        };
+        let err = cfg.validate(ValidateRequest).unwrap_err();
+        assert!(
+            matches!(err, ValidationError::Invalid(ref message) if message.contains("connect_timeout_secs"))
+        );
     }
 }

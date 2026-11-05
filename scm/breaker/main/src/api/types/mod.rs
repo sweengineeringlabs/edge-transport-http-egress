@@ -1,6 +1,5 @@
 //! Value objects for the breaker API.
 
-pub(crate) mod application_config_builder;
 pub mod breaker;
 pub(crate) mod http_breaker_svc_processor;
 

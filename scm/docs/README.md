@@ -1,25 +1,21 @@
-# edge-transport-http-egress
+# Workspace overview
 
-## WHAT
+This workspace provides a bare outbound HTTP transport and reusable client-side resilience
+middleware. See the [architecture guide](architecture.md) for the transport/server boundary.
 
-Outbound HTTP client for swe-edge — reqwest-backed transport with a full middleware stack: auth,
-retry, rate limiting, circuit breaker, caching, OAuth, TLS, and cassette recording.
+## Packages
 
-Key capabilities:
+| Package | Responsibility |
+| --- | --- |
+| `edge-transport-http-egress-transport` | HTTP request/response contracts, `HttpEgress`, reqwest-backed outbound transport, and streaming support |
+| `edge-transport-http-egress-retry` | Retry middleware and retry policy |
+| `edge-transport-http-egress-rate` | Per-host client-side rate limiting |
+| `edge-transport-http-egress-breaker` | Per-host circuit breaking |
+| `edge-transport-http-egress-cache` | HTTP response caching |
+| `edge-transport-http-egress-cassette` | Deterministic HTTP record/replay for tests |
+| `edge-transport-http-egress-resilient-port` | Contract for applying the resilience chain |
+| `edge-transport-http-egress-resilient` | Adapter that composes retry, rate, breaker, cache, and cassette middleware |
 
-- **`HttpEgress`** — core trait: sends outbound HTTP requests with health checks and lazy streaming support
-- **`HttpStream`** — trait for streaming response bodies (SSE, WebSocket)
-- **`HttpRequest`** / **`HttpResponse`** / **`HttpStreamResponse`** — value objects: form parts, SSE events, WebSocket channels
-- **`HttpConfigValidator`** — validation chain for request/response inspection before dispatch
-- Workspace middleware crates: `auth`, `breaker`, `cache`, `cassette`, `oauth`, `rate`, `retry`, `tls`, `transport`
-- Each middleware crate is independent and opt-in; compose as needed via reqwest-middleware
-
-## WHY
-
-| Problem | Solution |
-|---------|----------|
-| Retry, circuit-breaking, and rate limiting re-implemented per HTTP client | Each concern is an independent middleware crate; compose by adding to the reqwest-middleware stack |
-| Auth token injection varies across services (Bearer, API key, OAuth) | `auth` crate provides a pluggable `TokenInjector` trait; `oauth` handles refresh token flows |
-| Integration tests need to record/replay HTTP interactions | `cassette` crate captures and replays request/response pairs; deterministic test scenarios without a live backend |
-| TLS certificate management scattered | `tls` crate centralises cert/key loading from config; applied as a reqwest layer |
-| Diamond dep conflicts when HTTP egress types change | One crate, one tag — all consumers pin the same version; kgraph detects conflicts pre-commit |
+Applications choose and assemble their outbound stack. Authentication, OAuth, TLS policy, and
+load balancing belong to that composition root; the transport crate carries the security context
+used by the outbound contract but does not implement those policies. See the decisions in [`adr/`](adr/).

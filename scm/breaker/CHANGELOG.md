@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-05
+
 ### Changed (breaking)
 - The circuit-state machine (`DefaultHostBreaker`, `CircuitBreakerNode`/`HostBreaker` traits,
   `Admission`, `Outcome`, `AdmitRequest`/`AdmitResponse`, `RecordRequest`→`RecordOutcomeRequest`,
@@ -23,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this crate's own middleware rejection behavior).
 - 3 orphaned dead files (`api/host/breaker/*`, `api/default/http_breaker.rs`, never wired into
   `api/mod.rs`'s module tree) deleted as unrelated cleanup surfaced during this review.
+
+### Fixed
+- Errors from the shared breaker transition implementation now propagate through reqwest middleware instead of panicking under an assumption that the transition can never fail.
 
 ### Added
 - Initial project structure

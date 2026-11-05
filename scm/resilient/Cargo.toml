@@ -33,10 +33,6 @@ configbuilder = "0.8"
 
 [dev-dependencies]
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
-reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
-configbuilder = "0.8"
-edge-transport-http-egress-cassette = { path = "../cassette" }
-edge-transport-http-egress-resilient-port = { path = "../resilient-port" }
 tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "macros", "sync", "fs", "io-util", "net", "time"] }
 hyper = { version = "1", features = ["http1", "server"] }
 hyper-util = { version = "0.1", features = ["tokio"] }

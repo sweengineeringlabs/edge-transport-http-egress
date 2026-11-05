@@ -170,21 +170,7 @@ mod tests {
 
     /// @covers: validate
     #[test]
-    fn test_validate_rejects_jitter_factor_above_one() {
-        let bad = RetryConfig {
-            jitter_factor: 1.5,
-            ..RetryConfig::default()
-        };
-        let msg = bad.validate().expect_err("jitter_factor > 1.0 must fail");
-        assert!(
-            msg.contains("jitter_factor"),
-            "error must mention jitter_factor: {msg}"
-        );
-    }
-
-    /// @covers: validate
-    #[test]
-    fn test_validate_accepts_jitter_factor_at_bounds() {
+    fn test_validate_enforces_jitter_factor_bounds() {
         let low = RetryConfig {
             jitter_factor: 0.0,
             ..RetryConfig::default()
@@ -195,5 +181,23 @@ mod tests {
         };
         assert!(low.validate().is_ok(), "jitter_factor=0.0 must be valid");
         assert!(high.validate().is_ok(), "jitter_factor=1.0 must be valid");
+
+        let below = RetryConfig {
+            jitter_factor: -f64::EPSILON,
+            ..RetryConfig::default()
+        };
+        let below_error = below
+            .validate()
+            .expect_err("jitter_factor below zero must fail");
+        assert!(below_error.contains("jitter_factor"));
+
+        let above = RetryConfig {
+            jitter_factor: 1.0 + f64::EPSILON,
+            ..RetryConfig::default()
+        };
+        let above_error = above
+            .validate()
+            .expect_err("jitter_factor above one must fail");
+        assert!(above_error.contains("jitter_factor"));
     }
 }

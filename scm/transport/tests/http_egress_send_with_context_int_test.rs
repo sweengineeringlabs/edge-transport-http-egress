@@ -47,7 +47,7 @@ where
 // ─── tests ───────────────────────────────────────────────────────────────────
 
 #[tokio::test]
-async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
+async fn test_send_with_context_returns_the_http_response() {
     // Arrange: a server that echoes the request method back in the body.
     let (port, _jh) =
         spawn_once(|_req| async { Response::new(Full::new(Bytes::from("hello-from-server"))) })
@@ -68,7 +68,7 @@ async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
         extensions: HashMap::new(),
     };
 
-    // Act: call send_with_context — default impl must delegate to send.
+    // Act: the bare transport accepts the caller's context and performs the request.
     let resp = client
         .send_with_context(HttpRequest::get("/"), ctx.into())
         .await
@@ -82,8 +82,18 @@ async fn test_send_with_context_delegates_to_send_and_returns_same_response() {
     );
     assert_eq!(
         resp.body, b"hello-from-server",
-        "send_with_context must return the same body as send"
+        "send_with_context must return the HTTP response body"
     );
+}
+
+#[test]
+fn test_unauthenticated_context_is_anonymous() {
+    let context =
+        edge_transport_http_egress_transport::HttpSecurityContext::unauthenticated().into_inner();
+
+    assert!(!context.authenticated);
+    assert!(context.principal.is_none());
+    assert!(context.token.is_none());
 }
 
 #[tokio::test]

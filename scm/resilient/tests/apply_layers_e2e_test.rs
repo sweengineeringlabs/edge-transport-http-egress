@@ -1,4 +1,4 @@
-//! End-to-end tests for `DefaultResilientLayers` — proves the composed
+//! End-to-end tests for `DefaultResilientLayerComposer` — proves the composed
 //! client (built through the real `retry`/`rate`/`breaker`/`cache`/
 //! `cassette` layers, exactly as `transport_svc.rs` used to assemble them
 //! internally) actually works against a real server, not just that it
@@ -21,7 +21,7 @@ use hyper_util::rt::TokioIo;
 
 use edge_transport_http_egress_cassette::CassetteConfig;
 use edge_transport_http_egress_resilient::{
-    ApplyDefaultsRequest, DefaultResilientLayers, ResilientLayers,
+    DefaultResilientLayerComposer, ResilientDefaultsRequest, ResilientLayerComposer,
 };
 
 async fn spawn_once<F, Fut>(handler: F) -> (u16, tokio::task::JoinHandle<()>)
@@ -71,8 +71,8 @@ async fn test_apply_defaults_composed_client_round_trips_real_http_call_happy() 
         .build()
         .expect("build reqwest client");
     let builder = reqwest_middleware::ClientBuilder::new(client);
-    let builder = DefaultResilientLayers
-        .apply_defaults(ApplyDefaultsRequest {
+    let builder = DefaultResilientLayerComposer
+        .apply_defaults(ResilientDefaultsRequest {
             builder,
             cassette: CassetteConfig::disabled(),
             cassette_name: "e2e-round-trip".to_string(),
@@ -123,8 +123,8 @@ async fn test_apply_defaults_retry_layer_recovers_from_transient_failures_happy(
         .build()
         .expect("build reqwest client");
     let builder = reqwest_middleware::ClientBuilder::new(client);
-    let builder = DefaultResilientLayers
-        .apply_defaults(ApplyDefaultsRequest {
+    let builder = DefaultResilientLayerComposer
+        .apply_defaults(ResilientDefaultsRequest {
             builder,
             cassette: CassetteConfig::disabled(),
             cassette_name: "e2e-retry".to_string(),
@@ -164,9 +164,9 @@ async fn test_apply_from_config_with_no_sections_present_still_round_trips_happy
         .build()
         .expect("build reqwest client");
     let builder = reqwest_middleware::ClientBuilder::new(client);
-    let builder = DefaultResilientLayers
+    let builder = DefaultResilientLayerComposer
         .apply_from_config(
-            edge_transport_http_egress_resilient::ApplyFromConfigRequest {
+            edge_transport_http_egress_resilient::ResilientConfigRequest {
                 builder,
                 loader: &loader,
             },

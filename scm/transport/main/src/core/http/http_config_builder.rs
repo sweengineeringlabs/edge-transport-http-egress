@@ -47,16 +47,15 @@ impl HttpConfigBuilder {
             connect_timeout_secs: self
                 .connect_timeout_secs
                 .unwrap_or(base.connect_timeout_secs),
-            max_retries: self.max_retries.unwrap_or(base.max_retries),
             default_headers: if self.default_headers.is_empty() {
                 base.default_headers
             } else {
                 self.default_headers
             },
-            follow_redirects: self.follow_redirects.unwrap_or(base.follow_redirects),
-            max_redirects: self.max_redirects.unwrap_or(base.max_redirects),
             user_agent: self.user_agent.or(base.user_agent),
-            max_response_bytes: self.max_response_bytes.unwrap_or(base.max_response_bytes),
+            follow_redirects: base.follow_redirects,
+            max_redirects: base.max_redirects,
+            max_response_bytes: base.max_response_bytes,
         }
     }
 }
