@@ -13,7 +13,8 @@ members  = [
   "resilient-port",
   "retry-api",
   "retry-std",
-  "transport",
+  "transport-api",
+  "transport-std",
 ]
 
 [workspace.package]
