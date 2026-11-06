@@ -5,7 +5,7 @@ use edge_transport_http_egress_cache_std::StdCacheFactory;
 
 fn main() {
     match StdCacheFactory.build_cache_layer(CacheConfig::default()) {
-        Ok(_) => println!("edge_transport_http_egress_cache layer built"),
-        Err(e) => println!("edge_transport_http_egress_cache: {e}"),
+        Ok(_) => println!("edge_transport_http_egress_cache_std layer built"),
+        Err(e) => println!("edge_transport_http_egress_cache_std: {e}"),
     }
 }

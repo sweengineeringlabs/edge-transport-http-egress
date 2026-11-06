@@ -9,7 +9,7 @@
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_transport::WsMessage;
+/// use edge_transport_http_egress_transport_api::WsMessage;
 ///
 /// let text_frame = WsMessage::text("hello world");
 /// assert!(!text_frame.binary);

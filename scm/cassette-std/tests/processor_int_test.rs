@@ -1,4 +1,4 @@
-//! Integration tests for the `Processor` trait in `edge-transport-http-egress-cassette`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-cassette-std`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 

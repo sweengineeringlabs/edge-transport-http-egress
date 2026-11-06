@@ -20,6 +20,13 @@ use edge_transport_http_egress_resilient_api::{
 pub struct StdResilientLayerComposer;
 
 impl ResilientLayerComposer for StdResilientLayerComposer {
+    fn preflight(
+        &self,
+        loader: &configbuilder::SectionLoaderImpl,
+    ) -> Result<configbuilder::FeatureSummary, configbuilder::ConfigError> {
+        Self::run_preflight(loader)
+    }
+
     fn apply_from_config(
         &self,
         request: ResilientConfigRequest<'_>,

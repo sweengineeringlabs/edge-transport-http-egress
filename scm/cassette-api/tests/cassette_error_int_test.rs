@@ -1,4 +1,4 @@
-//! Integration tests for `cassette_error` in `edge-transport-http-egress-cassette`.
+//! Integration tests for `cassette_error` in `edge-transport-http-egress-cassette-api`.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use edge_transport_http_egress_cassette_api::CassetteError;

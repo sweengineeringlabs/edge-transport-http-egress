@@ -23,7 +23,7 @@ impl StdResilientLayerComposer {
     /// # Errors
     /// Returns [`ConfigError`] if a present section fails to parse or
     /// validate.
-    pub fn preflight(loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError> {
+    pub(crate) fn run_preflight(loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError> {
         let mut registry = FeatureRegistry::new();
         registry.load::<edge_transport_http_egress_retry_api::RetryConfig>(loader)?;
         registry.load::<edge_transport_http_egress_rate_api::RateConfig>(loader)?;

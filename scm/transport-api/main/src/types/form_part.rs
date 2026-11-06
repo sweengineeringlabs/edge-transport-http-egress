@@ -13,7 +13,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_transport::FormPart;
+/// use edge_transport_http_egress_transport_api::FormPart;
 ///
 /// // Simple text field.
 /// let field = FormPart {

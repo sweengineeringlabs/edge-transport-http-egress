@@ -1,4 +1,4 @@
-//! Integration tests for `cache_error` in `edge-transport-http-egress-cache`.
+//! Integration tests for `cache_error` in `edge-transport-http-egress-cache-api`.
 
 use edge_transport_http_egress_cache_api::CacheError;
 

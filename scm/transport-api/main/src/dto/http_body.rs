@@ -17,7 +17,7 @@ use crate::JsonValue;
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_transport::{HttpBody, JsonValue};
+/// use edge_transport_http_egress_transport_api::{HttpBody, JsonValue};
 ///
 /// let json = HttpBody::Json(JsonValue::new(serde_json::json!({ "key": "value" })));
 /// assert!(matches!(json, HttpBody::Json(_)));

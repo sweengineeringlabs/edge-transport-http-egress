@@ -16,7 +16,7 @@ use crate::HttpBody;
 ///
 /// ```rust
 /// use std::time::Duration;
-/// use edge_transport_http_egress_transport::{HttpMethod, HttpRequestBuilder};
+/// use edge_transport_http_egress_transport_api::{HttpMethod, HttpRequestBuilder};
 ///
 /// let req = HttpRequestBuilder::new(HttpMethod::Get, "https://api.example.com/items")
 ///     .with_header("Authorization", "Bearer my-token")

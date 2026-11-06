@@ -1,4 +1,4 @@
-//! End-to-end tests for the edge_transport_http_egress_cassette SAF builder surface.
+//! End-to-end tests for the edge_transport_http_egress_cassette_std SAF builder surface.
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _, Loader as _};

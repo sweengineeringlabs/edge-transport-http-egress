@@ -1,4 +1,4 @@
-//! Integration tests for `breaker_error` in `edge-transport-http-egress-breaker`.
+//! Integration tests for `breaker_error` in `edge-transport-http-egress-breaker-api`.
 
 use edge_transport_http_egress_breaker_api::BreakerError;
 

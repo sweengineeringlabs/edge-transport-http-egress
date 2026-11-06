@@ -187,4 +187,4 @@ Decisions that apply to every package:
 | retry | Split into `retry-api` and `retry-std`; `resilient` updated. |
 | cassette | Split into `cassette-api` and `cassette-std`; `resilient` and `resilient-port` updated. |
 | transport | Split into `transport-api` and `transport-std`; no workspace package consumes it. |
-| resilient-port, resilient | `resilient-port` renamed to `resilient-api` (flat layout, `ResilientLayerComposer` contract unchanged); `resilient` renamed to `resilient-std`, its composer `DefaultResilientLayerComposer` renamed `StdResilientLayerComposer` (it keeps the inherent `preflight`). All eight packages are split. |
+| resilient-port, resilient | `resilient-port` renamed to `resilient-api` (flat layout, `ResilientLayerComposer` contract unchanged); `resilient` renamed to `resilient-std`, its composer `DefaultResilientLayerComposer` renamed `StdResilientLayerComposer`; the inherent `preflight` moved into the `ResilientLayerComposer` contract and the contract re-exports were removed from the implementation package. All eight packages are split. |

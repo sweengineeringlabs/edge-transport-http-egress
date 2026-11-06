@@ -1,4 +1,4 @@
-//! Domain error types for `edge_transport_http_egress_breaker`.
+//! Domain error types for `edge_transport_http_egress_breaker_api`.
 
 pub mod breaker_error;
 

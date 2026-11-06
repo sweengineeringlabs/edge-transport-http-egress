@@ -63,7 +63,7 @@ impl HttpTransportSvc {
     ///
     /// This is the construction seam for a *composition root* (e.g. `edge-bootstrap`'s
     /// `RuntimeBuilder`) that assembles its own middleware chain — TLS at the reqwest layer, the
-    /// `edge-transport-http-egress-resilient` decorator, caller-supplied auth/oauth — and then needs
+    /// `edge-transport-http-egress-resilient-std` decorator, caller-supplied auth/oauth — and then needs
     /// to expose the finished client through this crate's `HttpEgress` contract. `transport` provides
     /// the bare primitive ([`plain_http_egress`](HttpTransportSvc::plain_http_egress)) and this wrap
     /// seam; it does **not** own the composition of the layers themselves.

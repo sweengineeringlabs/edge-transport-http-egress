@@ -1,4 +1,4 @@
-//! Integration tests for `new_app_config_builder` in `edge_transport_http_egress_retry`.
+//! Integration tests for `new_app_config_builder` in `edge_transport_http_egress_retry_std`.
 
 use edge_transport_http_egress_retry_api::RetryFactory;
 use edge_transport_http_egress_retry_std::StdRetryFactory;

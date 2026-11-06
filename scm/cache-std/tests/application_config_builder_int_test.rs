@@ -1,4 +1,4 @@
-//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cache`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cache_std`.
 
 use configbuilder::ConfigBuilder as _;
 use edge_transport_http_egress_cache_api::CacheFactory;

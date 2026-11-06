@@ -1,5 +1,5 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! Integration tests for `edge_transport_http_egress_retry` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_retry_std` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` defines the `pub(crate)` type alias `HttpRetryTrait`
 //! for `dyn HttpRetry`. The relevant integration-level contract is that the

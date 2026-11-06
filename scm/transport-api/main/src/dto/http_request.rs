@@ -17,7 +17,7 @@ use crate::{HttpAuth, HttpMethod};
 ///
 /// ```rust
 /// use std::time::Duration;
-/// use edge_transport_http_egress_transport::{HttpMethod, HttpRequest};
+/// use edge_transport_http_egress_transport_api::{HttpMethod, HttpRequest};
 ///
 /// // Quick GET.
 /// let req = HttpRequest::get("https://api.example.com/users");

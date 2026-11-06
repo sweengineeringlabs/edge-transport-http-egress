@@ -1,4 +1,4 @@
-//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cassette`.
+//! Integration tests for `create_config_builder` in `edge_transport_http_egress_cassette_std`.
 
 use configbuilder::ConfigBuilder as _;
 use edge_transport_http_egress_cassette_api::CassetteFactory;

@@ -1,5 +1,5 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
-//! End-to-end tests for the edge_transport_http_egress_retry SAF builder surface.
+//! End-to-end tests for the edge_transport_http_egress_retry_std SAF builder surface.
 
 use edge_transport_http_egress_retry_api::{DecorateRequest, RetryConfig, RetryFactory};
 use edge_transport_http_egress_retry_std::StdRetryFactory;
