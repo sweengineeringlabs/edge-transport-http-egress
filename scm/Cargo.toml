@@ -1,18 +1,24 @@
 [workspace]
 resolver = "2"
 members  = [
-  "breaker",
-  "cache",
-  "cassette",
-  "rate",
-  "resilient",
-  "resilient-port",
-  "retry",
-  "transport",
+  "breaker-api",
+  "breaker-std",
+  "cache-api",
+  "cache-std",
+  "cassette-api",
+  "cassette-std",
+  "rate-api",
+  "rate-std",
+  "resilient-std",
+  "resilient-api",
+  "retry-api",
+  "retry-std",
+  "transport-api",
+  "transport-std",
 ]
 
 [workspace.package]
-version      = "0.6.0"
+version      = "0.7.0"
 edition      = "2021"
 license      = "MIT OR Apache-2.0"
 rust-version = "1.95"

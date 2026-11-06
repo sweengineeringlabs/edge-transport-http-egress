@@ -1,0 +1,164 @@
+{
+  "reviewed": true,
+  "theme": "cache",
+  "notes": "Issue #30, third package; same decisions as breaker and rate (see scm/docs/package-layout-migration-map.md). -api: CacheConfig schema/defaults/TOML parsing, CacheError, DTOs, Processor/Validator/HttpCache traits, and the new CacheFactory and CacheLayer contract traits. -std: the moka-backed HTTP cache with stale-while-revalidate (cached entries, TTL decision, request snapshot) and the reqwest-middleware glue behind StdCacheFactory; every concrete type is crate-private. api/cache, api/cached and api/processor held only placeholder type aliases and empty modules; they are dropped.",
+  "api_to_std": {
+    "types/cache/middleware_http_cache.rs": "core/cache/middleware_http_cache.rs",
+    "types/http_cache_svc_processor.rs": "core/processor/cache_svc_processor.rs"
+  },
+  "core_to_api": {
+    "core/cache/cache_config.rs": "types/cache/cache_config_impls.rs"
+  },
+  "drop": [
+    "mod.rs",
+    "types/mod.rs",
+    "types/cache/mod.rs",
+    "traits/mod.rs",
+    "cache/mod.rs",
+    "cache/layer/mod.rs",
+    "cache/layer/request_snapshot.rs",
+    "cache/layer/ttl_decision.rs",
+    "cached/mod.rs",
+    "cached/entry/mod.rs",
+    "cached/entry/cache_entry_helper.rs",
+    "cached/entry/cached_entry.rs",
+    "cached/entry/cached_entry_builder.rs",
+    "cached/entry/vary_directive.rs",
+    "processor/mod.rs",
+    "core/cache/mod.rs",
+    "core/processor/mod.rs",
+    "saf/mod.rs",
+    "saf/http_cache_svc_factory.rs",
+    "saf/processor_svc_factory.rs",
+    "saf/validator_svc_factory.rs"
+  ],
+  "aux": {
+    "config": "api",
+    "deny.toml": "both",
+    "CHANGELOG.md": "api",
+    "examples": "std",
+    "docs": "std",
+    "scripts": "std",
+    "SECURITY.md": "both",
+    ".gitignore": "both",
+    "bootstrap.sh": "both",
+    "bootstrap.ps1": "both"
+  },
+  "delete": [
+    "README.md",
+    "Cargo.toml",
+    "tests/src/.gitkeep",
+    "main/src/lib.rs"
+  ],
+  "text_rules": {
+    "std/main/src/core/cache/middleware_http_cache.rs": [
+      [
+        "pub struct MiddlewareHttpCache",
+        "pub(crate) struct MiddlewareHttpCache"
+      ],
+      [
+        "use super::cache_config::CacheConfig;",
+        "use edge_transport_http_egress_cache_api::CacheConfig;"
+      ]
+    ],
+    "std/main/src/core/cache/layer/layer.rs": [
+      [
+        "edge_transport_http_egress_cache_api::{\n    CacheConfig, CacheError, FallbackTtlRequest, FallbackTtlResponse, HttpCache,\n    MiddlewareHttpCache,\n};",
+        "edge_transport_http_egress_cache_api::{\n    CacheConfig, CacheError, FallbackTtlRequest, FallbackTtlResponse, HttpCache,\n};\nuse crate::core::cache::MiddlewareHttpCache;"
+      ]
+    ],
+    "std/main/src/core/processor/http_cache_processor.rs": [
+      [
+        "edge_transport_http_egress_cache_api::{\n    CacheConfig, CacheError, DescribeRequest, DescribeResponse, HttpCacheSvcProcessor,\n    MiddlewareHttpCache, Processor,\n};",
+        "edge_transport_http_egress_cache_api::{\n    CacheConfig, CacheError, DescribeRequest, DescribeResponse, Processor,\n};\nuse super::cache_svc_processor::HttpCacheSvcProcessor;\nuse crate::core::cache::MiddlewareHttpCache;"
+      ]
+    ],
+    "api/main/src/dto/config_validation_request.rs": [
+      [
+        "[`MiddlewareHttpCache`](crate::MiddlewareHttpCache)",
+        "[`CacheLayer`](crate::CacheLayer)"
+      ]
+    ],
+    "std/main/src/core/processor/cache_svc_processor.rs": [
+      [
+        "pub struct HttpCacheSvcProcessor",
+        "pub(crate) struct HttpCacheSvcProcessor"
+      ]
+    ]
+  },
+  "config_application_name": {
+    "file": "main/src/core/processor/http_cache_processor.rs",
+    "impl": "impl HttpCacheSvcProcessor {\n",
+    "name": "edge-transport-http-egress-cache"
+  },
+  "std_names": [
+    "StdCacheFactory"
+  ],
+  "trait_names": [
+    "CacheFactory"
+  ],
+  "drop_names": [
+    "HttpCacheSvcProcessor",
+    "ProcessorSvcFactory",
+    "ValidatorSvcFactory",
+    "HttpCacheSvcFactory",
+    "MiddlewareHttpCache"
+  ],
+  "test_side": {
+    "http_dep_int_test.rs": "std",
+    "moka_dep_int_test.rs": "std",
+    "reqwest_dep_int_test.rs": "std"
+  },
+  "line_rules": [
+    [
+      "\\bHttpCacheSvcProcessor\\b(?!::)",
+      "StdCacheFactory.create_processor()"
+    ]
+  ],
+  "test_rules": [
+    [
+      "(?s)    // Verify the layer satisfies reqwest_middleware::Middleware \\(compile-time proof\\)\\s*fn assert_middleware<T: reqwest_middleware::Middleware>\\(\\) \\{\\}\\s*assert_middleware::<[^;]*>\\(\\);\\s*",
+      "    // Verify the layer satisfies reqwest_middleware::Middleware (compile-time proof: the upcast\n    // to the trait object a ClientBuilder accepts)\n    let _as_middleware: std::sync::Arc<dyn reqwest_middleware::Middleware> = layer.clone();\n"
+    ],
+    [
+      "-> (?:edge_transport_http_egress_cache::)?MiddlewareHttpCache\\b",
+      "-> std::sync::Arc<dyn edge_transport_http_egress_cache_api::CacheLayer>"
+    ],
+    [
+      "assert_middleware::<(?:edge_transport_http_egress_cache::)?MiddlewareHttpCache>",
+      "assert_middleware::<std::sync::Arc<dyn edge_transport_http_egress_cache_api::CacheLayer>>"
+    ],
+    [
+      "HttpCacheSvcProcessor::build_cache_layer\\(",
+      "StdCacheFactory.build_cache_layer("
+    ],
+    [
+      "HttpCacheSvcProcessor::create_config_builder\\(\\)",
+      "StdCacheFactory.create_config_builder()"
+    ],
+    [
+      "ProcessorSvcFactory::create\\(\\)",
+      "StdCacheFactory.create_processor()"
+    ],
+    [
+      "ValidatorSvcFactory::create\\(\\)",
+      "StdCacheFactory.create_validator()"
+    ],
+    [
+      "HttpCacheSvcFactory::from_layer\\((\\w+)\\)",
+      "\\1"
+    ],
+    [
+      ": MiddlewareHttpCache\\b",
+      ""
+    ],
+    [
+      "\\.with\\((\\w*layer\\w*)\\)",
+      ".with_arc(\\1)"
+    ],
+    [
+      "concat!\\(env!\\(\"CARGO_MANIFEST_DIR\"\\), \"/config\"\\)",
+      "concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../cache-api/config\")"
+    ]
+  ]
+}

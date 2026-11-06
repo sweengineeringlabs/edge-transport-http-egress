@@ -1,0 +1,120 @@
+{
+  "reviewed": true,
+  "theme": "breaker",
+  "notes": "Issue #30. Contract (-api): config schema, defaults and TOML parsing, error, DTOs, traits, and the new BreakerFactory / BreakerLayer contract traits. Standard implementation (-std): the per-host moka/tokio breaker, reqwest-middleware glue and the factory implementation; every concrete type is crate-private. reqwest-middleware's Middleware trait is a trait, not an implementation, and is the contract the composition root attaches layers through, so -api depends on it for BreakerLayer. Reviewed manual edits made in the same commit as the generated move: http_breaker_svc_processor_int_test.rs (the crate-private unit struct is replaced by StdBreakerFactory.create_processor()).",
+  "api_to_std": {
+    "types/breaker/breaker_layer_breaker_metrics.rs": "core/breaker/layer/breaker_layer_breaker_metrics.rs",
+    "types/http_breaker_svc_processor.rs": "core/default/http_breaker_svc_processor.rs"
+  },
+  "core_to_api": {
+    "core/breaker/breaker_config.rs": "types/breaker/breaker_config_impls.rs"
+  },
+  "drop": [
+    "mod.rs",
+    "types/mod.rs",
+    "traits/mod.rs",
+    "breaker/mod.rs",
+    "breaker/layer/mod.rs",
+    "core/breaker/mod.rs",
+    "core/breaker/layer/mod.rs",
+    "core/default/mod.rs",
+    "saf/mod.rs",
+    "saf/breaker_metrics_svc_factory.rs",
+    "saf/processor_svc_factory.rs",
+    "saf/validator_svc_factory.rs"
+  ],
+  "aux": {
+    "config": "api",
+    "deny.toml": "both",
+    "CHANGELOG.md": "api",
+    "examples": "std",
+    "docs": "std",
+    "scripts": "std",
+    "SECURITY.md": "both",
+    ".gitignore": "both",
+    "bootstrap.sh": "both",
+    "bootstrap.ps1": "both"
+  },
+  "text_rules": {
+    "api/main/src/types/breaker/mod.rs": [
+      [
+        "pub(crate) mod breaker_layer_breaker_metrics;",
+        "pub(crate) mod breaker_config_impls;"
+      ]
+    ],
+    "std/main/src/core/breaker/layer/breaker_layer_breaker_metrics.rs": [
+      [
+        "pub struct BreakerLayerBreakerMetrics",
+        "pub(crate) struct BreakerLayerBreakerMetrics"
+      ]
+    ],
+    "std/main/src/core/default/http_breaker_svc_processor.rs": [
+      [
+        "pub struct HttpBreakerSvcProcessor",
+        "pub(crate) struct HttpBreakerSvcProcessor"
+      ]
+    ]
+  },
+  "std_names": [
+    "StdBreakerFactory"
+  ],
+  "drop_names": [
+    "HttpBreakerSvcProcessor",
+    "ProcessorFactory",
+    "ValidatorFactory",
+    "BreakerMetricsFactory",
+    "BreakerLayerBreakerMetrics"
+  ],
+  "test_rules": [
+    [
+      "HttpBreakerSvcProcessor::build_breaker_layer\\(",
+      "StdBreakerFactory.build_breaker_layer("
+    ],
+    [
+      "HttpBreakerSvcProcessor::create_config_builder\\(\\)",
+      "StdBreakerFactory.create_config_builder()"
+    ],
+    [
+      "ProcessorFactory::create\\(\\)",
+      "StdBreakerFactory.create_processor()"
+    ],
+    [
+      "ValidatorFactory::create\\(\\)",
+      "StdBreakerFactory.create_validator()"
+    ],
+    [
+      "BreakerMetricsFactory::from_layer\\((\\w+)\\)",
+      "\\1"
+    ],
+    [
+      ": BreakerLayerBreakerMetrics\\b",
+      ""
+    ],
+    [
+      "concat!\\(env!\\(\"CARGO_MANIFEST_DIR\"\\), \"/config\"\\)",
+      "concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../breaker-api/config\")"
+    ],
+    [
+      "\\.with\\((\\w*layer\\w*)\\)",
+      ".with_arc(\\1)"
+    ]
+  ],
+  "delete": [
+    "README.md",
+    "Cargo.toml",
+    "tests/src/.gitkeep",
+    "main/src/lib.rs"
+  ],
+  "trait_names": [
+    "BreakerFactory"
+  ],
+  "test_side": {
+    "shared_breaker_dependencies_int_test.rs": "std"
+  },
+  "line_rules": [
+    [
+      "\\bHttpBreakerSvcProcessor\\b(?!::)",
+      "StdBreakerFactory.create_processor()"
+    ]
+  ]
+}

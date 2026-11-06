@@ -1,0 +1,25 @@
+//! Dependency coverage test for `configbuilder`.
+//! Verifies that the configbuilder integration works through the
+//! cache public API.
+
+use configbuilder::{ConfigBuilder as _, ConfigBuilderImpl};
+use edge_transport_http_egress_cache_api::CacheFactory;
+use edge_transport_http_egress_cache_std::StdCacheFactory;
+
+/// @covers: configbuilder
+#[test]
+fn std_struct_dep_configbuilder_create_config_builder_returns_builder_int_test() {
+    let builder: ConfigBuilderImpl = StdCacheFactory.create_config_builder();
+    // The builder must be seeded with this crate's own name and version via
+    // `env!` — proving `create_config_builder` actually wires them in, not
+    // just that a default builder was returned.
+    assert_eq!(
+        builder.name(),
+        "edge-transport-http-egress-cache",
+        "builder must carry this crate's package name"
+    );
+    assert!(
+        !builder.version().is_empty(),
+        "builder must carry this crate's package version"
+    );
+}

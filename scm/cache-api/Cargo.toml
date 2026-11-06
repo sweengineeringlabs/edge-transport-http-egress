@@ -1,0 +1,40 @@
+[package]
+name = "edge-transport-http-egress-cache-api"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "HTTP-cache middleware contract: configuration, errors, DTOs, traits and the factory contract"
+keywords = ["http", "cache", "middleware", "swe"]
+categories = ["web-programming::http-client"]
+
+[package.metadata.struct-engine]
+application_type = "lib"
+service_type = "processor"
+
+[package.metadata.arch]
+application_type = "lib"
+service_type = "processor"
+
+[lib]
+path = "main/src/lib.rs"
+
+[dependencies]
+# CacheLayer is a `reqwest_middleware::Middleware`; the trait is the contract a composition root
+# attaches layers through. No reqwest-middleware implementation type is used here.
+reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
+thiserror = "2"
+# `CacheConfig` is a serde schema loaded from TOML and registered as a configbuilder section.
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+configbuilder = "0.8"
+
+[lints.rust]
+unsafe_code  = "deny"
+missing_docs = "warn"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
