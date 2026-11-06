@@ -26,7 +26,7 @@ fn test_describe_returns_stable_label_across_instances_happy() {
 #[test]
 fn test_create_config_builder_seeds_crate_version_happy() {
     let builder = StdCacheFactory.create_config_builder();
-    assert_eq!(builder.name(), "edge-transport-http-egress-cache");
+    assert_eq!(builder.name(), "edge-transport-http-egress-cache-std");
 }
 
 /// @covers: build_cache_layer

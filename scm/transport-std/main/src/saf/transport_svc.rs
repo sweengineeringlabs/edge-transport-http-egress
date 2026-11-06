@@ -25,7 +25,7 @@ impl HttpTransportSvc {
     /// Return a config builder pre-seeded with this crate's package name and version.
     pub fn create_config_builder() -> ApplicationConfigBuilder {
         ApplicationConfigBuilder::new()
-            .with_name("edge-transport-http-egress-transport")
+            .with_name(env!("CARGO_PKG_NAME"))
             .with_version(env!("CARGO_PKG_VERSION"))
     }
 

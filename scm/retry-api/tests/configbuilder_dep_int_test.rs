@@ -7,7 +7,7 @@ use configbuilder::{ConfigBuilder as _, ConfigBuilderImpl, Loader as _};
 use edge_transport_http_egress_retry_api::{ApplicationConfigBuilder, RetryConfig};
 
 /// The name configbuilder joins onto its config search directories; it must not change.
-const APPLICATION_NAME: &str = "edge-transport-http-egress-retry";
+const APPLICATION_NAME: &str = "edge-transport-http-egress-retry-api";
 
 fn seeded_directly() -> ConfigBuilderImpl {
     configbuilder::ConfigLoaderFactory::create_config_builder()

@@ -163,7 +163,7 @@ fn test_create_config_builder_returns_working_loader() {
     let builder = StdRateFactory.create_config_builder();
     assert_eq!(
         builder.name(),
-        "edge-transport-http-egress-rate",
+        "edge-transport-http-egress-rate-std",
         "builder must carry the crate name so the loader resolves the right config"
     );
     let _loader = builder.build_loader();
@@ -180,7 +180,7 @@ fn test_error_parse_failed_display_names_crate_and_echoes_reason() {
     let err = RateError::ParseFailed(reason.to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_rate"),
+        msg.contains("edge_transport_http_egress_rate_api"),
         "ParseFailed display must name the crate; got: {msg}"
     );
     assert!(

@@ -49,7 +49,7 @@ fn test_new_config_builder_is_mutable_before_build_edge() {
 #[test]
 fn test_new_app_config_builder_seeds_crate_name_happy() {
     let builder = StdRetryFactory.new_app_config_builder();
-    assert_eq!(builder.name(), "edge-transport-http-egress-retry");
+    assert_eq!(builder.name(), "edge-transport-http-egress-retry-api");
 }
 
 /// @covers: new_app_config_builder

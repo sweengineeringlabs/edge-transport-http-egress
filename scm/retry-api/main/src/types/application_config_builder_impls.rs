@@ -15,7 +15,7 @@ impl ApplicationConfigBuilder {
     /// pre-seeded with this crate's name and version.
     pub fn new() -> Self {
         let inner = configbuilder::ConfigLoaderFactory::create_config_builder()
-            .with_name("edge-transport-http-egress-retry")
+            .with_name(env!("CARGO_PKG_NAME"))
             .with_version(env!("CARGO_PKG_VERSION"));
         Self(inner)
     }
@@ -58,7 +58,7 @@ mod tests {
     #[test]
     fn test_name_seeds_crate_name() {
         let builder = ApplicationConfigBuilder::new();
-        assert_eq!(builder.name(), "edge-transport-http-egress-retry");
+        assert_eq!(builder.name(), "edge-transport-http-egress-retry-api");
     }
 
     /// @covers: version

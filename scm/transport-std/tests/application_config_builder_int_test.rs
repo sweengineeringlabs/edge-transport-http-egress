@@ -14,7 +14,7 @@ fn test_create_config_builder_constructs_application_config_builder() {
     let builder = StdTransportFactory.create_config_builder();
     assert_eq!(
         builder.name(),
-        "edge-transport-http-egress-transport",
+        "edge-transport-http-egress-transport-std",
         "builder must be seeded with this crate's package name"
     );
     assert_eq!(

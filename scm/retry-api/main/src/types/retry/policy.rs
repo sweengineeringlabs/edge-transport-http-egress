@@ -62,19 +62,19 @@ impl RetryConfig {
     pub fn validate(&self) -> Result<(), String> {
         if self.multiplier <= 0.0 {
             return Err(format!(
-                "edge_transport_http_egress_retry: multiplier must be > 0.0, got {}",
+                "edge_transport_http_egress_retry_api: multiplier must be > 0.0, got {}",
                 self.multiplier
             ));
         }
         if self.max_interval_ms < self.initial_interval_ms {
             return Err(format!(
-                "edge_transport_http_egress_retry: max_interval_ms ({}) must be >= initial_interval_ms ({})",
+                "edge_transport_http_egress_retry_api: max_interval_ms ({}) must be >= initial_interval_ms ({})",
                 self.max_interval_ms, self.initial_interval_ms
             ));
         }
         if !(0.0..=1.0).contains(&self.jitter_factor) {
             return Err(format!(
-                "edge_transport_http_egress_retry: jitter_factor must be in [0.0, 1.0], got {}",
+                "edge_transport_http_egress_retry_api: jitter_factor must be in [0.0, 1.0], got {}",
                 self.jitter_factor
             ));
         }

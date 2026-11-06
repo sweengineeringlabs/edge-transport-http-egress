@@ -137,7 +137,7 @@ fn test_saf_error_parse_failed_display_names_crate() {
     let err = CassetteError::ParseFailed("bad field".to_string());
     assert!(
         err.to_string()
-            .contains("edge_transport_http_egress_cassette"),
+            .contains("edge_transport_http_egress_cassette_api"),
         "CassetteError::ParseFailed from SAF layer must name the crate"
     );
 }

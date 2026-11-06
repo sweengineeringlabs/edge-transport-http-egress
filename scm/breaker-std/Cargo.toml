@@ -45,8 +45,6 @@ http-body-util      = "0.1"
 
 [features]
 default = []
-# Inert: no code is gated on it (kept for consumers that enable it).
-tracing = ["dep:tracing"]
 
 [lints.rust]
 unsafe_code  = "deny"

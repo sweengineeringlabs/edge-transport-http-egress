@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- The config builder is seeded with the package name `edge-transport-http-egress-transport-std` instead of the pre-split `edge-transport-http-egress-transport`, and diagnostic messages carry the new crate names (`edge_transport_http_egress_transport_api` / `_std`). configbuilder uses the name as a directory segment when it searches for configuration, so a configuration directory named after `edge-transport-http-egress-transport` must be renamed. The pre-split name is not kept.
+
 ## [0.7.0] - 2026-11-06
 
 ### Changed (breaking)

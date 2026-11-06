@@ -125,7 +125,7 @@ async fn test_middleware_replay_mode_returns_error_on_cache_miss() {
     );
     let err_msg = result.unwrap_err().to_string();
     assert!(
-        err_msg.contains("edge_transport_http_egress_cassette")
+        err_msg.contains("edge_transport_http_egress_cassette_std")
             || err_msg.contains("no recorded interaction"),
         "error must identify the cassette miss; got: {err_msg}"
     );

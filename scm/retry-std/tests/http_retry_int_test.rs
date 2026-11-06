@@ -111,7 +111,7 @@ fn test_retry_layer_is_arc_send_sync() {
 }
 
 // ---------------------------------------------------------------------------
-// describe() contract — "edge_transport_http_egress_retry" embedded in Debug
+// describe() contract — "edge_transport_http_egress_retry_std" embedded in Debug
 // ---------------------------------------------------------------------------
 
 /// The `RetryLayer` Debug output must include `max_retries`, which flows

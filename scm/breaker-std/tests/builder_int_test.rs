@@ -167,7 +167,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = BreakerError::ParseFailed("bad toml".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_breaker"),
+        msg.contains("edge_transport_http_egress_breaker_api"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }
