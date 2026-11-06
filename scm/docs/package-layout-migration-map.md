@@ -186,4 +186,5 @@ Decisions that apply to every package:
 | cache | Split into `cache-api` and `cache-std`; `resilient` updated. |
 | retry | Split into `retry-api` and `retry-std`; `resilient` updated. |
 | cassette | Split into `cassette-api` and `cassette-std`; `resilient` and `resilient-port` updated. |
-| transport, resilient-port, resilient | Not started. |
+| transport | Split into `transport-api` and `transport-std`; no workspace package consumes it. |
+| resilient-port, resilient | Not started. |

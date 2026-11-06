@@ -1,0 +1,140 @@
+{
+  "reviewed": true,
+  "theme": "transport",
+  "notes": "Issue #30, sixth package; same decisions as the middleware packages (see scm/docs/package-layout-migration-map.md). -api: every request/response DTO, value type, error, config type and trait of the former package (HttpEgress, HttpStream, Validator, HttpRequest, HttpResponse, HttpConfig and builders, streams, WsMessage, SseEvent, AlwaysValidConfig, ValidatableHttpConfig, ApplicationConfigBuilder), with the inherent and trait impls that lived in core/ moved next to their types (an impl must live in the crate that defines the type), plus the new TransportFactory contract trait. -std: DefaultHttpEgress (reqwest-backed HttpEgress and HttpStream, optional websocket), the metrics-observing decorator, DefaultValidator and the private HttpTransportSvc, all crate-private behind StdTransportFactory. HttpTransportSvc (the public static factory) and ValidatorSvcFactory are replaced by TransportFactory: the generic validate<V: Validator> becomes validate(&dyn Validator) so the trait stays object safe. Behaviour of send() is unchanged, including the status-to-error mapping reported in #46, which needs the owner's decision and is not touched by a layout change. api/config, api/default, api/http, api/metrics, api/sse, api/validator and api/ws held only placeholder type aliases and are dropped.",
+  "api_to_std": {
+    "types/http/http_transport_svc.rs": "saf/http_transport_svc.rs"
+  },
+  "core_to_api": {
+    "core/config/application_config_builder.rs": "types/application_config_builder_impls.rs",
+    "core/error/assembly_failure.rs": "error/assembly_failure_impls.rs",
+    "core/error/http_egress_build_error.rs": "error/http_egress_build_error_impls.rs",
+    "core/http/http_auth.rs": "types/http/http_auth_impls.rs",
+    "core/http/http_byte_stream.rs": "types/http/http_byte_stream_impls.rs",
+    "core/http/http_config.rs": "types/http/http_config_impls.rs",
+    "core/http/http_config_builder.rs": "types/http/http_config_builder_impls.rs",
+    "core/http/http_method.rs": "types/http/http_method_impls.rs",
+    "core/http/http_request.rs": "dto/http_request_impls.rs",
+    "core/http/http_request_builder.rs": "types/http/http_request_builder_impls.rs",
+    "core/http/http_response.rs": "dto/http_response_impls.rs",
+    "core/http/http_security_context.rs": "types/http/http_security_context_impls.rs",
+    "core/http/http_stream_response.rs": "dto/http_stream_response_impls.rs",
+    "core/http/json_value.rs": "types/http/json_value_impls.rs",
+    "core/sse/sse_event.rs": "types/sse/sse_event_impls.rs",
+    "core/sse/sse_stream.rs": "dto/sse_stream_impls.rs",
+    "core/ws/ws_message.rs": "types/ws/ws_message_impls.rs",
+    "core/ws/ws_receiver.rs": "dto/ws_receiver_impls.rs",
+    "core/ws/ws_sender.rs": "dto/ws_sender_impls.rs",
+    "core/validator/always_valid_config.rs": "types/validator/always_valid_config_impls.rs",
+    "core/validator/validatable_http_config.rs": "types/validator/validatable_http_config_impls.rs"
+  },
+  "drop": [
+    "mod.rs",
+    "dto/mod.rs",
+    "error/mod.rs",
+    "traits/mod.rs",
+    "types/mod.rs",
+    "types/http/mod.rs",
+    "types/sse/mod.rs",
+    "types/ws/mod.rs",
+    "types/validator/mod.rs",
+    "config/application_config_builder.rs",
+    "default/http_egress_builtin.rs",
+    "http/http_auth.rs",
+    "metrics/metrics_http_egress.rs",
+    "sse/sse_event.rs",
+    "validator/http_config_validator.rs",
+    "ws/ws_message.rs",
+    "core/mod.rs",
+    "core/config/mod.rs",
+    "core/error/mod.rs",
+    "core/http/mod.rs",
+    "core/sse/mod.rs",
+    "core/ws/mod.rs",
+    "core/validator/mod.rs",
+    "saf/mod.rs",
+    "saf/http/mod.rs",
+    "saf/http/http_egress_svc.rs",
+    "saf/http/http_stream_svc.rs",
+    "saf/validator/mod.rs",
+    "saf/validator/validator_svc.rs",
+    "saf/validator/validator_svc_factory.rs"
+  ],
+  "aux": {
+    "config": "api",
+    "deny.toml": "both",
+    "CHANGELOG.md": "api",
+    "examples": "std",
+    "docs": "std",
+    "SECURITY.md": "both",
+    ".gitignore": "both",
+    "bootstrap.sh": "both",
+    "bootstrap.ps1": "both"
+  },
+  "delete": [
+    "README.md",
+    "Cargo.toml",
+    "tests/src/.gitkeep",
+    "main/src/lib.rs"
+  ],
+  "text_rules": {
+    "std/main/src/saf/http_transport_svc.rs": [
+      [
+        "pub struct HttpTransportSvc",
+        "pub(crate) struct HttpTransportSvc"
+      ]
+    ],
+    "std/main/src/saf/transport_svc.rs": [
+      [
+        "HttpStream,\n    HttpTransportSvc, ValidatableHttpConfig,\n};",
+        "HttpStream,\n    ValidatableHttpConfig,\n};\nuse super::http_transport_svc::HttpTransportSvc;"
+      ],
+      [
+        ".with_name(env!(\"CARGO_PKG_NAME\"))",
+        ".with_name(\"edge-transport-http-egress-transport\")"
+      ],
+      [
+        "pub fn validate<V: edge_transport_http_egress_transport_api::Validator>(v: &V) -> Result<(), String> {",
+        "pub fn validate(\n        v: &dyn edge_transport_http_egress_transport_api::Validator,\n    ) -> Result<(), String> {"
+      ]
+    ]
+  },
+  "test_side": {
+    "reqwest_middleware_int_test.rs": "std",
+    "tokio_tungstenite_dep_int_test.rs": "std"
+  },
+  "std_names": [
+    "StdTransportFactory"
+  ],
+  "trait_names": [
+    "TransportFactory"
+  ],
+  "drop_names": [
+    "HttpTransportSvc",
+    "ValidatorSvcFactory"
+  ],
+  "line_rules": [
+    [
+      "\\bHttpTransportSvc\\b(?!::)",
+      "StdTransportFactory"
+    ]
+  ],
+  "test_rules": [
+    [
+      "HttpTransportSvc::(\\w+)",
+      "StdTransportFactory.\\1"
+    ],
+    [
+      "ValidatorSvcFactory::create\\(\\)",
+      "StdTransportFactory.create_validator()"
+    ],
+    [
+      "env!\\(\"CARGO_PKG_NAME\"\\)",
+      "\"edge-transport-http-egress-transport\""
+    ],
+    [
+      "concat!\\(env!\\(\"CARGO_MANIFEST_DIR\"\\), \"/config\"\\)",
+      "concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../transport-api/config\")"
+    ]
+  ]
+}
