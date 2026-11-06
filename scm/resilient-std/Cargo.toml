@@ -1,12 +1,12 @@
 [package]
-name = "edge-transport-http-egress-resilient"
+name = "edge-transport-http-egress-resilient-std"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 authors.workspace = true
 repository.workspace = true
-description = "Composes the retry/rate/breaker/cache/cassette egress chain (real implementation of edge-transport-http-egress-resilient-port, per ADR-006)"
+description = "Composes the retry/rate/breaker/cache/cassette egress chain (real implementation of edge-transport-http-egress-resilient-api, per ADR-006)"
 keywords = ["http", "resilient", "reqwest", "middleware", "swe"]
 categories = ["web-programming::http-client"]
 
@@ -30,13 +30,14 @@ edge-transport-http-egress-cassette-api = { path = "../cassette-api" }
 edge-transport-http-egress-cassette-std = { path = "../cassette-std" }
 edge-transport-http-egress-rate-api = { path = "../rate-api" }
 edge-transport-http-egress-rate-std = { path = "../rate-std" }
-edge-transport-http-egress-resilient-port = { path = "../resilient-port" }
+edge-transport-http-egress-resilient-api = { path = "../resilient-api" }
 edge-transport-http-egress-retry-api = { path = "../retry-api" }
 edge-transport-http-egress-retry-std = { path = "../retry-std" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 configbuilder = "0.8"
 
 [dev-dependencies]
+tempfile = "3"
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 tokio = { version = "1.52", features = ["rt", "rt-multi-thread", "macros", "sync", "fs", "io-util", "net", "time"] }
 hyper = { version = "1", features = ["http1", "server"] }

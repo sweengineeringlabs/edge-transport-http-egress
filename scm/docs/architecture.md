@@ -18,14 +18,18 @@ assemble policy and middleware around that primitive.
 
 | Package | Responsibility |
 | --- | --- |
-| `transport` | Outbound HTTP contracts, reqwest-backed transport, and streaming support |
-| `retry` | Retry middleware and policy |
-| `rate` | Per-host rate limiting |
-| `breaker` | Per-host circuit breaking |
-| `cache` | HTTP response caching |
-| `cassette` | Deterministic recording and replay |
-| `resilient-port` | Contract for composing resilience middleware |
-| `resilient` | Config-driven or default composition of retry, rate, breaker, cache, and cassette |
+| `transport-api` / `transport-std` | Outbound HTTP contracts and `TransportFactory`; reqwest-backed transport and streaming support |
+| `retry-api` / `retry-std` | Retry contract; retry middleware and policy |
+| `rate-api` / `rate-std` | Rate-limit contract; per-host rate limiting |
+| `breaker-api` / `breaker-std` | Circuit-breaker contract; per-host circuit breaking |
+| `cache-api` / `cache-std` | Cache contract; HTTP response caching |
+| `cassette-api` / `cassette-std` | Record/replay contract; deterministic recording and replay |
+| `resilient-api` | Contract for composing resilience middleware |
+| `resilient-std` | Config-driven or default composition of retry, rate, breaker, cache, and cassette |
+
+Each `-api` package holds the traits, request/response types, errors, config and a factory trait; each
+`-std` package holds the implementation behind a single public `Std*Factory`. An application depends on
+the `-api` packages to program against a contract and on the `-std` packages only where it composes them.
 
 Authentication, OAuth, TLS policy, and load balancing are composition-root concerns. The transport
 exposes `SecurityContext` for identity propagation; it does not implement those policies. The
@@ -35,7 +39,7 @@ own layers at the required position.
 ## Outbound request flow
 
 The composition root creates the bare transport and chooses how to assemble client policy. When it
-uses `resilient`, the resilience concerns are registered in their required relative order:
+uses `resilient-std`, the resilience concerns are registered in their required relative order:
 
 ```mermaid
 flowchart LR

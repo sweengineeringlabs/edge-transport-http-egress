@@ -2,8 +2,8 @@
 
 use reqwest_middleware::ClientBuilder;
 
-use crate::api::error::ResilientError;
-use crate::api::types::{ResilientConfigRequest, ResilientDefaultsRequest};
+use crate::error::ResilientError;
+use crate::types::{ResilientConfigRequest, ResilientDefaultsRequest};
 
 /// Decorates a [`ClientBuilder`] with the retry/rate/breaker/cache/
 /// cassette chain, in that fixed relative order (`reqwest_middleware`

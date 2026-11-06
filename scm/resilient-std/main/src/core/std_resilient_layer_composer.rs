@@ -1,5 +1,5 @@
-//! `DefaultResilientLayerComposer` — the real implementation of
-//! [`edge_transport_http_egress_resilient_port::ResilientLayerComposer`].
+//! `StdResilientLayerComposer` — the real implementation of
+//! [`edge_transport_http_egress_resilient_api::ResilientLayerComposer`].
 //!
 //! Lifted from `transport`'s `saf/transport_svc.rs` (`with_optional_layers`/
 //! `build_default_egress`), unchanged internally — same config-section-driven
@@ -9,7 +9,7 @@
 use configbuilder::{FeatureState, OptionalSection as _};
 use reqwest_middleware::ClientBuilder;
 
-use edge_transport_http_egress_resilient_port::{
+use edge_transport_http_egress_resilient_api::{
     ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
 };
 
@@ -17,9 +17,9 @@ use edge_transport_http_egress_resilient_port::{
 /// matching the `HttpRetrySvc`/`HttpBreakerSvcProcessor`-style unit-struct
 /// convention already used by every layer crate this composes.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct DefaultResilientLayerComposer;
+pub struct StdResilientLayerComposer;
 
-impl ResilientLayerComposer for DefaultResilientLayerComposer {
+impl ResilientLayerComposer for StdResilientLayerComposer {
     fn apply_from_config(
         &self,
         request: ResilientConfigRequest<'_>,
