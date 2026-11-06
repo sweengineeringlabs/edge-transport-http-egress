@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Changed (breaking)
 
 - Issue #30: the `edge-transport-http-egress-retry` package is split into `edge-transport-http-egress-retry-api` (this contract) and `edge-transport-http-egress-retry-std` (the implementation). The Rust crate names are `edge_transport_http_egress_retry_api` and `edge_transport_http_egress_retry_std`; there is no `edge_transport_http_egress_retry` crate any more.

@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Added
 
 - Issue #30: this package is the implementation half of the former `edge-transport-http-egress-cache` package. Its only public item is `StdCacheFactory`, the `edge_transport_http_egress_cache_api::CacheFactory` implementation. The moka-backed cache, its stale-while-revalidate refresh and the reqwest-middleware glue are crate-private. See the `-api` changelog for the migration.
