@@ -172,7 +172,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
             if let Some(interaction) = fixtures.get(&key) {
                 return Self::reconstruct_response(&interaction.response).map_err(|e| {
                     reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                        "edge_transport_http_egress_cassette replay reconstruct failed: {e}"
+                        "edge_transport_http_egress_cassette_std replay reconstruct failed: {e}"
                     ))
                 });
             }
@@ -180,7 +180,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
             // Miss handling:
             if mode == "replay" {
                 return Err(reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                    "edge_transport_http_egress_cassette: no recorded interaction for key {key} in {}",
+                    "edge_transport_http_egress_cassette_std: no recorded interaction for key {key} in {}",
                     self.cassette_path.display()
                 )));
             }
@@ -192,7 +192,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
         // fixtures + disk.
         let attempt_req = req.try_clone().ok_or_else(|| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                "edge_transport_http_egress_cassette: cannot record a request with a non-cloneable body"
+                "edge_transport_http_egress_cassette_std: cannot record a request with a non-cloneable body"
             ))
         })?;
         let recorded_req = RecordedRequest {
@@ -220,7 +220,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
         }
         let body_bytes = response.bytes().await.map_err(|e| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                "edge_transport_http_egress_cassette: read response body: {e}"
+                "edge_transport_http_egress_cassette_std: read response body: {e}"
             ))
         })?;
         let body_base64 = base64::engine::general_purpose::STANDARD.encode(&body_bytes);
@@ -243,7 +243,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
             fixtures.insert(key, interaction);
             self.flush_to_disk(&fixtures).await.map_err(|e| {
                 reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                    "edge_transport_http_egress_cassette: flush to disk: {e}"
+                    "edge_transport_http_egress_cassette_std: flush to disk: {e}"
                 ))
             })?;
         }
@@ -252,7 +252,7 @@ impl reqwest_middleware::Middleware for FileCassetteLayer {
         // consumed body_bytes to record).
         Self::reconstruct_response(&recorded_resp).map_err(|e| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                "edge_transport_http_egress_cassette post-record reconstruct: {e}"
+                "edge_transport_http_egress_cassette_std post-record reconstruct: {e}"
             ))
         })
     }

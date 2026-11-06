@@ -17,7 +17,7 @@ fn test_parse_failed_display_names_the_crate() {
     let err = CassetteError::ParseFailed("unexpected key 'mode2'".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_cassette"),
+        msg.contains("edge_transport_http_egress_cassette_api"),
         "ParseFailed Display must name the crate; got: {msg}"
     );
 }

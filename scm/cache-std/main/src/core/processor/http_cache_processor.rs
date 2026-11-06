@@ -21,16 +21,10 @@ impl Processor for HttpCacheSvcProcessor {
 }
 
 impl HttpCacheSvcProcessor {
-    /// The application name the config builder is seeded with. configbuilder uses it as a directory
-    /// segment when it searches for configuration, so it stays the name of the package this
-    /// middleware had before the `-api`/`-std` split; seeding the `-std` package name would change
-    /// where existing deployments' configuration is found.
-    const CONFIG_APPLICATION_NAME: &'static str = "edge-transport-http-egress-cache";
-
     /// Return a config builder pre-seeded with this crate's name and version.
     pub fn create_config_builder() -> configbuilder::ConfigBuilderImpl {
         let mut b = configbuilder::ConfigLoaderFactory::create_config_builder();
-        b = b.with_name(Self::CONFIG_APPLICATION_NAME);
+        b = b.with_name(env!("CARGO_PKG_NAME"));
         b = b.with_version(env!("CARGO_PKG_VERSION"));
         b
     }
@@ -59,7 +53,7 @@ mod tests {
     #[test]
     fn test_create_config_builder_seeds_crate_name_inline() {
         let builder = HttpCacheSvcProcessor::create_config_builder();
-        assert_eq!(builder.name(), "edge-transport-http-egress-cache");
+        assert_eq!(builder.name(), env!("CARGO_PKG_NAME"));
     }
 
     /// @covers: build_cache_layer

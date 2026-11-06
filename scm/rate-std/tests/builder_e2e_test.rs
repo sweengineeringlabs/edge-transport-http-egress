@@ -59,7 +59,7 @@ fn test_e2e_create_config_builder_returns_loader() {
     let builder = StdRateFactory.create_config_builder();
     assert_eq!(
         builder.name(),
-        "edge-transport-http-egress-rate",
+        "edge-transport-http-egress-rate-std",
         "builder must be seeded with the crate name before building a loader"
     );
     let _loader = builder.build_loader();

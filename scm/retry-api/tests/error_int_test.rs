@@ -16,7 +16,7 @@ fn test_parse_failed_display_names_the_crate() {
     let err = RetryError::ParseFailed("unexpected field `max_retry`".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_retry"),
+        msg.contains("edge_transport_http_egress_retry_api"),
         "ParseFailed Display must name the crate; got: {msg}"
     );
 }

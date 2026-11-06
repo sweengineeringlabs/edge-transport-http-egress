@@ -71,11 +71,3 @@ fn test_new_config_builder_builds_a_config_with_the_chosen_retry_budget_happy() 
         .expect("a builder with defaults plus a retry budget must build");
     assert_eq!(config.max_retries, 6);
 }
-
-/// @covers: new_app_config_builder
-#[test]
-fn test_new_app_config_builder_keeps_the_pre_split_application_name_happy() {
-    let builder = StdRetryFactory.new_app_config_builder();
-    // The name is a config search directory segment: it must not change with the package split.
-    assert_eq!(builder.name(), "edge-transport-http-egress-retry");
-}

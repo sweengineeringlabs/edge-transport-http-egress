@@ -9,7 +9,7 @@ fn test_retry_error_is_accessible() {
     let err = RetryError::ParseFailed("unknown field".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_retry") && msg.contains("unknown field"),
+        msg.contains("edge_transport_http_egress_retry_api") && msg.contains("unknown field"),
         "RetryError Display must name the crate and echo the reason; got: {msg}"
     );
 }

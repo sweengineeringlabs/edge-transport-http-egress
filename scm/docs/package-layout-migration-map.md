@@ -168,7 +168,7 @@ Transport's `HttpEgress` trait itself uses local request/response types, but `Ht
 
 ## Migration Progress and Decisions (issue #30)
 
-Packages are migrated one at a time with `scm/scripts/migrate_layout.py <theme>` (read-only plan by default, `--apply` to execute) from a reviewed mapping in `scm/scripts/layout_map/<theme>.json` plus a template tree. Each package is verified (tests, clippy, rustdoc, audit) and merged to `dev` before the next; nothing is tagged or promoted to `main` until the last package lands.
+Packages were migrated one at a time from a reviewed mapping, each verified (tests, clippy, rustdoc, audit) and merged to `dev` before the next, and the result was released as v0.10.0. The one-off migration script and its mappings were removed from the tree afterwards; they are in the history at the tag `v0.10.0`.
 
 Decisions that apply to every package:
 
@@ -176,7 +176,7 @@ Decisions that apply to every package:
 - **`reqwest_middleware::Middleware` is allowed in an `-api` package** as a supertrait of the layer trait. It is a trait, not an implementation; the composition root attaches layers through it. No `reqwest-middleware` implementation type is used in an `-api` package.
 - **Config schema, `Default`, TOML parsing, section registration and conversions stay in `-api`**, because an inherent or trait impl must live in the crate that defines the type. `toml` and `configbuilder` are therefore `-api` dependencies.
 - **Edit-by-hand residue is reviewed in the same commit** as the generated move; the script does not guess.
-- **The config builder keeps its pre-split application name.** configbuilder joins the builder name onto its config search directories, so `create_config_builder` in each `-std` package seeds the old package name (for example `edge-transport-http-egress-rate`), held as an associated constant, not `CARGO_PKG_NAME`. Seeding the `-std` name would silently move where existing deployments' configuration is found. A test per package asserts the literal.
+- **The config builder is seeded with its own package name.** configbuilder joins the builder name onto its config search directories, so a deployment's configuration directory is named after the `-std` package (for retry, the application config builder lives in `retry-api` and uses that name; for transport it is `transport-std`). Runtime diagnostic prefixes name the new crates. There is no compatibility with the pre-split names.
 - **Pre-existing finding, not fixed here:** the `tracing` Cargo feature of each middleware package gates no code. It is kept (as an inert feature) in `-std` so existing consumers still resolve.
 
 | Package | Status |

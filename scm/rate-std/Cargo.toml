@@ -30,16 +30,12 @@ configbuilder = "0.8"
 async-trait = "0.1"
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 moka = { version = "0.12", features = ["future"] }
-# Declared before the split and read by no code; kept so a consumer that enables it still resolves.
-tracing = { version = "0.1", default-features = false, optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "macros", "rt-multi-thread"] }
 
 [features]
 default = []
-# Inert: no code is gated on it (kept for consumers that enable it).
-tracing = ["dep:tracing"]
 
 [lints.rust]
 unsafe_code  = "deny"

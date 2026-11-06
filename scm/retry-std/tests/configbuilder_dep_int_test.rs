@@ -16,7 +16,7 @@ use edge_transport_http_egress_retry_std::StdRetryFactory;
 #[test]
 fn std_struct_svc_create_config_builder_returns_builder_int_test() {
     let builder: ConfigBuilderImpl = configbuilder::ConfigLoaderFactory::create_config_builder()
-        .with_name("edge-transport-http-egress-retry")
+        .with_name("edge-transport-http-egress-retry-api")
         .with_version(env!("CARGO_PKG_VERSION"));
     assert!(
         !builder.name().is_empty() && !builder.version().is_empty(),
@@ -37,7 +37,7 @@ fn std_struct_svc_create_config_builder_returns_builder_int_test() {
 #[test]
 fn std_struct_svc_create_config_builder_has_non_empty_name_int_test() {
     let builder: ConfigBuilderImpl = configbuilder::ConfigLoaderFactory::create_config_builder()
-        .with_name("edge-transport-http-egress-retry");
+        .with_name("edge-transport-http-egress-retry-api");
     assert!(
         !builder.name().is_empty(),
         "ConfigBuilderImpl must carry a non-empty package name"

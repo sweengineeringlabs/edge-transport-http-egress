@@ -15,7 +15,7 @@ fn std_struct_dep_configbuilder_create_config_builder_returns_builder_int_test()
     // just that a default builder was returned.
     assert_eq!(
         builder.name(),
-        "edge-transport-http-egress-cache",
+        "edge-transport-http-egress-cache-std",
         "builder must carry this crate's package name"
     );
     assert!(

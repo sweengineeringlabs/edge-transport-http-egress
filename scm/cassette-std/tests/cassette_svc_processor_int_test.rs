@@ -11,7 +11,7 @@ use edge_transport_http_egress_cassette_std::StdCassetteFactory;
 #[test]
 fn test_create_config_builder_seeds_crate_name() {
     let builder = StdCassetteFactory.create_config_builder();
-    assert_eq!(builder.name(), "edge-transport-http-egress-cassette");
+    assert_eq!(builder.name(), "edge-transport-http-egress-cassette-std");
 }
 
 /// @covers: build_cassette_layer

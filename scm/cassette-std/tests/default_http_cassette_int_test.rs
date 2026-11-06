@@ -46,10 +46,10 @@ fn test_builder_pipeline_stores_config_in_default_http_cassette() {
 }
 
 // ---------------------------------------------------------------------------
-// DefaultHttpCassette::describe — "edge_transport_http_egress_cassette" embedded in Debug
+// DefaultHttpCassette::describe — "edge_transport_http_egress_cassette_std" embedded in Debug
 // ---------------------------------------------------------------------------
 
-/// `DefaultHttpCassette::describe()` returns "edge_transport_http_egress_cassette". Although
+/// `DefaultHttpCassette::describe()` returns "edge_transport_http_egress_cassette_std". Although
 /// the concrete type is `pub(crate)`, the mode field in `CassetteLayer`'s
 /// Debug output confirms the inner config (and by extension the impl) is
 /// correctly wired. Two distinct modes must produce distinct Debug strings.
