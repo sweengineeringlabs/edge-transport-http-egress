@@ -9,7 +9,7 @@ echo "pre-commit ── $(basename $REPO_ROOT) ──"
 cd "$SCM_DIR"
 
 PACKAGES="edge-transport-http-egress-cache-api edge-transport-http-egress-cache-std edge-transport-http-egress-rate-api edge-transport-http-egress-rate-std edge-transport-http-egress-retry-api edge-transport-http-egress-retry-std \
-          edge-transport-http-egress-breaker-api edge-transport-http-egress-breaker-std edge-transport-http-egress-cassette \
+          edge-transport-http-egress-breaker-api edge-transport-http-egress-breaker-std edge-transport-http-egress-cassette-api edge-transport-http-egress-cassette-std \
           edge-transport-http-egress-resilient edge-transport-http-egress-resilient-port \
           edge-transport-http-egress-transport"
 
@@ -47,7 +47,10 @@ echo "  3/4 arch audit..."
 KNOWN_TOOL_ERRORS="test_coverage_threshold test_mutation_score"  # handlers not registered in arch 0.3.56
 baseline_for() {
   case "$1" in
-    cassette) echo "config_file_to_builder_naming" ;;
+    # cassette-api / cassette-std: the same conflicts as breaker-api / breaker-std below; cassette-api keeps the
+    #   config_file_to_builder_naming finding the cassette package already had.
+    cassette-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names config_file_to_builder_naming" ;;
+    cassette-std) echo "pub_types_in_api_only api_layer_mirrors_core_domains port_no_adapter_dep" ;;
     # cache-api / cache-std: the same conflicts and pre-existing finding as breaker-api / breaker-std below.
     cache-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names config_file_to_builder_naming" ;;
     cache-std) echo "pub_types_in_api_only api_layer_mirrors_core_domains port_no_adapter_dep" ;;
@@ -72,7 +75,7 @@ baseline_for() {
     *) echo "" ;;
   esac
 }
-for pkg_dir in cache-api cache-std rate-api rate-std retry-api retry-std breaker-api breaker-std cassette resilient resilient-port transport; do
+for pkg_dir in cache-api cache-std rate-api rate-std retry-api retry-std breaker-api breaker-std cassette-api cassette-std resilient resilient-port transport; do
   AUDIT_OUTPUT="$(cd "$SCM_DIR/$pkg_dir" && arch audit --rs 2>&1)" && AUDIT_STATUS=0 || AUDIT_STATUS=$?
   echo "$AUDIT_OUTPUT"
   if [ "$AUDIT_STATUS" -ne 0 ]; then

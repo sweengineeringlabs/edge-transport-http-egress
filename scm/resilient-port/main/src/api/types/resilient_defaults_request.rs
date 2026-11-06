@@ -2,7 +2,7 @@
 
 use reqwest_middleware::ClientBuilder;
 
-use edge_transport_http_egress_cassette::CassetteConfig;
+use edge_transport_http_egress_cassette_api::CassetteConfig;
 
 /// Request to apply the resilient chain using SWE-shipped defaults for
 /// retry/rate/breaker/cache, unconditionally — no config source. Cassette

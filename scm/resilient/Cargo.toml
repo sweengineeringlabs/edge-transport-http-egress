@@ -26,7 +26,8 @@ edge-transport-http-egress-breaker-api = { path = "../breaker-api" }
 edge-transport-http-egress-breaker-std = { path = "../breaker-std" }
 edge-transport-http-egress-cache-api = { path = "../cache-api" }
 edge-transport-http-egress-cache-std = { path = "../cache-std" }
-edge-transport-http-egress-cassette = { path = "../cassette" }
+edge-transport-http-egress-cassette-api = { path = "../cassette-api" }
+edge-transport-http-egress-cassette-std = { path = "../cassette-std" }
 edge-transport-http-egress-rate-api = { path = "../rate-api" }
 edge-transport-http-egress-rate-std = { path = "../rate-std" }
 edge-transport-http-egress-resilient-port = { path = "../resilient-port" }

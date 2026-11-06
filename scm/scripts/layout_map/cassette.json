@@ -1,0 +1,169 @@
+{
+  "reviewed": true,
+  "theme": "cassette",
+  "notes": "Issue #30, fifth package; same decisions as breaker, rate, cache and retry (see scm/docs/package-layout-migration-map.md). -api: CassetteConfig and CassetteConfigBuilder (schema, defaults, TOML parsing, builder), CassetteError, DTOs, the Processor, Validator and HttpCassette traits, and the new CassetteFactory and CassetteLayer contract traits. -std: the record/replay middleware (fixture store, body scrubber, recorded interactions, request matching) behind StdCassetteFactory; every concrete type is crate-private. The public CassetteLayer was a concrete struct that carried the reqwest-middleware impl, and an impl of a foreign trait must live in the crate that defines the type, so the struct moves to -std as the private FileCassetteLayer and CassetteLayer becomes a contract trait (Middleware + HttpCassette + Debug); the factory returns Arc<dyn CassetteLayer>. CassetteLayerBuilder (with_config, with_cassette_name, build_layer) is dropped: CassetteFactory::build_cassette_layer(config, name) is its replacement and needs no second construction path. api/body, api/recorded, api/default, api/cassette and api/processor held only placeholder type aliases and empty modules (most were not even compiled); they are dropped.",
+  "api_to_std": {
+    "types/cassette/cassette_layer.rs": "core/cassette/cassette_layer.rs",
+    "types/http_cassette_svc.rs": "core/processor/cassette_svc_processor.rs"
+  },
+  "core_to_api": {
+    "core/cassette/cassette_config.rs": "types/cassette/cassette_config_impls.rs",
+    "core/cassette/cassette_config_builder.rs": "types/cassette/cassette_config_builder_impls.rs"
+  },
+  "drop": [
+    "mod.rs",
+    "types/mod.rs",
+    "types/cassette/mod.rs",
+    "types/cassette/cassette_layer_builder.rs",
+    "traits/mod.rs",
+    "body/scrubber/scrubber.rs",
+    "cassette/fixture_store.rs",
+    "cassette/layer/mod.rs",
+    "cassette/mod.rs",
+    "default/http/cassette/cassette.rs",
+    "recorded/interaction/interaction.rs",
+    "recorded/interaction/request.rs",
+    "recorded/interaction/response.rs",
+    "processor/mod.rs",
+    "core/cassette/mod.rs",
+    "core/cassette/cassette_layer_builder.rs",
+    "core/processor/mod.rs",
+    "saf/mod.rs",
+    "saf/http_cassette_svc_factory.rs",
+    "saf/processor_svc_factory.rs",
+    "saf/validator_svc_factory.rs"
+  ],
+  "aux": {
+    "config": "api",
+    "deny.toml": "both",
+    "CHANGELOG.md": "api",
+    "examples": "std",
+    "docs": "std",
+    "scripts": "std",
+    "SECURITY.md": "both",
+    ".gitignore": "both",
+    "bootstrap.sh": "both",
+    "bootstrap.ps1": "both"
+  },
+  "delete": [
+    "README.md",
+    "Cargo.toml",
+    "tests/src/.gitkeep",
+    "main/src/lib.rs"
+  ],
+  "config_application_name": {
+    "file": "main/src/core/processor/http_cassette_processor.rs",
+    "impl": "impl HttpCassetteSvc {\n",
+    "name": "edge-transport-http-egress-cassette"
+  },
+  "text_rules": {
+    "std/main/src/core/cassette/cassette_layer.rs": [
+      [
+        "pub struct CassetteLayer",
+        "pub(crate) struct FileCassetteLayer"
+      ],
+      [
+        "use super::cassette_config::CassetteConfig;",
+        "use edge_transport_http_egress_cassette_api::CassetteConfig;"
+      ]
+    ],
+    "std/main/src/core/cassette/layer/layer.rs": [
+      [
+        "use edge_transport_http_egress_cassette_api::{CassetteConfig, CassetteError, CassetteLayer};",
+        "use edge_transport_http_egress_cassette_api::{CassetteConfig, CassetteError};\nuse crate::core::cassette::cassette_layer::FileCassetteLayer;"
+      ]
+    ],
+    "std/main/src/core/processor/http_cassette_processor.rs": [
+      [
+        "edge_transport_http_egress_cassette_api::{\n    CassetteConfig, CassetteError, CassetteLayer, DescribeRequest, DescribeResponse,\n    HttpCassetteSvc, Processor,\n};",
+        "edge_transport_http_egress_cassette_api::{\n    CassetteConfig, CassetteError, DescribeRequest, DescribeResponse, Processor,\n};\nuse super::cassette_svc_processor::HttpCassetteSvc;\nuse crate::core::cassette::cassette_layer::FileCassetteLayer;"
+      ]
+    ],
+    "std/main/src/core/processor/cassette_svc_processor.rs": [
+      [
+        "pub struct HttpCassetteSvc",
+        "pub(crate) struct HttpCassetteSvc"
+      ]
+    ]
+  },
+  "regex_rules": {
+    "std/main/src/core/cassette/layer/layer.rs": [
+      [
+        "\\bCassetteLayer\\b",
+        "FileCassetteLayer"
+      ],
+      [
+        "debug_struct\\(\"FileCassetteLayer\"\\)",
+        "debug_struct(\"CassetteLayer\")"
+      ]
+    ],
+    "std/main/src/core/processor/http_cassette_processor.rs": [
+      [
+        "\\bCassetteLayer\\b",
+        "FileCassetteLayer"
+      ]
+    ]
+  },
+  "test_side": {
+    "reqwest_dep_int_test.rs": "std",
+    "sha2_dep_int_test.rs": "std"
+  },
+  "std_names": [
+    "StdCassetteFactory"
+  ],
+  "trait_names": [
+    "CassetteFactory"
+  ],
+  "drop_names": [
+    "HttpCassetteSvc",
+    "HttpCassetteFactory",
+    "ProcessorFactory",
+    "ValidatorFactory",
+    "CassetteLayerBuilder",
+    "CassetteLayer"
+  ],
+  "line_rules": [
+    [
+      "\\bHttpCassetteSvc\\b(?!::)",
+      "StdCassetteFactory.create_processor()"
+    ]
+  ],
+  "test_rules": [
+    [
+      "(?s)CassetteLayerBuilder::new\\(\\)\\s*\\.with_config\\((.+?)\\)\\s*\\.with_cassette_name\\((\"[^\"]*\")\\)\\s*\\.build_layer\\(\\)",
+      "StdCassetteFactory.build_cassette_layer(\\1, \\2)"
+    ],
+    [
+      "HttpCassetteSvc::build_cassette_layer\\(",
+      "StdCassetteFactory.build_cassette_layer("
+    ],
+    [
+      "HttpCassetteSvc::create_config_builder\\(\\)",
+      "StdCassetteFactory.create_config_builder()"
+    ],
+    [
+      "ProcessorFactory::create\\(\\)",
+      "StdCassetteFactory.create_processor()"
+    ],
+    [
+      "ValidatorFactory::create\\(\\)",
+      "StdCassetteFactory.create_validator()"
+    ],
+    [
+      "HttpCassetteFactory::from_layer\\((\\w+)\\)",
+      "\\1"
+    ],
+    [
+      ": CassetteLayer\\b",
+      ""
+    ],
+    [
+      "\\.with\\((\\w*layer\\w*)\\)",
+      ".with_arc(\\1)"
+    ],
+    [
+      "concat!\\(env!\\(\"CARGO_MANIFEST_DIR\"\\), \"/config\"\\)",
+      "concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../cassette-api/config\")"
+    ]
+  ]
+}

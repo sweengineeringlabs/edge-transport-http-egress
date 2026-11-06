@@ -17,4 +17,4 @@ pub use crate::api::{
 // value without taking their own direct dependency on the cassette crate —
 // `transport` relies on this to stay free of any of the five concern
 // crates directly (see ADR-006).
-pub use edge_transport_http_egress_cassette::CassetteConfig;
+pub use edge_transport_http_egress_cassette_api::CassetteConfig;
