@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Added
 
 - Issue #30: this package is the implementation half of the former `edge-transport-http-egress-cassette` package. Its only public item is `StdCassetteFactory`, the `edge_transport_http_egress_cassette_api::CassetteFactory` implementation. The record/replay middleware, fixture store, body scrubber and recorded interactions are crate-private. See the `-api` changelog for the migration.

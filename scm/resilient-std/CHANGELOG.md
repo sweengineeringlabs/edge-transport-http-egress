@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Changed (breaking)
 
 - Issue #30: the `edge-transport-http-egress-resilient` package is renamed `edge-transport-http-egress-resilient-std`. The Rust crate name is now `edge_transport_http_egress_resilient_std`; there is no `edge_transport_http_egress_resilient` crate any more.

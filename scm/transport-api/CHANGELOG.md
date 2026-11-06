@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-06
+
 ### Changed (breaking)
 
 - Issue #30: the `edge-transport-http-egress-transport` package is split into `edge-transport-http-egress-transport-api` (this contract) and `edge-transport-http-egress-transport-std` (the reqwest-backed implementation). The Rust crate names are `edge_transport_http_egress_transport_api` and `edge_transport_http_egress_transport_std`; there is no `edge_transport_http_egress_transport` crate any more.
