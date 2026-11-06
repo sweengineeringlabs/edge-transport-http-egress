@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_cassette::CassetteConfig;
+/// use edge_transport_http_egress_cassette_api::CassetteConfig;
 ///
 /// // Production: disabled pass-through (no cassette I/O).
 /// let cfg = CassetteConfig::disabled();

@@ -1,4 +1,4 @@
-//! Integration tests for `retry_error` in `edge-transport-http-egress-retry`.
+//! Integration tests for `retry_error` in `edge-transport-http-egress-retry-api`.
 
 use edge_transport_http_egress_retry_api::RetryError;
 

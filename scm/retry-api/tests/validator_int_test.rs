@@ -1,4 +1,4 @@
-//! Integration tests for the `Validator` trait in `edge-transport-http-egress-retry`.
+//! Integration tests for the `Validator` trait in `edge-transport-http-egress-retry-api`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 

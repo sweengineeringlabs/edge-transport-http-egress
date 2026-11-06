@@ -1,7 +1,7 @@
 //! `edge_transport_http_egress_resilient_api` — trait contract for
 //! composing the retry/rate/breaker/cache/cassette egress chain, zero
 //! implementation. Per ADR-006: the concrete implementation lives in
-//! `edge-transport-http-egress-resilient`, not here.
+//! `edge-transport-http-egress-resilient-std`, not here.
 
 #![warn(missing_docs)]
 #![deny(unsafe_code)]

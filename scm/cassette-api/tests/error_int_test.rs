@@ -11,7 +11,7 @@ use edge_transport_http_egress_cassette_api::CassetteError;
 // ---------------------------------------------------------------------------
 
 /// `ParseFailed` display must name the crate so an operator can trace the
-/// error back to `edge_transport_http_egress_cassette` without reading source code.
+/// error back to `edge_transport_http_egress_cassette_api` without reading source code.
 #[test]
 fn test_parse_failed_display_names_the_crate() {
     let err = CassetteError::ParseFailed("unexpected key 'mode2'".to_string());

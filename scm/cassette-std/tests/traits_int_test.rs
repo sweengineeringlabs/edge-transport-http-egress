@@ -1,4 +1,4 @@
-//! Integration tests for `edge_transport_http_egress_cassette` trait re-exports (`api/traits.rs`).
+//! Integration tests for `edge_transport_http_egress_cassette_std` trait re-exports (`api/traits.rs`).
 //!
 //! `api/traits.rs` declares a `pub(crate)` type alias `HttpCassetteTrait`
 //! for `dyn HttpCassette`. That alias is internal-only. From the integration

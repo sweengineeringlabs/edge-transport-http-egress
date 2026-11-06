@@ -1,4 +1,4 @@
-//! Integration tests for `edge_transport_http_egress_cassette` SAF builder entry points.
+//! Integration tests for `edge_transport_http_egress_cassette_std` SAF builder entry points.
 //!
 //! Covers: `create_config_builder()`, `StdCassetteFactory.build_cassette_layer(config, name)`, and all config variants.
 #![allow(clippy::unwrap_used, clippy::expect_used)]

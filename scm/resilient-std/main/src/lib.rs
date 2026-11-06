@@ -10,7 +10,3 @@
 mod core;
 
 pub use crate::core::StdResilientLayerComposer;
-pub use edge_transport_http_egress_resilient_api::{
-    CassetteConfig, ResilientConfigRequest, ResilientDefaultsRequest, ResilientError,
-    ResilientLayerComposer,
-};

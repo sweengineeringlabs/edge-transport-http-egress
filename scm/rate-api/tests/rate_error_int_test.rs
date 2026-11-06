@@ -1,4 +1,4 @@
-//! Integration tests for `rate_error` in `edge-transport-http-egress-rate`.
+//! Integration tests for `rate_error` in `edge-transport-http-egress-rate-api`.
 
 use edge_transport_http_egress_rate_api::RateError;
 

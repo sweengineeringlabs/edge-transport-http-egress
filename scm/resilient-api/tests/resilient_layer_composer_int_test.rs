@@ -6,7 +6,10 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::Arc;
 use std::thread;
 
-use configbuilder::ConfigLoaderFactory;
+use configbuilder::{
+    ConfigError, ConfigLoaderFactory, FeatureRegistry, FeatureRegistryOps as _, FeatureSummary,
+    FeatureSummaryOps as _, SectionLoaderImpl,
+};
 use edge_transport_http_egress_cassette_api::CassetteConfig;
 use edge_transport_http_egress_resilient_api::{
     ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
@@ -29,6 +32,10 @@ impl ResilientLayerComposer for PassThroughLayers {
     ) -> Result<ClientBuilder, ResilientError> {
         Ok(request.builder)
     }
+
+    fn preflight(&self, _loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError> {
+        Ok(FeatureRegistry::new().summary())
+    }
 }
 
 struct FailingLayers;
@@ -46,6 +53,10 @@ impl ResilientLayerComposer for FailingLayers {
         _request: ResilientDefaultsRequest,
     ) -> Result<ClientBuilder, ResilientError> {
         Err(ResilientError::Cassette("invalid cassette".into()))
+    }
+
+    fn preflight(&self, _loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError> {
+        Err(ConfigError::NotFound("no application.toml".into()))
     }
 }
 
@@ -205,4 +216,27 @@ fn test_apply_defaults_failure_error() {
     assert!(
         matches!(defaults_error, ResilientError::Cassette(message) if message == "invalid cassette")
     );
+}
+
+/// @covers: preflight
+#[test]
+fn test_preflight_reports_the_summary_of_the_composer_happy() {
+    let loader = ConfigLoaderFactory::create_loader().expect("loader without config dirs");
+    let composer: &dyn ResilientLayerComposer = &PassThroughLayers;
+    let summary = composer
+        .preflight(&loader)
+        .expect("a pass-through composer has no sections");
+    assert_eq!(summary.total_count(), 0, "this double composes no layers");
+    assert_eq!(summary.enabled_count(), 0);
+}
+
+/// @covers: preflight
+#[test]
+fn test_preflight_surfaces_a_config_failure_error() {
+    let loader = ConfigLoaderFactory::create_loader().expect("loader without config dirs");
+    let composer: &dyn ResilientLayerComposer = &FailingLayers;
+    let Err(err) = composer.preflight(&loader) else {
+        panic!("a failing composer must not hide its config failure");
+    };
+    assert!(matches!(err, ConfigError::NotFound(_)), "got: {err:?}");
 }

@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_rate::RateConfig;
+/// use edge_transport_http_egress_rate_api::RateConfig;
 ///
 /// // SWE baseline: 10 req/s, 20-request burst, per-host buckets.
 /// let cfg = RateConfig::default();

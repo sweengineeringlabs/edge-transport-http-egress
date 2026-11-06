@@ -35,7 +35,9 @@ fn loader_for(toml: &str) -> (tempfile::TempDir, configbuilder::SectionLoaderImp
 #[test]
 fn test_preflight_with_no_sections_reports_every_layer_off_happy() {
     let (_dir, loader) = loader_for("[application]\nname = \"x\"\n");
-    let summary = StdResilientLayerComposer::preflight(&loader).expect("no section is present");
+    let summary = StdResilientLayerComposer
+        .preflight(&loader)
+        .expect("no section is present");
     assert_eq!(
         summary.total_count(),
         5,
@@ -52,7 +54,9 @@ fn test_preflight_with_no_sections_reports_every_layer_off_happy() {
 #[test]
 fn test_preflight_with_a_retry_section_reports_only_retry_on_edge() {
     let (_dir, loader) = loader_for(&retry_section(2));
-    let summary = StdResilientLayerComposer::preflight(&loader).expect("retry section parses");
+    let summary = StdResilientLayerComposer
+        .preflight(&loader)
+        .expect("retry section parses");
     assert_eq!(summary.total_count(), 5);
     assert_eq!(
         summary.enabled_count(),
@@ -67,7 +71,7 @@ fn test_preflight_with_a_retry_section_reports_only_retry_on_edge() {
 fn test_preflight_with_an_invalid_cassette_section_fails_error() {
     let (_dir, loader) = loader_for("[cassette]\nverbose = true\n");
     assert!(
-        StdResilientLayerComposer::preflight(&loader).is_err(),
+        StdResilientLayerComposer.preflight(&loader).is_err(),
         "an unknown key in a present section must surface, not be silently dropped"
     );
 }

@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 /// # Examples
 ///
 /// ```rust
-/// use edge_transport_http_egress_cache::CacheConfig;
+/// use edge_transport_http_egress_cache_api::CacheConfig;
 ///
 /// // SWE baseline: 5-min TTL, 10k entries, honor Cache-Control.
 /// let cfg = CacheConfig::default();

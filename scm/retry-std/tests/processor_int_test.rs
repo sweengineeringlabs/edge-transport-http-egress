@@ -1,4 +1,4 @@
-//! Integration tests for the `Processor` trait in `edge-transport-http-egress-retry`.
+//! Integration tests for the `Processor` trait in `edge-transport-http-egress-retry-std`.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 

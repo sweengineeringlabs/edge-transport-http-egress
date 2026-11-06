@@ -20,9 +20,8 @@ use hyper::{Request, Response, StatusCode};
 use hyper_util::rt::TokioIo;
 
 use edge_transport_http_egress_cassette_api::CassetteConfig;
-use edge_transport_http_egress_resilient_std::{
-    ResilientDefaultsRequest, ResilientLayerComposer, StdResilientLayerComposer,
-};
+use edge_transport_http_egress_resilient_api::{ResilientDefaultsRequest, ResilientLayerComposer};
+use edge_transport_http_egress_resilient_std::StdResilientLayerComposer;
 
 async fn spawn_once<F, Fut>(handler: F) -> (u16, tokio::task::JoinHandle<()>)
 where
@@ -166,7 +165,7 @@ async fn test_apply_from_config_with_no_sections_present_still_round_trips_happy
     let builder = reqwest_middleware::ClientBuilder::new(client);
     let builder = StdResilientLayerComposer
         .apply_from_config(
-            edge_transport_http_egress_resilient_std::ResilientConfigRequest {
+            edge_transport_http_egress_resilient_api::ResilientConfigRequest {
                 builder,
                 loader: &loader,
             },

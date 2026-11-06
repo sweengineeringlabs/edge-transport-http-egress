@@ -1,5 +1,6 @@
 //! Contract for composing the retry/rate/breaker/cache/cassette egress chain.
 
+use configbuilder::{ConfigError, FeatureSummary, SectionLoaderImpl};
 use reqwest_middleware::ClientBuilder;
 
 use crate::error::ResilientError;
@@ -38,4 +39,13 @@ pub trait ResilientLayerComposer: Send + Sync {
         &self,
         request: ResilientDefaultsRequest,
     ) -> Result<ClientBuilder, ResilientError>;
+
+    /// Load every optional `[section]` this chain composes and return a [`FeatureSummary`] of what
+    /// would activate, without building any middleware. Log it at startup so operators see exactly
+    /// which of retry/rate/breaker/cache/cassette are on and why; it is the visibility guardrail
+    /// against silent config-driven activation.
+    ///
+    /// # Errors
+    /// Returns [`ConfigError`] if a present section fails to parse or validate.
+    fn preflight(&self, loader: &SectionLoaderImpl) -> Result<FeatureSummary, ConfigError>;
 }
