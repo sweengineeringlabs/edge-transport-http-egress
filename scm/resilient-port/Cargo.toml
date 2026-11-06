@@ -22,7 +22,7 @@ service_type = "port"
 path = "main/src/lib.rs"
 
 [dependencies]
-edge-transport-http-egress-cassette = { path = "../cassette" }
+edge-transport-http-egress-cassette-api = { path = "../cassette-api" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 configbuilder = "0.8"
 thiserror = "2"

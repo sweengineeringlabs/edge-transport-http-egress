@@ -83,11 +83,12 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             );
         }
         if let FeatureState::Enabled(cassette_cfg) =
-            edge_transport_http_egress_cassette::CassetteConfig::load_optional(loader)
+            edge_transport_http_egress_cassette_api::CassetteConfig::load_optional(loader)
                 .map_err(|e| ResilientError::Config(e.to_string()))?
         {
-            builder = builder.with(
-                edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
+            builder = builder.with_arc(
+                edge_transport_http_egress_cassette_api::CassetteFactory::build_cassette_layer(
+                    &edge_transport_http_egress_cassette_std::StdCassetteFactory,
                     cassette_cfg,
                     "default",
                 )
@@ -141,8 +142,9 @@ impl ResilientLayerComposer for DefaultResilientLayerComposer {
             )
             .map_err(|e| ResilientError::Cache(e.to_string()))?,
         );
-        builder = builder.with(
-            edge_transport_http_egress_cassette::HttpCassetteSvc::build_cassette_layer(
+        builder = builder.with_arc(
+            edge_transport_http_egress_cassette_api::CassetteFactory::build_cassette_layer(
+                &edge_transport_http_egress_cassette_std::StdCassetteFactory,
                 cassette,
                 &cassette_name,
             )

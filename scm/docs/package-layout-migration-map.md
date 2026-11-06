@@ -185,4 +185,5 @@ Decisions that apply to every package:
 | rate | Split into `rate-api` and `rate-std`; `resilient` updated. |
 | cache | Split into `cache-api` and `cache-std`; `resilient` updated. |
 | retry | Split into `retry-api` and `retry-std`; `resilient` updated. |
-| cassette, transport, resilient-port, resilient | Not started. |
+| cassette | Split into `cassette-api` and `cassette-std`; `resilient` and `resilient-port` updated. |
+| transport, resilient-port, resilient | Not started. |
