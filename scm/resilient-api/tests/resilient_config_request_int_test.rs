@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use configbuilder::ConfigLoaderFactory;
-use edge_transport_http_egress_resilient_port::ResilientConfigRequest;
+use edge_transport_http_egress_resilient_api::ResilientConfigRequest;
 use reqwest_middleware::ClientBuilder;
 
 /// @covers: ResilientConfigRequest

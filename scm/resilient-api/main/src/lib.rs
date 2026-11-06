@@ -1,4 +1,4 @@
-//! `edge_transport_http_egress_resilient_port` — trait contract for
+//! `edge_transport_http_egress_resilient_api` — trait contract for
 //! composing the retry/rate/breaker/cache/cassette egress chain, zero
 //! implementation. Per ADR-006: the concrete implementation lives in
 //! `edge-transport-http-egress-resilient`, not here.
@@ -8,11 +8,13 @@
 #![warn(clippy::all)]
 #![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))]
 
-mod api;
+mod error;
+mod traits;
+mod types;
 
-pub use crate::api::{
-    ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
-};
+pub use crate::error::ResilientError;
+pub use crate::traits::ResilientLayerComposer;
+pub use crate::types::{ResilientConfigRequest, ResilientDefaultsRequest};
 // Re-exported so consumers can construct a `ResilientDefaultsRequest.cassette`
 // value without taking their own direct dependency on the cassette crate —
 // `transport` relies on this to stay free of any of the five concern

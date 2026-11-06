@@ -1,4 +1,4 @@
-//! `edge_transport_http_egress_resilient` — real implementation of the
+//! `edge_transport_http_egress_resilient_std` — real implementation of the
 //! retry/rate/breaker/cache/cassette egress chain. Per ADR-006: lifted
 //! from `transport`'s `saf/transport_svc.rs`, unchanged internally.
 
@@ -9,8 +9,8 @@
 
 mod core;
 
-pub use crate::core::DefaultResilientLayerComposer;
-pub use edge_transport_http_egress_resilient_port::{
+pub use crate::core::StdResilientLayerComposer;
+pub use edge_transport_http_egress_resilient_api::{
     CassetteConfig, ResilientConfigRequest, ResilientDefaultsRequest, ResilientError,
     ResilientLayerComposer,
 };

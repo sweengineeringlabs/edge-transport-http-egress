@@ -3,7 +3,7 @@
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use edge_transport_http_egress_cassette_api::CassetteConfig;
-use edge_transport_http_egress_resilient_port::ResilientDefaultsRequest;
+use edge_transport_http_egress_resilient_api::ResilientDefaultsRequest;
 use reqwest_middleware::ClientBuilder;
 
 /// @covers: ResilientDefaultsRequest

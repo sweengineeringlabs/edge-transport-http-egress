@@ -10,7 +10,7 @@ cd "$SCM_DIR"
 
 PACKAGES="edge-transport-http-egress-cache-api edge-transport-http-egress-cache-std edge-transport-http-egress-rate-api edge-transport-http-egress-rate-std edge-transport-http-egress-retry-api edge-transport-http-egress-retry-std \
           edge-transport-http-egress-breaker-api edge-transport-http-egress-breaker-std edge-transport-http-egress-cassette-api edge-transport-http-egress-cassette-std \
-          edge-transport-http-egress-resilient edge-transport-http-egress-resilient-port \
+          edge-transport-http-egress-resilient-api edge-transport-http-egress-resilient-std \
           edge-transport-http-egress-transport-api edge-transport-http-egress-transport-std"
 
 echo "  1/4 fmt..."
@@ -63,14 +63,16 @@ baseline_for() {
     breaker-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names config_file_to_builder_naming" ;;
     # -std: pub_types_in_api_only and api_layer_mirrors_core_domains conflict with #30 (StdBreakerFactory is the
     #   public construction path and the contract lives in -api, so there is no api/ layer to mirror);
-    #   port_no_adapter_dep reports resilient-port -> cassette, a workspace finding that predates the split.
+    #   port_no_adapter_dep reports a workspace-local dependency of a port-typed crate, a finding that predates the split.
     breaker-std) echo "pub_types_in_api_only api_layer_mirrors_core_domains port_no_adapter_dep" ;;
     # retry-api / retry-std: the same conflicts as breaker-api / breaker-std below. retry-api has no
     #   config_file_to_builder_naming because ApplicationConfigBuilder lives in it.
     retry-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names" ;;
     retry-std) echo "pub_types_in_api_only port_no_adapter_dep" ;;
-    resilient) echo "pub_types_in_api_only port_no_adapter_dep examples_dir_lib security_dependency_audit_configured deps_have_integration_tests sea_layer_test_coverage" ;;
-    resilient-port) echo "service_type_has_validator no_foreign_type api_response_type_named core_implements_api_traits port_no_adapter_dep saf_trait_svc_correspondence examples_dir_lib security_dependency_audit_configured saf_file_organization_matches_api test_fn_prefixes api_impl_public_tests_external" ;;
+    # resilient-api / resilient-std: the naming conflicts of every -api package; resilient-std also keeps the two
+    #   conflicts of every -std package. The other findings the two packages carried before the split (#20) are fixed.
+    resilient-api) echo "package_name_no_sea_suffix boundary_no_antipattern_names" ;;
+    resilient-std) echo "pub_types_in_api_only port_no_adapter_dep" ;;
     # transport-api / transport-std: the same conflicts as breaker-api / breaker-std. The findings the transport
     #   package carried before the split (#20) are gone: the split removed them or they were fixed.
     transport-api) echo "config_methods_pub_crate package_name_no_sea_suffix boundary_no_antipattern_names" ;;
@@ -78,7 +80,7 @@ baseline_for() {
     *) echo "" ;;
   esac
 }
-for pkg_dir in cache-api cache-std rate-api rate-std retry-api retry-std breaker-api breaker-std cassette-api cassette-std resilient resilient-port transport-api transport-std; do
+for pkg_dir in cache-api cache-std rate-api rate-std retry-api retry-std breaker-api breaker-std cassette-api cassette-std resilient-api resilient-std transport-api transport-std; do
   AUDIT_OUTPUT="$(cd "$SCM_DIR/$pkg_dir" && arch audit --rs 2>&1)" && AUDIT_STATUS=0 || AUDIT_STATUS=$?
   echo "$AUDIT_OUTPUT"
   if [ "$AUDIT_STATUS" -ne 0 ]; then

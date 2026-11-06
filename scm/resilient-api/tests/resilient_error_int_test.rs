@@ -1,10 +1,10 @@
 //! Contract tests for the public resilient-composition error taxonomy.
 
-use edge_transport_http_egress_resilient_port::ResilientError;
+use edge_transport_http_egress_resilient_api::ResilientError;
 
 /// @covers: ResilientError
 #[test]
-fn port_error_display_preserves_layer_context_int_test() {
+fn api_enum_error_display_preserves_layer_context_int_test() {
     let errors = [
         (
             ResilientError::Config("bad section".into()),

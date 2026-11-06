@@ -8,7 +8,7 @@ use std::thread;
 
 use configbuilder::ConfigLoaderFactory;
 use edge_transport_http_egress_cassette_api::CassetteConfig;
-use edge_transport_http_egress_resilient_port::{
+use edge_transport_http_egress_resilient_api::{
     ResilientConfigRequest, ResilientDefaultsRequest, ResilientError, ResilientLayerComposer,
 };
 use reqwest_middleware::ClientBuilder;
