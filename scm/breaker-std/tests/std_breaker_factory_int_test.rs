@@ -57,10 +57,10 @@ fn test_create_validator_rejects_a_zero_failure_threshold_error() {
 
 /// @covers: create_config_builder
 #[test]
-fn test_create_config_builder_keeps_the_pre_split_application_name_happy() {
+fn test_create_config_builder_seeds_the_package_name_happy() {
     let builder = StdBreakerFactory.create_config_builder();
-    // The name is a config search directory segment: it must not change with the package split.
-    assert_eq!(builder.name(), "edge-transport-http-egress-breaker");
+    // The name is a config search directory segment, so it is the package name.
+    assert_eq!(builder.name(), "edge-transport-http-egress-breaker-std");
     assert_eq!(builder.version(), env!("CARGO_PKG_VERSION"));
 }
 

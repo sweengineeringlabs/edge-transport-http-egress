@@ -9,7 +9,7 @@ use configbuilder::{BuilderFinalizer as _, ConfigBuilder as _};
 use edge_transport_http_egress_rate_api::{RateConfig, RateFactory};
 use edge_transport_http_egress_rate_std::StdRateFactory;
 
-const CRATE_NAME: &str = "edge-transport-http-egress-rate";
+const CRATE_NAME: &str = "edge-transport-http-egress-rate-std";
 
 /// A config guaranteed to fail validation (zero token rate blocks all traffic).
 fn zero_rate_config() -> RateConfig {

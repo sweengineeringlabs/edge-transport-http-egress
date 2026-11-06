@@ -45,7 +45,7 @@ fn test_create_config_builder_independent_instances_edge() {
     // Independent instances must each be seeded with this crate's identity.
     assert_eq!(
         b1.name(),
-        "edge-transport-http-egress-cache",
+        "edge-transport-http-egress-cache-std",
         "first builder must carry the crate name"
     );
     assert_eq!(

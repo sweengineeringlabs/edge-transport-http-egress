@@ -18,7 +18,7 @@ fn std_struct_svc_create_config_builder_returns_builder_int_test() {
     // confirms it is fully seeded (name + version) without panicking.
     assert_eq!(
         builder.name(),
-        "edge-transport-http-egress-rate",
+        "edge-transport-http-egress-rate-std",
         "create_config_builder must seed the crate name"
     );
     let _loader = builder.build_loader();

@@ -194,7 +194,7 @@ fn test_malformed_cassette_yaml_returns_parse_error() {
         .unwrap_err();
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_cassette") || msg.contains("parse"),
+        msg.contains("edge_transport_http_egress_cassette_std") || msg.contains("parse"),
         "malformed YAML must return a ParseFailed error; got: {msg}"
     );
 }

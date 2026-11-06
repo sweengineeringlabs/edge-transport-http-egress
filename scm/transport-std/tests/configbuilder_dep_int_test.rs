@@ -8,13 +8,13 @@ use edge_transport_http_egress_transport_std::StdTransportFactory;
 #[test]
 fn std_type_configbuilder_dependency_creates_seeded_builder_int_test() {
     let builder: ConfigBuilderImpl = configbuilder::ConfigLoaderFactory::create_config_builder()
-        .with_name("edge-transport-http-egress-transport")
+        .with_name("edge-transport-http-egress-transport-std")
         .with_version(env!("CARGO_PKG_VERSION"));
-    assert_eq!(builder.name(), "edge-transport-http-egress-transport");
+    assert_eq!(builder.name(), "edge-transport-http-egress-transport-std");
     assert_eq!(builder.version(), env!("CARGO_PKG_VERSION"));
     let _loader = builder.build_loader();
 
     let facade = StdTransportFactory.create_config_builder();
-    assert_eq!(facade.name(), "edge-transport-http-egress-transport");
+    assert_eq!(facade.name(), "edge-transport-http-egress-transport-std");
     assert_eq!(facade.version(), env!("CARGO_PKG_VERSION"));
 }

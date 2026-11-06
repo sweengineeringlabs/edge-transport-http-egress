@@ -70,8 +70,7 @@ test functions with `git grep`; it is a name-level comparison, not a signature-l
 
 ## Intentionally unchanged
 
-- Config application names (configbuilder uses them as a config search directory) and runtime error-message
-  prefixes keep the pre-split package names.
+- Behaviour. Config application names and runtime error-message prefixes now carry the new package names; nothing keeps the pre-split names.
 - `HttpEgress::send` still turns some response statuses into errors (#46); the split does not change it.
 
 ## Limits of this check

@@ -338,7 +338,7 @@ impl MiddlewareHttpCache {
             .collect();
         let body = response.bytes().await.map_err(|e| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                "edge_transport_http_egress_cache read body: {e}"
+                "edge_transport_http_egress_cache_std read body: {e}"
             ))
         })?;
         let body_vec = body.to_vec();
@@ -357,7 +357,7 @@ impl MiddlewareHttpCache {
 
         let rebuilt = MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
             reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                "edge_transport_http_egress_cache post-store reconstruct: {e}"
+                "edge_transport_http_egress_cache_std post-store reconstruct: {e}"
             ))
         })?;
         Ok((rebuilt, Some(entry)))
@@ -427,7 +427,7 @@ impl MiddlewareHttpCache {
             let refreshed = self.refresh_on_304(entry, &response, key).await;
             return MiddlewareHttpCache::reconstruct(&refreshed).map_err(|e| {
                 reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                    "edge_transport_http_egress_cache 304 reconstruct: {e}"
+                    "edge_transport_http_egress_cache_std 304 reconstruct: {e}"
                 ))
             });
         }
@@ -463,7 +463,7 @@ impl reqwest_middleware::Middleware for MiddlewareHttpCache {
                 // Fresh hit.
                 return MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
                     reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                        "edge_transport_http_egress_cache reconstruct: {e}"
+                        "edge_transport_http_egress_cache_std reconstruct: {e}"
                     ))
                 });
             }
@@ -472,7 +472,7 @@ impl reqwest_middleware::Middleware for MiddlewareHttpCache {
                 // background refresh.
                 let rebuilt = MiddlewareHttpCache::reconstruct(&entry).map_err(|e| {
                     reqwest_middleware::Error::Middleware(anyhow::anyhow!(
-                        "edge_transport_http_egress_cache swr reconstruct: {e}"
+                        "edge_transport_http_egress_cache_std swr reconstruct: {e}"
                     ))
                 })?;
                 let layer_arc: Arc<MiddlewareHttpCache> = Arc::new(MiddlewareHttpCache {

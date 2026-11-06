@@ -23,7 +23,7 @@ fn test_error_parse_failed_display_names_crate() {
     let err = RateError::ParseFailed("bad field".to_string());
     let msg = err.to_string();
     assert!(
-        msg.contains("edge_transport_http_egress_rate"),
+        msg.contains("edge_transport_http_egress_rate_api"),
         "ParseFailed display must name the crate; got: {msg}"
     );
 }

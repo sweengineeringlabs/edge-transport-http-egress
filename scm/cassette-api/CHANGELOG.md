@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (breaking)
+
+- The config builder is seeded with the package name `edge-transport-http-egress-cassette-std` instead of the pre-split `edge-transport-http-egress-cassette`, and diagnostic messages carry the new crate names (`edge_transport_http_egress_cassette_api` / `_std`). configbuilder uses the name as a directory segment when it searches for configuration, so a configuration directory named after `edge-transport-http-egress-cassette` must be renamed. The pre-split name is not kept.
+
 ## [0.7.0] - 2026-11-06
 
 ### Changed (breaking)
