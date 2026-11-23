@@ -38,7 +38,7 @@ swe-observ-metrics   = { package = "swe-observability-metrics", git = "https://g
 tokio-tungstenite    = { version = "0.26", optional = true, features = ["rustls-tls-native-roots"] }
 
 [dev-dependencies]
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 http                = "1"
 serde_json          = "1.0"
 tokio               = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time", "rt-multi-thread", "macros"] }

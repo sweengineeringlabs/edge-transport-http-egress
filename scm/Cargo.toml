@@ -32,3 +32,6 @@ missing_docs = "warn"
 [workspace.lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"
+
+[workspace.dependencies]
+configbuilder = "0.9"

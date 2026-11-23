@@ -28,7 +28,7 @@ edge-transport-breaker        = { git = "https://github.com/sweengineeringlabs/e
 reqwest = { version = "0.12", features = ["json", "stream", "multipart", "rustls-tls"], default-features = false }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
 http = "1"
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 async-trait = "0.1"
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 moka = { version = "0.12", features = ["future"] }
