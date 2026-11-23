@@ -34,7 +34,7 @@ edge-transport-http-egress-resilient-api = { path = "../resilient-api" }
 edge-transport-http-egress-retry-api = { path = "../retry-api" }
 edge-transport-http-egress-retry-std = { path = "../retry-std" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 
 [dev-dependencies]
 tempfile = "3"

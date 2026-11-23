@@ -34,7 +34,7 @@ async-trait = "0.1"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde-saphyr = "0.0.27"
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 tokio = { version = "1.52", features = ["rt", "sync", "fs", "io-util", "net", "time"] }
 
 [dev-dependencies]

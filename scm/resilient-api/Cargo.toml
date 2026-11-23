@@ -24,7 +24,7 @@ path = "main/src/lib.rs"
 [dependencies]
 edge-transport-http-egress-cassette-api = { path = "../cassette-api" }
 reqwest-middleware = { version = "0.4", features = ["json", "multipart"] }
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 thiserror = "2"
 
 [dev-dependencies]
