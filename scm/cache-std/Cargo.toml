@@ -29,7 +29,7 @@ http = "1"
 moka = { version = "0.12", features = ["future"] }
 anyhow = "1"
 async-trait = "0.1"
-configbuilder = "0.8"
+configbuilder = { workspace = true }
 tracing = { version = "0.1", default-features = false, optional = true }
 # `tokio::spawn` fires the stale-while-revalidate background
 # refresh task. Only `rt` is needed at runtime: the caller runtime

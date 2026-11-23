@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Align all HTTP transport and resilient layer contracts on configbuilder 0.9 through one workspace dependency. Consumers can share their application loader, including explicit files and precise I/O errors, without resolving two configuration APIs.
+
 ## [0.7.0] - 2026-11-06
 
 ### Changed (breaking)
