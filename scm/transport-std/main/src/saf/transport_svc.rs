@@ -12,7 +12,7 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use swe_observ_metrics::MetricsProvider;
+use edge_transport_http_egress_transport_api::HttpMetricsObserver;
 
 use super::http_transport_svc::HttpTransportSvc;
 use crate::core::{DefaultHttpEgress, MetricsHttpEgress};
@@ -83,14 +83,14 @@ impl HttpTransportSvc {
     /// outbound is configured:
     ///
     /// ```rust,ignore
-    /// let outbound = HttpTransportSvc::observe_http_egress(plain_http_egress(cfg)?, metrics_provider);
+    /// let outbound = HttpTransportSvc::observe_http_egress(plain_http_egress(cfg)?, metrics_observer);
     /// ```
     pub fn observe_http_egress(
         inner: Box<dyn HttpEgress>,
-        provider: Arc<dyn MetricsProvider>,
+        observer: HttpMetricsObserver,
     ) -> Box<dyn HttpEgress> {
         let arc_inner: Arc<dyn HttpEgress> = Arc::from(inner);
-        Box::new(MetricsHttpEgress::new(arc_inner, provider))
+        Box::new(MetricsHttpEgress::new(arc_inner, observer))
     }
 
     /// Validate that an [`HttpConfig`] value is well-formed.

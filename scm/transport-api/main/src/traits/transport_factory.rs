@@ -1,8 +1,6 @@
 //! The construction contract of the outbound HTTP transport.
 
-use std::sync::Arc;
-
-use swe_observ_metrics::MetricsProvider;
+use crate::HttpMetricsObserver;
 
 use crate::{
     ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError, HttpStream, Validator,
@@ -41,11 +39,11 @@ pub trait TransportFactory: Send + Sync {
         config: HttpConfig,
     ) -> Box<dyn HttpEgress>;
 
-    /// Decorate `inner` so each call is reported to `provider`.
+    /// Decorate `inner` so each call is reported to `observer`.
     fn observe_http_egress(
         &self,
         inner: Box<dyn HttpEgress>,
-        provider: Arc<dyn MetricsProvider>,
+        observer: HttpMetricsObserver,
     ) -> Box<dyn HttpEgress>;
 
     /// Validate an [`HttpConfig`].

@@ -1,21 +1,21 @@
 //! Integration tests for the `TransportFactory` contract, through a test double: the trait must be
-//! object safe and carry its arguments (config, validator, metrics provider) unchanged.
+//! object safe and carry its arguments (config, validator, metrics observer) unchanged.
 
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
+use edge_transport_http_egress_transport_api::HttpMetricsObserver;
 use edge_transport_http_egress_transport_api::{
     AlwaysValidConfig, ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError,
     HttpStream, TransportFactory, ValidatableHttpConfig, ValidateRequest, ValidationError,
     Validator,
 };
-use swe_observ_metrics::MetricsProvider;
 
 /// A factory that builds nothing and records what it was handed.
 #[derive(Default)]
 struct RecordingFactory {
-    seen_provider: Mutex<Option<Arc<dyn MetricsProvider>>>,
+    seen_provider: Mutex<Option<HttpMetricsObserver>>,
 }
 
 fn build_error() -> HttpEgressBuildError {
@@ -61,7 +61,7 @@ impl TransportFactory for RecordingFactory {
     fn observe_http_egress(
         &self,
         inner: Box<dyn HttpEgress>,
-        provider: Arc<dyn MetricsProvider>,
+        provider: HttpMetricsObserver,
     ) -> Box<dyn HttpEgress> {
         *self.seen_provider.lock().unwrap() = Some(provider);
         inner
