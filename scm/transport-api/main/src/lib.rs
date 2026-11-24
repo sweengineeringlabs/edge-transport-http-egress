@@ -28,7 +28,8 @@ pub use crate::traits::{HttpEgress, HttpEgressFuture, HttpStream, TransportFacto
 pub use crate::types::{
     AlwaysValidConfig, ApplicationConfigBuilder, FormPart, HttpAuth, HttpByteStream, HttpConfig,
     HttpConfigBuilder, HttpConfigValidator, HttpEgressObject, HttpEgressResult, HttpMethod,
-    HttpRequestBuilder, HttpSecurityContext, JsonValue, MetricsHttpEgress, SseEvent,
-    ValidatableHttpConfig, ValidatorObject, WsMessage,
+    HttpMetricKind, HttpMetricObservation, HttpMetricsObserver, HttpRequestBuilder,
+    HttpSecurityContext, JsonValue, MetricsHttpEgress, SseEvent, ValidatableHttpConfig,
+    ValidatorObject, WsMessage,
 };
 pub use edge_security_runtime::SecurityContext;

@@ -19,13 +19,13 @@
 
 use std::sync::Arc;
 
+use edge_transport_http_egress_transport_api::HttpMetricsObserver;
 use edge_transport_http_egress_transport_api::{
     AlwaysValidConfig, ConfigRequest, ConnectWebsocketRequest, GetRequest, HealthCheckRequest,
     HttpConfig, HttpMethod, HttpRequest, SubscribeSseRequest, TransportFactory,
     ValidatableHttpConfig,
 };
 use edge_transport_http_egress_transport_std::StdTransportFactory;
-use swe_observ_metrics::{MetricsProvider, MetricsSvcFactory};
 
 /// A zero-timeout config that every validator in this crate must reject — the
 /// canonical "known-bad" input for validation tests.
@@ -66,8 +66,7 @@ fn test_observe_http_egress_wraps_inner_without_error_happy() {
     let inner = StdTransportFactory
         .plain_http_egress(HttpConfig::default())
         .expect("ok");
-    let provider: Arc<dyn MetricsProvider> =
-        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
+    let provider: HttpMetricsObserver = Arc::new(|_| {});
     let _observed = StdTransportFactory.observe_http_egress(inner, provider);
 }
 
@@ -77,16 +76,14 @@ fn test_observe_http_egress_wrapper_is_send_sync_error() {
     let inner = StdTransportFactory
         .plain_http_egress(HttpConfig::default())
         .expect("ok");
-    let provider: Arc<dyn MetricsProvider> =
-        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
+    let provider: HttpMetricsObserver = Arc::new(|_| {});
     let observed = StdTransportFactory.observe_http_egress(inner, provider);
     assert_send_sync(observed.as_ref());
 }
 
 #[test]
 fn test_observe_http_egress_shared_provider_two_instances_edge() {
-    let provider: Arc<dyn MetricsProvider> =
-        Arc::new(MetricsSvcFactory.create_local_metrics_backend());
+    let provider: HttpMetricsObserver = Arc::new(|_| {});
     let a = StdTransportFactory
         .plain_http_egress(HttpConfig::default())
         .expect("ok");

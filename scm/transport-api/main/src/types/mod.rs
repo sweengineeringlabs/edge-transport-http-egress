@@ -24,7 +24,7 @@ pub mod metrics;
 pub mod validator;
 
 pub use application_config_builder::ApplicationConfigBuilder;
-pub use metrics::MetricsHttpEgress;
+pub use metrics::{HttpMetricKind, HttpMetricObservation, HttpMetricsObserver, MetricsHttpEgress};
 pub use validator::{
     AlwaysValidConfig, HttpConfigValidator, HttpEgressObject, ValidatableHttpConfig,
     ValidatorObject,

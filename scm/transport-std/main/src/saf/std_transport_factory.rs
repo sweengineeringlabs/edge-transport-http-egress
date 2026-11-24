@@ -1,12 +1,10 @@
 //! The standard implementation of the transport construction contract.
 
-use std::sync::Arc;
-
+use edge_transport_http_egress_transport_api::HttpMetricsObserver;
 use edge_transport_http_egress_transport_api::{
     AlwaysValidConfig, ApplicationConfigBuilder, HttpConfig, HttpEgress, HttpEgressBuildError,
     HttpStream, TransportFactory, Validator,
 };
-use swe_observ_metrics::MetricsProvider;
 
 use super::http_transport_svc::HttpTransportSvc;
 
@@ -48,9 +46,9 @@ impl TransportFactory for StdTransportFactory {
     fn observe_http_egress(
         &self,
         inner: Box<dyn HttpEgress>,
-        provider: Arc<dyn MetricsProvider>,
+        observer: HttpMetricsObserver,
     ) -> Box<dyn HttpEgress> {
-        HttpTransportSvc::observe_http_egress(inner, provider)
+        HttpTransportSvc::observe_http_egress(inner, observer)
     }
 
     fn validate_http_config(&self, config: &HttpConfig) -> Result<(), String> {
